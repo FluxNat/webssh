@@ -7,6 +7,8 @@ class SocketCapacityRegistry:
     """Track process-local connection capacity for the single-worker runtime."""
 
     def __init__(self):
+        self._rejected_total = 0
+        self._rejected_per_user = 0
         self._lock = RLock()
         self._owners = {}
         self._by_user = defaultdict(set)
@@ -42,8 +44,10 @@ class SocketCapacityRegistry:
                     and socket_sid not in self._terminal
                 )
             if len(self._owners) >= max_total:
+                self._rejected_total += 1
                 return False
             if len(self._by_user[user_id]) >= max_per_user:
+                self._rejected_per_user += 1
                 return False
             self._owners[socket_sid] = user_id
             self._by_user[user_id].add(socket_sid)
@@ -106,6 +110,15 @@ class SocketCapacityRegistry:
         """Return the recorded owner without changing the reservation."""
         with self._lock:
             return self._owners.get(socket_sid)
+
+    def snapshot(self):
+        """Return capacity-only rejection counters since process startup."""
+        with self._lock:
+            return {
+                'active': len(self._owners),
+                'rejected_total': self._rejected_total,
+                'rejected_per_user': self._rejected_per_user,
+            }
 
     def count(self):
         """Return the total number of process-local reservations."""

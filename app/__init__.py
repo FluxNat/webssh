@@ -696,6 +696,8 @@ def create_app(
     app.register_blueprint(account_step_up_blueprint)
     app.register_blueprint(admin_backup_blueprint)
     app.register_blueprint(health_blueprint)
+    from .operations import operations_blueprint
+    app.register_blueprint(operations_blueprint)
     app.register_blueprint(host_key_blueprint)
     app.register_blueprint(github_auth_blueprint)
     app.register_blueprint(oidc_blueprint)

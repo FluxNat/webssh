@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 global.window = { TerminalFileBridge: require('../../static/js/terminal-file-bridge.js') };
 global.document = { getElementById: () => null };
+require('../../static/js/file-directory-requests.js');
 require('../../static/js/sftp-file-manager.js');
 const Manager = window.SFTPFileManager;
 

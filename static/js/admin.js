@@ -259,7 +259,7 @@
                 document.querySelectorAll('.admin-tab[data-tab]').forEach(x => x.classList.remove('active'));
                 tab.classList.add('active');
                 const name = tab.dataset.tab;
-                ['users', 'audit', 'settings', 'backup'].forEach(n => {
+                ['users', 'audit', 'settings', 'backup', 'operations'].forEach(n => {
                     document.getElementById('tab-' + n)?.classList.toggle('hidden', n !== name);
                 });
                 const settingsSection = tab.dataset.settingsSection || 'authentication';
@@ -272,6 +272,7 @@
                 if (name === 'audit') { loadAudit(); }
                 if (name === 'settings') { loadSettings(); }
                 if (name === 'backup') { loadRestoreStatus(); }
+                if (name === 'operations') { loadOperations(); }
                 const target = name === 'settings' ? settingsSection : name;
                 history.replaceState(null, '', `#${target}`);
             });
@@ -283,6 +284,201 @@
         ));
         if (requestedTab && !requestedTab.classList.contains('active')) {
             requestedTab.click();
+        }
+    }
+
+    // ---- Instance operations ----
+    let operationsLoading = false;
+    let operationsSnapshot = null;
+    let operationsUpdatedAt = null;
+    let operationsFailed = false;
+    let operationsMaintenance = false;
+    let operationsView = null;
+    let operationsDetails = null;
+    let operationsDetailsLoading = false;
+    let operationsDetailsFailed = false;
+    let operationsActionBusy = false;
+
+    function renderOperations() {
+        const status = document.getElementById('operationsStatus');
+        if (!status) return;
+        document.querySelectorAll('[data-operation]').forEach(element => {
+            const [group, key] = element.dataset.operation.split('.');
+            const value = operationsSnapshot?.[group]?.[key];
+            element.textContent = Number.isInteger(value) && value >= 0 ? String(value) : '—';
+        });
+        const reasons = [];
+        if (operationsSnapshot?.maintenance || operationsMaintenance) reasons.push(t('operations.maintenance', 'Maintenance mode'));
+        if (operationsSnapshot?.jobs?.accepting_work === false) reasons.push(t('operations.stopping', 'Runtime is shutting down'));
+        if (operationsSnapshot?.sockets?.active >= operationsSnapshot?.sockets?.limit) {
+            reasons.push(t('operations.full', 'Socket capacity reached'));
+        }
+        if (operationsSnapshot?.jobs?.queued > 0) reasons.push(t('operations.queuedHint', 'Background work is waiting for a worker'));
+        const notice = document.getElementById('operationsNotice');
+        if (notice) {
+            notice.textContent = reasons.join(' · ');
+            notice.classList.toggle('hidden', reasons.length === 0);
+        }
+        status.textContent = operationsLoading
+            ? t('operations.loading', 'Loading…')
+            : operationsMaintenance
+                ? t('operations.maintenance', 'Maintenance mode')
+                : operationsFailed
+                ? t('operations.failed', 'Could not load instance status. Please retry.')
+                : operationsUpdatedAt
+                    ? `${t('operations.updated', 'Updated')} ${operationsUpdatedAt.toLocaleTimeString(window.i18n?.getLanguage() || undefined)}`
+                    : t('operations.notLoaded', 'Not loaded');
+        document.getElementById('operationsRefresh').disabled = operationsLoading || operationsActionBusy;
+        document.getElementById('tab-operations').setAttribute('aria-busy', String(operationsLoading));
+    }
+
+    async function loadOperations() {
+        if (operationsLoading || operationsActionBusy || !document.getElementById('tab-operations')) return;
+        operationsLoading = true;
+        operationsFailed = false;
+        operationsMaintenance = false;
+        operationsSnapshot = null;
+        renderOperations();
+        renderOperationDetails();
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        try {
+            const snapshot = await api('/admin/api/operations', { cache: 'no-store', signal: controller.signal });
+            const groups = {
+                sockets: ['active', 'limit', 'per_user_limit', 'http_reserve', 'rejected_total', 'rejected_per_user'],
+                jobs: ['workers', 'running', 'queued', 'cancelling'],
+                transfers: ['pending', 'running', 'cancelling'],
+            };
+            if (!snapshot || typeof snapshot.maintenance !== 'boolean'
+                    || typeof snapshot.jobs?.accepting_work !== 'boolean'
+                    || !Object.entries(groups).every(([group, keys]) => keys.every(key => (
+                        Number.isInteger(snapshot[group]?.[key]) && snapshot[group][key] >= 0
+                    )))) {
+                throw new Error('Invalid instance status');
+            }
+            operationsSnapshot = snapshot;
+            operationsUpdatedAt = new Date();
+        } catch (error) {
+            operationsFailed = true;
+            operationsMaintenance = error.code === 'maintenance';
+            operationsSnapshot = null;
+            operationsUpdatedAt = null;
+        } finally {
+            clearTimeout(timeout);
+            operationsLoading = false;
+            renderOperations();
+            if (operationsView) await loadOperationDetails();
+        }
+    }
+
+    function renderOperationDetails() {
+        const panel = document.getElementById('operationsDetails');
+        if (!panel || !operationsView) return;
+        panel.classList.remove('hidden');
+        const titleKeys = { connections: 'manageConnections', transfers: 'manageTransfers', jobs: 'viewJobs' };
+        document.getElementById('operationsDetailsTitle').textContent = t(`operations.${titleKeys[operationsView]}`);
+        document.getElementById('operationsDetailsHint').textContent = t(`operations.${operationsView}Hint`);
+        const data = operationsDetails?.[operationsView];
+        document.getElementById('operationsDetailsStatus').textContent = operationsDetailsLoading
+            ? t('operations.loading') : operationsDetailsFailed ? t('operations.failed')
+                : data?.items.length ? t('operations.showing').replace('{shown}', data.items.length).replace('{total}', data.total)
+                    : t('operations.empty');
+        document.getElementById('operationsDetailsRefresh').disabled = operationsDetailsLoading || operationsActionBusy;
+        document.querySelectorAll('[data-operation-view]').forEach(button => {
+            button.disabled = operationsActionBusy;
+            button.setAttribute('aria-pressed', String(button.dataset.operationView === operationsView));
+        });
+        const rows = document.getElementById('operationsDetailRows');
+        rows.replaceChildren();
+        for (const item of data?.items || []) {
+            const row = document.createElement('tr');
+            const view = operationsView;
+            const label = view === 'jobs' ? t(`operations.kind.${item.kind}`, t('operations.kind.other'))
+                : `${item.username || t('operations.unknownUser')} (${item.id.slice(0, 12)})`;
+            const state = view === 'connections' ? 'active' : item.cancelling ? 'cancelling' : item.state;
+            const detail = view === 'connections' ? fmtDate(item.created_at)
+                : `${view === 'transfers' ? t(`operations.direction.${item.direction}`) + ' · ' : ''}${item.age_seconds} s`;
+            const stateKey = ['pending', 'queued'].includes(state) ? 'waiting' : state;
+            for (const value of [label, t(`operations.${stateKey}`, state), detail]) {
+                const cell = document.createElement('td');
+                cell.textContent = value;
+                row.appendChild(cell);
+            }
+            const actions = document.createElement('td');
+            if (view !== 'jobs') {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'btn btn-secondary';
+                button.textContent = t(`operations.${view === 'connections' ? 'disconnect' : 'cancelTransfer'}`);
+                button.disabled = operationsLoading || operationsActionBusy || state === 'cancelling';
+                button.addEventListener('click', () => runOperationAction(view, item));
+                actions.appendChild(button);
+            }
+            row.appendChild(actions);
+            rows.appendChild(row);
+        }
+    }
+
+    async function loadOperationDetails() {
+        if (!operationsView || operationsDetailsLoading || operationsActionBusy) return;
+        operationsDetailsLoading = true;
+        operationsDetailsFailed = false;
+        operationsDetails = null;
+        renderOperationDetails();
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        try {
+            const data = await api('/admin/api/operations/details', { cache: 'no-store', signal: controller.signal });
+            const valid = ['connections', 'transfers', 'jobs'].every(group => {
+                const section = data?.[group];
+                return Number.isInteger(section?.total) && section.total >= 0
+                    && Array.isArray(section.items) && section.items.length <= 200
+                    && section.items.every(item => item && (group === 'jobs'
+                        ? typeof item.kind === 'string' && Number.isInteger(item.age_seconds)
+                        : typeof item.id === 'string' && (typeof item.username === 'string' || item.username === null)));
+            });
+            if (!valid) throw new Error('Invalid instance details');
+            operationsDetails = data;
+        } catch {
+            operationsDetailsFailed = true;
+        } finally {
+            clearTimeout(timeout);
+            operationsDetailsLoading = false;
+            renderOperationDetails();
+        }
+    }
+
+    async function runOperationAction(view, item) {
+        if (operationsLoading || operationsActionBusy || operationsDetailsLoading) return;
+        const disconnect = view === 'connections';
+        const confirmation = t(`operations.${disconnect ? 'disconnectConfirm' : 'cancelConfirm'}`)
+            .replace('{user}', item.username || t('operations.unknownUser')).replace('{id}', item.id.slice(0, 12));
+        if (!window.confirm(confirmation)) return;
+        operationsActionBusy = true;
+        renderOperations();
+        renderOperationDetails();
+        const status = document.getElementById('operationsActionStatus');
+        status.textContent = t('operations.authorizing');
+        try {
+            const action = disconnect ? 'operations.connection.disconnect' : 'operations.transfer.cancel';
+            const grant = await acquireStepUp(action, item.id);
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 10000);
+            let result;
+            try {
+                result = await api(`/admin/api/operations/${view}/${encodeURIComponent(item.id)}/${disconnect ? 'disconnect' : 'cancel'}`, {
+                    method: 'POST', signal: controller.signal, headers: { 'X-WebSSH-Step-Up': grant },
+                });
+            } finally { clearTimeout(timeout); }
+            const states = ['disconnected', 'cancelled', 'cancelling', 'completed', 'failed', 'unavailable'];
+            if (!states.includes(result?.state)) throw new Error('Invalid action result');
+            status.textContent = t(`operations.result.${result.state}`);
+        } catch (error) {
+            status.textContent = error.code === 'unavailable' ? t('operations.result.unavailable') : t('operations.actionUnconfirmed');
+        } finally {
+            operationsActionBusy = false;
+            await loadOperations();
+            renderOperationDetails();
         }
     }
 
@@ -1504,6 +1700,16 @@
         initAudit();
         initSettings();
         initBackupRestore();
+        document.getElementById('operationsRefresh')?.addEventListener('click', loadOperations);
+        document.getElementById('operationsDetailsRefresh')?.addEventListener('click', loadOperationDetails);
+        document.querySelectorAll('[data-operation-view]').forEach(button => {
+            button.addEventListener('click', () => {
+                operationsView = button.dataset.operationView;
+                document.getElementById('operationsActionStatus').textContent = '';
+                renderOperationDetails();
+                loadOperationDetails();
+            });
+        });
         document.getElementById('adminUserSearch')?.addEventListener('input', filterUsers);
         document.getElementById('adminUserFilter')?.addEventListener('change', filterUsers);
         document.getElementById('globalHostKeyAdd')?.addEventListener(
@@ -1512,6 +1718,8 @@
         loadUsers();
         loadGlobalHostKeys();
         window.addEventListener('languageChanged', () => {
+            renderOperations();
+            renderOperationDetails();
             renderSecurityFeatures(securityFeatureSnapshot);
             filterUsers();
             loadGitHubConfig();

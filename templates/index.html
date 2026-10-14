@@ -14,7 +14,8 @@
 
     <link rel="stylesheet" href="{{ static_asset_url(filename='vendor/xterm/xterm.css') }}" />
 
-    <link rel="stylesheet" href="{{ static_asset_url(filename='vendor/highlight/github-dark.min.css') }}" />
+    <meta name="preview-highlight-script" content="{{ static_asset_url(filename='vendor/highlight/highlight.min.js') }}">
+    <meta name="preview-highlight-style" content="{{ static_asset_url(filename='vendor/highlight/github-dark.min.css') }}">
 
     <link rel="stylesheet" href="{{ static_asset_url(filename='vendor/material-icons/material-icons.css') }}">
 
@@ -1419,7 +1420,7 @@
     <script src="{{ static_asset_url(filename='vendor/xterm/xterm.js') }}"></script>
     <script src="{{ static_asset_url(filename='vendor/xterm/xterm-addon-fit.js') }}"></script>
     <script src="{{ static_asset_url(filename='vendor/xterm/xterm-addon-search.js') }}"></script>
-    <script src="{{ static_asset_url(filename='vendor/highlight/highlight.min.js') }}"></script>
+    <script src="{{ static_asset_url(filename='js/preview-highlight.js') }}"></script>
     <script src="{{ static_asset_url(filename='vendor/socketio/socket.io.min.js') }}"></script>
 
     <script>
@@ -1466,6 +1467,7 @@
     <script src="{{ static_asset_url(filename='js/file-transfer.js') }}"></script>
     <script src="{{ static_asset_url(filename='js/file-workspace-state.js') }}"></script>
     <script src="{{ static_asset_url(filename='js/smb-source-dialog.js') }}"></script>
+    <script src="{{ static_asset_url(filename='js/file-directory-requests.js') }}"></script>
     <script src="{{ static_asset_url(filename='js/sftp-file-manager.js') }}"></script>
     <script src="{{ static_asset_url(filename='js/connection-history.js') }}"></script>
     <script src="{{ static_asset_url(filename='js/primary-workspace-controller.js') }}"></script>
