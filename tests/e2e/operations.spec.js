@@ -1,6 +1,70 @@
 const { test, expect } = require('playwright/test');
 const { login } = require('./helpers');
 
+test('administrator disconnects one browser after confirmation and reauthentication', async ({ page, browser }) => {
+    const otherContext = await browser.newContext({ baseURL: 'http://127.0.0.1:' + (process.env.WEBSSH_E2E_PORT || '4173') });
+    try {
+        const other = await otherContext.newPage();
+        await login(other, 'e2e_user');
+        await expect.poll(() => other.evaluate(() => window.socket.connected)).toBe(true);
+        await login(page);
+        await page.goto('/settings#operations');
+        await page.locator('[data-operation-view="connections"]').click();
+        const row = page.locator('#operationsDetailRows tr').filter({ hasText: 'e2e_user' });
+        await expect(row).toHaveCount(1);
+        page.once('dialog', dialog => dialog.dismiss());
+        await row.getByRole('button', { name: 'Disconnect browser' }).click();
+        expect(await other.evaluate(() => window.socket.connected)).toBe(true);
+        page.once('dialog', dialog => dialog.accept());
+        await row.getByRole('button', { name: 'Disconnect browser' }).click();
+        await page.locator('#stepUpPassword').fill('browser-password');
+        await page.locator('#stepUpSubmit').click();
+        await expect(page.locator('#operationsActionStatus')).toContainText('Browser disconnected');
+        await expect.poll(() => other.evaluate(() => window.socket.connected)).toBe(false);
+        await expect(page.locator('#operationsDetailRows')).not.toContainText('e2e_user');
+    } finally { await otherContext.close(); }
+});
+
+test('transfer cancellation retains cancelling state and renders user text safely', async ({ page }) => {
+    await login(page);
+    let cancelling = false;
+    await page.route('**/admin/api/operations/details', route => route.fulfill({
+        json: {
+            connections: { total: 0, items: [] }, jobs: { total: 0, items: [] },
+            transfers: { total: 1, items: [{ id: 'transfer-test', username: '<img src=x onerror=alert(1)>',
+                direction: 'download', state: cancelling ? 'cancelling' : 'running', age_seconds: 12 }] },
+        },
+    }));
+    await page.route('**/admin/api/operations/transfers/transfer-test/cancel', route => {
+        expect(route.request().method()).toBe('POST');
+        expect(route.request().headers()['x-webssh-step-up']).toBeTruthy();
+        cancelling = true;
+        return route.fulfill({ json: { accepted: true, state: 'cancelling' } });
+    });
+    await page.goto('/settings#operations');
+    await page.locator('[data-operation-view="transfers"]').click();
+    await expect(page.locator('#operationsDetailRows')).toContainText('<img src=x onerror=alert(1)>');
+    await expect(page.locator('#operationsDetailRows img')).toHaveCount(0);
+    page.once('dialog', dialog => dialog.accept());
+    await page.getByRole('button', { name: 'Cancel transfer', exact: true }).click();
+    await page.locator('#stepUpPassword').fill('browser-password');
+    await page.locator('#stepUpSubmit').click();
+    await expect(page.locator('#operationsActionStatus')).toContainText('Cancellation requested');
+    await expect(page.getByRole('button', { name: 'Cancel transfer', exact: true })).toBeDisabled();
+});
+
+test('task details and capacity guidance remain usable on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await login(page);
+    await page.goto('/settings#operations');
+    await page.locator('[data-operation-view="jobs"]').click();
+    await expect(page.locator('#operationsDetailsHint')).toContainText('System tasks');
+    await expect(page.locator('#operationsDetailRows button')).toHaveCount(0);
+    await page.locator('#operationsConfiguration summary').click();
+    await expect(page.locator('#operationsConfiguration')).toContainText('MAX_SOCKET_CONNECTIONS');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});
+
 test('admin operations refreshes aggregate state and leaves personal settings usable', async ({ page }, testInfo) => {
     await login(page);
     await page.goto('/settings#operations');
@@ -77,4 +141,25 @@ test('a login page after authentication expiry cannot appear as a fresh snapshot
     await page.locator('#operationsRefresh').click();
     await expect(page.locator('#operationsStatus')).toContainText('Could not load');
     await expect(page.locator('[data-operation="sockets.active"]')).toHaveText('—');
+});
+
+
+test('failed detail refresh removes stale action rows and allows retry', async ({ page }) => {
+    await login(page);
+    let failed = false;
+    await page.route('**/admin/api/operations/details', route => route.fulfill(failed
+        ? { status: 503, json: {} }
+        : { json: { connections: { total: 0, items: [] }, jobs: { total: 0, items: [] },
+            transfers: { total: 1, items: [{ id: 'pending-transfer', username: 'test-user',
+                direction: 'upload', state: 'pending', age_seconds: 1 }] } } }));
+    await page.goto('/settings#operations');
+    await page.locator('[data-operation-view="transfers"]').click();
+    await expect(page.locator('#operationsDetailRows tr')).toHaveCount(1);
+    failed = true;
+    await page.locator('#operationsDetailsRefresh').click();
+    await expect(page.locator('#operationsDetailsStatus')).toContainText('Could not load');
+    await expect(page.locator('#operationsDetailRows tr')).toHaveCount(0);
+    failed = false;
+    await page.locator('#operationsDetailsRefresh').click();
+    await expect(page.locator('#operationsDetailRows tr')).toHaveCount(1);
 });

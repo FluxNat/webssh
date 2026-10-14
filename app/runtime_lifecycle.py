@@ -42,6 +42,7 @@ class JobHandle:
         self.cancel_event = cancel_event
         self.defer_cancel_until_callbacks = defer_cancel_until_callbacks
         self._future = None
+        self.created_at = time.monotonic()
 
     def _set_future(self, future):
         self._future = future
@@ -116,6 +117,43 @@ class RuntimeLifecycle:
                 'cancelling': cancelling,
                 'accepting_work': self._accepting_jobs,
             }
+
+    def admin_details(self, limit=200):
+        """Expose bounded task categories, never arbitrary task names."""
+        categories = {
+            'ssh_output_reader': 'terminal',
+            'ssh_connect': 'connection',
+            'smb_quick_connect': 'connection',
+            'gateway_quick_connect': 'connection',
+            'server_to_server_transfer': 'transfer',
+            'web-backup-create': 'backup',
+            'web-backup-verify': 'backup',
+            'backup-operation-cleanup': 'maintenance',
+            'transfer-token-cleanup': 'maintenance',
+            'inactive_socket_session_cleanup': 'maintenance',
+            'idle_ssh_session_cleanup': 'maintenance',
+            'temporary_connection_cleanup': 'maintenance',
+            'smb_source_cleanup': 'maintenance',
+            'ldap_session_revalidation': 'maintenance',
+        }
+        items = []
+        total = 0
+        now = time.monotonic()
+        with self._lock:
+            for handle in self._jobs.values():
+                future = handle._future
+                if future is not None and future.done():
+                    continue
+                total += 1
+                if len(items) >= limit:
+                    continue
+                items.append({
+                    'kind': categories.get(handle.name, 'other'),
+                    'state': 'running' if future is not None and future.running() else 'queued',
+                    'cancelling': handle.cancel_event.is_set(),
+                    'age_seconds': max(0, int(now - handle.created_at)),
+                })
+        return {'items': items, 'total': total}
 
     def register_shutdown_callback(self, name, callback):
         """Register one bounded cancellation callback within shutdown grace."""

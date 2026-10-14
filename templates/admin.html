@@ -74,20 +74,44 @@
                     <dt data-i18n="operations.httpReserve">Configured HTTP thread reserve</dt><dd data-operation="sockets.http_reserve">—</dd>
                     <dt data-i18n="operations.rejectedTotal">Rejected: instance limit</dt><dd data-operation="sockets.rejected_total">—</dd>
                     <dt data-i18n="operations.rejectedUser">Rejected: user limit</dt><dd data-operation="sockets.rejected_per_user">—</dd>
-                </dl></section>
+                </dl><button type="button" class="btn btn-secondary" data-operation-view="connections" data-i18n="operations.manageConnections">Manage connections</button></section>
                 <section class="admin-card"><h3 data-i18n="operations.jobs">Background work</h3><dl>
                     <dt data-i18n="operations.workers">Worker limit</dt><dd data-operation="jobs.workers">—</dd>
                     <dt data-i18n="operations.running">Running</dt><dd data-operation="jobs.running">—</dd>
                     <dt data-i18n="operations.waiting">Waiting</dt><dd data-operation="jobs.queued">—</dd>
                     <dt data-i18n="operations.cancelling">Cancellation requested</dt><dd data-operation="jobs.cancelling">—</dd>
-                </dl></section>
+                </dl><button type="button" class="btn btn-secondary" data-operation-view="jobs" data-i18n="operations.viewJobs">View tasks</button></section>
                 <section class="admin-card"><h3 data-i18n="operations.transfers">File transfers</h3><dl>
                     <dt data-i18n="operations.waiting">Waiting</dt><dd data-operation="transfers.pending">—</dd>
                     <dt data-i18n="operations.running">Running</dt><dd data-operation="transfers.running">—</dd>
                     <dt data-i18n="operations.cancelling">Cancellation requested</dt><dd data-operation="transfers.cancelling">—</dd>
-                </dl></section>
+                </dl><button type="button" class="btn btn-secondary" data-operation-view="transfers" data-i18n="operations.manageTransfers">Manage transfers</button></section>
             </div>
             <p class="admin-muted" data-i18n="operations.explanation">Background counts include maintenance tasks. Cancellation requests overlap running or waiting jobs. The HTTP reserve is a configuration value, not a measurement of idle threads.</p>
+            <section id="operationsDetails" class="hidden" aria-labelledby="operationsDetailsTitle">
+                <h3 id="operationsDetailsTitle"></h3>
+                <p id="operationsDetailsHint" class="admin-muted"></p>
+                <div class="admin-toolbar">
+                    <button type="button" class="btn btn-secondary" id="operationsDetailsRefresh" data-i18n="admin.refresh">Refresh</button>
+                    <span id="operationsDetailsStatus" role="status" aria-live="polite"></span>
+                </div>
+                <p id="operationsActionStatus" role="status" aria-live="polite"></p>
+                <div class="operations-table-wrap" tabindex="0" role="region" aria-labelledby="operationsDetailsTitle">
+                    <table class="admin-table">
+                        <thead><tr><th data-i18n="operations.target">Target</th><th data-i18n="operations.state">State</th><th data-i18n="operations.details">Details</th><th data-i18n="common.actions">Actions</th></tr></thead>
+                        <tbody id="operationsDetailRows"></tbody>
+                    </table>
+                </div>
+            </section>
+            <details id="operationsConfiguration">
+                <summary data-i18n="operations.configure">Change capacity limits</summary>
+                <p data-i18n="operations.configHint">Set these environment variables in your deployment configuration, then restart WebSSH. Plan the restart: active browser connections and in-process transfers will be interrupted.</p>
+                <ul>
+                    <li><code>GUNICORN_THREADS</code>, <code>MAX_SOCKET_CONNECTIONS</code>, <code>MAX_SOCKET_CONNECTIONS_PER_USER</code></li>
+                    <li><code>BACKGROUND_WORKERS</code></li>
+                </ul>
+                <p data-i18n="operations.configReserve">Keep at least four HTTP threads above the socket limit and use exactly one Gunicorn worker. Capacity changes are validated at startup.</p>
+            </details>
         </section>
         <section class="admin-panel{% if embedded %} hidden{% endif %}" id="tab-users">
             <div class="admin-page-header">

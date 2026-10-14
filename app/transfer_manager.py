@@ -476,6 +476,35 @@ class TransferManager:
             target_state=TransferState.CANCELLED,
         )
 
+    def admin_details(self, limit=200):
+        """Return live identifiers and owners without tokens or file metadata."""
+        items = []
+        total = 0
+        now = self._clock()
+        with self._lock:
+            for record in self._records.values():
+                if record._state not in {TransferState.PENDING, TransferState.RUNNING, TransferState.CANCELLING}:
+                    continue
+                total += 1
+                if len(items) < limit:
+                    items.append({
+                        'id': record._transfer_id,
+                        'user_id': record._user_id,
+                        'direction': record._direction,
+                        'state': record._state.value,
+                        'age_seconds': max(0, int(now - (record._expires_at - self._token_ttl))),
+                    })
+        return {'items': items, 'total': total}
+
+    def cancel_for_admin(self, transfer_id):
+        """Resolve the owner server-side, then use normal cooperative cancellation."""
+        with self._lock:
+            record = self._records.get(transfer_id)
+            owner = record._user_id if record is not None else None
+        if owner is None:
+            return TransferCancelResult(False, 'unavailable')
+        return self.cancel_with_result(transfer_id, owner)
+
     def snapshot(self):
         """Count live transfer states without exposing records or tokens."""
         counts = {'pending': 0, 'running': 0, 'cancelling': 0}

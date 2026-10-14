@@ -6,6 +6,9 @@ from tests.step_up_helpers import password_step_up_headers
 
 
 ADMIN_REQUESTS = (
+    pytest.param('get', '/admin/api/operations/details', None, id='operations-details'),
+    pytest.param('post', '/admin/api/operations/connections/unknown/disconnect', None, id='operations-disconnect'),
+    pytest.param('post', '/admin/api/operations/transfers/unknown/cancel', None, id='operations-cancel'),
     pytest.param('get', '/admin/api/operations', None, id='operations'),
     pytest.param('post', '/admin/api/settings', {'ssh_gateway_enabled': True}, id='set-gateway'),
     pytest.param('get', '/admin', None, id='admin-page'),
@@ -45,6 +48,9 @@ ADMIN_REQUESTS = (
 )
 
 ADMIN_RULE_PATHS = (
+    pytest.param('/admin/api/operations/details', id='operations-details'),
+    pytest.param('/admin/api/operations/connections/unknown/disconnect', id='operations-disconnect'),
+    pytest.param('/admin/api/operations/transfers/unknown/cancel', id='operations-cancel'),
     pytest.param('/admin/api/operations', id='operations'),
     pytest.param('/admin', id='admin-page'),
     pytest.param('/admin/api/users', id='users'),
