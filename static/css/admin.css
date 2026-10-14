@@ -43,6 +43,29 @@
     border-bottom-color: var(--accent-primary);
 }
 
+.operations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+    gap: 16px;
+    margin: 16px 0;
+}
+
+.operations-grid dl {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+}
+
+.operations-grid dt { overflow-wrap: anywhere; }
+.operations-grid dd { margin: 0; font-variant-numeric: tabular-nums; }
+.operations-grid > section {
+    padding: 18px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-secondary);
+}
+.operations-grid h3 { margin: 0 0 16px; }
+
 .admin-panel.hidden {
     display: none;
 }

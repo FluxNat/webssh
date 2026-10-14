@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from app import socket_events
+from app import socket_events, socket_file_control
 from app.file_backend import FileWriteOutcome
 from app.file_service import FileService
 from app.file_sources import (
@@ -15,13 +15,13 @@ from app.file_sources import (
 
 @pytest.fixture(autouse=True)
 def reset_file_control_budget_state():
-    socket_events._file_control_budgets.clear()
-    socket_events._editor_save_budgets.clear()
-    socket_events._editor_retry_challenges.clear()
+    socket_file_control._file_control_budgets.clear()
+    socket_file_control._editor_save_budgets.clear()
+    socket_file_control._editor_retry_challenges.clear()
     yield
-    socket_events._file_control_budgets.clear()
-    socket_events._editor_save_budgets.clear()
-    socket_events._editor_retry_challenges.clear()
+    socket_file_control._file_control_budgets.clear()
+    socket_file_control._editor_save_budgets.clear()
+    socket_file_control._editor_retry_challenges.clear()
 
 
 class ListingBackend:
@@ -89,7 +89,7 @@ def test_file_control_fields_are_bounded_before_resolution_or_reflection(
         'remote_path': '/too-long',
     }
 
-    identity = socket_events._file_request_identity(payload, user_id=7)
+    identity = socket_file_control._file_request_identity(payload, user_id=7)
 
     assert identity == {
         'source_id': None,
@@ -102,12 +102,12 @@ def test_file_control_metadata_has_a_token_bucket_per_user(monkeypatch):
     import config
 
     monkeypatch.setattr(config, 'FILE_CONTROL_BYTES_PER_MINUTE', 10)
-    socket_events._file_control_budgets.clear()
+    socket_file_control._file_control_budgets.clear()
 
-    assert socket_events._consume_file_control_budget(7, 6, now=10) is True
-    assert socket_events._consume_file_control_budget(7, 5, now=11) is False
-    assert socket_events._consume_file_control_budget(8, 5, now=11) is True
-    assert socket_events._consume_file_control_budget(7, 5, now=71) is True
+    assert socket_file_control._consume_file_control_budget(7, 6, now=10) is True
+    assert socket_file_control._consume_file_control_budget(7, 5, now=11) is False
+    assert socket_file_control._consume_file_control_budget(8, 5, now=11) is True
+    assert socket_file_control._consume_file_control_budget(7, 5, now=71) is True
 
 
 def test_file_control_budget_state_is_constant_size_under_event_spam(
@@ -116,15 +116,15 @@ def test_file_control_budget_state_is_constant_size_under_event_spam(
     import config
 
     monkeypatch.setattr(config, 'FILE_CONTROL_BYTES_PER_MINUTE', 10_000)
-    socket_events._file_control_budgets.clear()
+    socket_file_control._file_control_budgets.clear()
 
     for index in range(1000):
-        assert socket_events._consume_file_control_budget(
+        assert socket_file_control._consume_file_control_budget(
             7, 1, now=index / 1000
         ) is True
 
-    assert list(socket_events._file_control_budgets) == [7]
-    state = socket_events._file_control_budgets[7]
+    assert list(socket_file_control._file_control_budgets) == [7]
+    state = socket_file_control._file_control_budgets[7]
     assert isinstance(state, tuple)
     assert len(state) == 2
 
@@ -134,11 +134,11 @@ def test_empty_file_control_budget_rejects_before_payload_walk(monkeypatch):
 
     monkeypatch.setattr(config, 'FILE_CONTROL_BYTES_PER_MINUTE', 256)
     monkeypatch.setattr(socket_events.time, 'monotonic', lambda: 10.0)
-    assert socket_events._consume_file_control_budget(
+    assert socket_file_control._consume_file_control_budget(
         7, 256, now=10.0
     ) is True
     monkeypatch.setattr(
-        socket_events,
+        socket_file_control,
         '_file_control_payload_cost',
         lambda *_args, **_kwargs: pytest.fail(
             'empty budget still walked attacker payload'
@@ -150,7 +150,7 @@ def test_empty_file_control_budget_rejects_before_payload_walk(monkeypatch):
         'unknown': 'A' * 10_000,
     }
 
-    identity = socket_events._file_request_identity(payload, user_id=7)
+    identity = socket_file_control._file_request_identity(payload, user_id=7)
 
     assert identity == {'source_id': None, 'request_id': 'list:drained'}
 
@@ -159,13 +159,13 @@ def test_insufficient_file_control_budget_is_exhausted(monkeypatch):
     import config
 
     monkeypatch.setattr(config, 'FILE_CONTROL_BYTES_PER_MINUTE', 1000)
-    assert socket_events._consume_file_control_budget(
+    assert socket_file_control._consume_file_control_budget(
         7, 900, now=10.0
     ) is True
-    assert socket_events._consume_file_control_budget(
+    assert socket_file_control._consume_file_control_budget(
         7, 200, now=10.0
     ) is False
-    assert socket_events._file_control_budgets[7] == (0.0, 10.0)
+    assert socket_file_control._file_control_budgets[7] == (0.0, 10.0)
 
 
 def test_editor_save_budget_charges_exact_utf8_bytes_and_preserves_one_save(
@@ -191,17 +191,17 @@ def test_editor_save_budget_charges_exact_utf8_bytes_and_preserves_one_save(
         'content': '\u00e9' * 4,
     }
 
-    assert socket_events._file_request_identity(
+    assert socket_file_control._file_request_identity(
         ascii_payload,
         user_id=7,
         allow_editor_content=True,
     )['source_id'] == 'sftp-session:owned'
-    assert socket_events._file_request_identity(
+    assert socket_file_control._file_request_identity(
         multibyte_payload,
         user_id=7,
         allow_editor_content=True,
     )['source_id'] == 'sftp-session:owned'
-    assert socket_events._editor_save_budgets[7] == (0.0, 10.0)
+    assert socket_file_control._editor_save_budgets[7] == (0.0, 10.0)
 
     rejected = {
         'source_id': 'sftp-session:owned',
@@ -209,7 +209,7 @@ def test_editor_save_budget_charges_exact_utf8_bytes_and_preserves_one_save(
         'path': '/note.txt',
         'content': 'A',
     }
-    assert socket_events._file_request_identity(
+    assert socket_file_control._file_request_identity(
         rejected,
         user_id=7,
         allow_editor_content=True,
@@ -229,29 +229,29 @@ def test_editor_retry_challenge_is_one_time_and_body_socket_bound(monkeypatch):
         'expected_revision': 'a' * 64,
         'replace_strategy': 'recoverable_swap',
     }
-    token = socket_events._issue_editor_retry_challenge(
+    token = socket_file_control._issue_editor_retry_challenge(
         payload,
         7,
         'socket-a',
     )
 
-    assert socket_events._consume_editor_retry_challenge(
+    assert socket_file_control._consume_editor_retry_challenge(
         {**payload, 'content': 'modified', 'save_challenge': token},
         7,
         'socket-a',
     ) is False
-    assert socket_events._consume_editor_retry_challenge(
+    assert socket_file_control._consume_editor_retry_challenge(
         {**payload, 'save_challenge': token},
         7,
         'socket-a',
     ) is False
 
-    second = socket_events._issue_editor_retry_challenge(
+    second = socket_file_control._issue_editor_retry_challenge(
         payload,
         7,
         'socket-a',
     )
-    assert socket_events._consume_editor_retry_challenge(
+    assert socket_file_control._consume_editor_retry_challenge(
         {**payload, 'save_challenge': second},
         7,
         'socket-b',
@@ -264,11 +264,11 @@ def test_empty_editor_budget_rejects_before_walking_editor_body(monkeypatch):
     monkeypatch.setattr(config, 'EDITOR_SAVE_BYTES_PER_MINUTE', 8)
     monkeypatch.setattr(config, 'FILE_CONTROL_BYTES_PER_MINUTE', 10_000)
     monkeypatch.setattr(socket_events.time, 'monotonic', lambda: 10.0)
-    assert socket_events._consume_editor_save_budget(
+    assert socket_file_control._consume_editor_save_budget(
         7, 8, now=10.0
     ) is True
     monkeypatch.setattr(
-        socket_events,
+        socket_file_control,
         '_file_control_payload_metrics',
         lambda *_args, **_kwargs: pytest.fail(
             'empty editor budget still walked the editor body'
@@ -281,7 +281,7 @@ def test_empty_editor_budget_rejects_before_walking_editor_body(monkeypatch):
         'content': 'A' * 8,
     }
 
-    identity = socket_events._file_request_identity(
+    identity = socket_file_control._file_request_identity(
         payload,
         user_id=7,
         allow_editor_content=True,
@@ -298,11 +298,11 @@ def test_unknown_editor_retry_token_does_no_body_work_before_budget_gate(
     monkeypatch.setattr(config, 'EDITOR_SAVE_BYTES_PER_MINUTE', 8)
     monkeypatch.setattr(config, 'FILE_CONTROL_BYTES_PER_MINUTE', 10_000)
     monkeypatch.setattr(socket_events.time, 'monotonic', lambda: 10.0)
-    assert socket_events._consume_editor_save_budget(
+    assert socket_file_control._consume_editor_save_budget(
         7, 8, now=10.0
     ) is True
     monkeypatch.setattr(
-        socket_events,
+        socket_file_control,
         '_editor_retry_fingerprint',
         lambda *_args, **_kwargs: pytest.fail(
             'an unknown token hashed the editor body before budget admission'
@@ -317,12 +317,12 @@ def test_unknown_editor_retry_token_does_no_body_work_before_budget_gate(
         'save_challenge': 'x' * 43,
     }
 
-    assert socket_events._consume_editor_retry_challenge(
+    assert socket_file_control._consume_editor_retry_challenge(
         payload,
         7,
         'socket-a',
     ) is False
-    identity = socket_events._file_request_identity(
+    identity = socket_file_control._file_request_identity(
         payload,
         user_id=7,
         allow_editor_content=True,
@@ -349,14 +349,14 @@ def test_invalid_editor_metadata_still_charges_the_bounded_body(monkeypatch):
         'content': 'A' * 16,
     }
 
-    identity = socket_events._file_request_identity(
+    identity = socket_file_control._file_request_identity(
         payload,
         user_id=7,
         allow_editor_content=True,
     )
 
     assert identity['source_id'] is None
-    assert socket_events._editor_save_budgets[7] == (0.0, 10.0)
+    assert socket_file_control._editor_save_budgets[7] == (0.0, 10.0)
 
 
 def test_oversized_file_control_key_is_rejected_without_utf8_copy(
@@ -366,7 +366,7 @@ def test_oversized_file_control_key_is_rejected_without_utf8_copy(
 
     monkeypatch.setattr(config, 'FILE_CONTROL_BYTES_PER_MINUTE', 100)
 
-    assert socket_events._file_control_payload_cost({
+    assert socket_file_control._file_control_payload_cost({
         'k' * 10_000: 'value',
     }) == 101
 
@@ -421,7 +421,7 @@ def test_unknown_file_control_metadata_is_charged_and_not_reflected(
     import config
 
     emitted, user = capture(monkeypatch)
-    socket_events._file_control_budgets.clear()
+    socket_file_control._file_control_budgets.clear()
     monkeypatch.setattr(config, 'FILE_CONTROL_BYTES_PER_MINUTE', 100)
 
     class RejectBackendCall:
@@ -465,7 +465,7 @@ def test_editor_content_byte_overflow_is_rejected_before_full_encode_or_backend(
             raise AssertionError('oversized editor body reached full encode')
 
     emitted, user = capture(monkeypatch)
-    socket_events._file_control_budgets.clear()
+    socket_file_control._file_control_budgets.clear()
     monkeypatch.setattr(config, 'MAX_EDITOR_FILE_SIZE', 16)
     monkeypatch.setattr(config, 'FILE_CONTROL_BYTES_PER_MINUTE', 1024)
     monkeypatch.setattr(
@@ -493,7 +493,7 @@ def test_editor_content_byte_overflow_is_rejected_before_full_encode_or_backend(
         'request_id': 'save:oversized',
         'path': '/note.txt',
     })]
-    assert socket_events._file_control_budgets[user.id][0] == 0.0
+    assert socket_file_control._file_control_budgets[user.id][0] == 0.0
 
 
 def test_list_directory_accepts_source_id_and_uses_file_service(monkeypatch):
@@ -952,8 +952,8 @@ def test_smb_recoverable_retry_reuses_one_exact_editor_body_budget(
     ]
     assert emitted[1][1]['revision'] == 'b' * 64
     assert emitted[2][1]['source_id'] is None
-    assert socket_events._editor_save_budgets[user.id] == (0.0, 10.0)
-    assert socket_events._editor_retry_challenges == {}
+    assert socket_file_control._editor_save_budgets[user.id] == (0.0, 10.0)
+    assert socket_file_control._editor_retry_challenges == {}
 
 
 def test_smb_editor_surfaces_recovery_artifacts_without_raw_paths(app, monkeypatch):

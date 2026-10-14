@@ -59,6 +59,7 @@
             {% endif %}
             {% if admin_panel_enabled and is_admin %}
             <p class="admin-nav-group"><span data-i18n="settings.administration">Administration</span><small data-i18n="settings.adminOnly">Admin only</small></p>
+            <button class="admin-tab" type="button" data-tab="operations"><span class="material-icons" aria-hidden="true">monitor_heart</span><span data-i18n="operations.title">Instance status</span></button>
             <button class="admin-tab" type="button" data-tab="users"><span class="material-icons" aria-hidden="true">group</span><span data-i18n="admin.users">Users</span></button>
             <button class="admin-tab" type="button" data-tab="settings" data-settings-section="authentication"><span class="material-icons" aria-hidden="true">key</span><span data-i18n="admin.authentication">Authentication</span></button>
             <button class="admin-tab" type="button" data-tab="settings" data-settings-section="registration"><span class="material-icons" aria-hidden="true">person_add</span><span data-i18n="admin.registration">Registration</span></button>

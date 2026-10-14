@@ -44,6 +44,31 @@ Retention updates are authenticated administrator operations and are themselves 
 
 ## Live diagnostics
 
+### Instance status
+
+Administrators can open **Settings Center > Instance status** to inspect a
+read-only snapshot of this WebSSH process. Use **Refresh** to fetch new values.
+The page does not poll in the background. It shows browser socket occupancy and
+limits, capacity rejection counters, running and queued background jobs, and
+pending/running/cancelling HTTP file transfers. Notices identify maintenance,
+shutdown, a full socket registry, or waiting background work.
+
+Background counts include long-running maintenance tasks. A job with a
+cancellation request still counts as running or waiting until it finishes.
+The configured HTTP thread reserve is not a measurement of currently idle
+threads. Capacity rejection counters count reservation attempts, not unique
+users, and reset when the process restarts; authentication and network failures
+are not included. Snapshot sections are individually locked, not one atomic
+transaction across all managers.
+
+`GET /admin/api/operations` requires the enabled admin panel and an authenticated
+administrator. Responses use `Cache-Control: no-store` and contain aggregate
+counts only, without session identifiers, hosts, paths, tokens, or task names.
+A failed refresh clears the displayed counts and offers a retry. Existing
+`/health` and `/ready` contracts are unchanged.
+
+### Session diagnostics
+
 Diagnostics expose bounded information about:
 
 - admitted Socket.IO connections;

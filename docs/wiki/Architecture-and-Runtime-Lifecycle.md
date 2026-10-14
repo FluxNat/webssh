@@ -35,6 +35,7 @@ Bulk file content is streamed over HTTP. Socket.IO carries terminal traffic, con
 - `start.py` creates the application through `create_app()` in `app/__init__.py`.
 - Focused blueprints implement transfers, host keys, audit export, backup/restore, recovery codes, WebAuthn, OIDC, LDAP, and health/readiness.
 - `app/socket_events.py` defines authenticated real-time contracts for terminal, SFTP, profiles, keys, commands, diagnostics, and transfers.
+- `app/socket_file_control.py` owns bounded file-control envelopes, per-user byte budgets, and single-use editor retry proofs. Socket handlers retain authentication and source ownership checks.
 - `app/ssh_manager.py` owns process-local SSH state.
 - `app/paramiko_channels.py` centralizes bounded Paramiko channel creation.
 
@@ -90,3 +91,9 @@ Restore operations enter maintenance mode before replacing persistent state. `/h
 ## Frontend architecture
 
 The frontend uses vanilla JavaScript and CSS without a build-time application framework. Browser libraries are pinned in `package.json`, vendored locally, and checked for integrity. Runtime CDN dependencies are intentionally absent so the frontend remains offline-capable and compatible with the Content Security Policy.
+
+`file-directory-requests.js` owns the file panes' request, cursor, cancellation,
+and timeout lifecycle. `SFTPFileManager` supplies pane state, source capabilities,
+the socket, and presentation callbacks. Syntax highlighting is loaded from the
+vendored assets only when a text preview needs it. Plain text remains available
+if loading fails, and delayed highlighting cannot replace a newer preview.

@@ -988,10 +988,12 @@
             codeEl.textContent = display;
 
             const language = this.getLanguage(filename);
-            if (typeof hljs !== 'undefined') {
-                codeEl.className = `language-${language}`;
-                hljs.highlightElement(codeEl);
-            }
+            const requestId = this.currentPreviewRequestId;
+            // The hidden preview can be formatted while the separate editor is open.
+            window.PreviewHighlight?.render(codeEl, language, () => (
+                this.currentPreviewRequestId === requestId
+                && this._previewFullContent === content
+            ));
 
             const lineCount = display === '' ? 1 : display.split('\n').length;
             lineNumbersEl.innerHTML = Array.from({ length: lineCount }, (_, i) => i + 1).join('<br>');

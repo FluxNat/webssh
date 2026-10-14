@@ -55,7 +55,7 @@
         };
         const hideAdminPanels = () => {
             adminTabs.forEach(tab => tab.classList.remove('active'));
-            ['users', 'audit', 'settings', 'backup'].forEach(name => {
+            ['users', 'audit', 'settings', 'backup', 'operations'].forEach(name => {
                 document.getElementById(`tab-${name}`)?.classList.add('hidden');
             });
             document.querySelectorAll('[data-settings-panel]').forEach(panel => {

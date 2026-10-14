@@ -476,6 +476,16 @@ class TransferManager:
             target_state=TransferState.CANCELLED,
         )
 
+    def snapshot(self):
+        """Count live transfer states without exposing records or tokens."""
+        counts = {'pending': 0, 'running': 0, 'cancelling': 0}
+        with self._lock:
+            for record in self._records.values():
+                state = record._state.value
+                if state in counts:
+                    counts[state] += 1
+        return counts
+
     def cleanup_expired(self):
         """Expire unused tokens and return the number of released records."""
         with self._lock:

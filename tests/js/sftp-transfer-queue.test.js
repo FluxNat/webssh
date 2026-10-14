@@ -5,6 +5,7 @@ global.window = {};
 global.document = { getElementById: () => null };
 require('../../static/js/file-workspace-state.js');
 require('../../static/js/profile-launcher-utils.js');
+require('../../static/js/file-directory-requests.js');
 require('../../static/js/sftp-file-manager.js');
 const SFTPFileManager = global.window.SFTPFileManager;
 

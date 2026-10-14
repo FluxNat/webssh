@@ -85,6 +85,7 @@ class RuntimeLifecycle:
             thread_name_prefix='webssh-runtime',
         )
         self._jobs = {}
+        self._max_workers = max_workers
         self._shutdown_callbacks = {}
         self._next_job_id = 0
         self._accepting_jobs = True
@@ -94,6 +95,27 @@ class RuntimeLifecycle:
         self._worker_state = threading.local()
         self._process_shutdown_signals_installed = False
         self._process_shutdown_signal_guard = None
+
+    def snapshot(self):
+        """Return aggregate worker state without task names or owners."""
+        with self._lock:
+            running = queued = cancelling = 0
+            for handle in self._jobs.values():
+                future = handle._future
+                if future is not None and future.done():
+                    continue
+                if future is not None and future.running():
+                    running += 1
+                else:
+                    queued += 1
+                cancelling += int(handle.cancel_event.is_set())
+            return {
+                'workers': self._max_workers,
+                'running': running,
+                'queued': queued,
+                'cancelling': cancelling,
+                'accepting_work': self._accepting_jobs,
+            }
 
     def register_shutdown_callback(self, name, callback):
         """Register one bounded cancellation callback within shutdown grace."""

@@ -259,7 +259,7 @@
                 document.querySelectorAll('.admin-tab[data-tab]').forEach(x => x.classList.remove('active'));
                 tab.classList.add('active');
                 const name = tab.dataset.tab;
-                ['users', 'audit', 'settings', 'backup'].forEach(n => {
+                ['users', 'audit', 'settings', 'backup', 'operations'].forEach(n => {
                     document.getElementById('tab-' + n)?.classList.toggle('hidden', n !== name);
                 });
                 const settingsSection = tab.dataset.settingsSection || 'authentication';
@@ -272,6 +272,7 @@
                 if (name === 'audit') { loadAudit(); }
                 if (name === 'settings') { loadSettings(); }
                 if (name === 'backup') { loadRestoreStatus(); }
+                if (name === 'operations') { loadOperations(); }
                 const target = name === 'settings' ? settingsSection : name;
                 history.replaceState(null, '', `#${target}`);
             });
@@ -283,6 +284,83 @@
         ));
         if (requestedTab && !requestedTab.classList.contains('active')) {
             requestedTab.click();
+        }
+    }
+
+    // ---- Instance operations ----
+    let operationsLoading = false;
+    let operationsSnapshot = null;
+    let operationsUpdatedAt = null;
+    let operationsFailed = false;
+    let operationsMaintenance = false;
+
+    function renderOperations() {
+        const status = document.getElementById('operationsStatus');
+        if (!status) return;
+        document.querySelectorAll('[data-operation]').forEach(element => {
+            const [group, key] = element.dataset.operation.split('.');
+            const value = operationsSnapshot?.[group]?.[key];
+            element.textContent = Number.isInteger(value) && value >= 0 ? String(value) : '—';
+        });
+        const reasons = [];
+        if (operationsSnapshot?.maintenance || operationsMaintenance) reasons.push(t('operations.maintenance', 'Maintenance mode'));
+        if (operationsSnapshot?.jobs?.accepting_work === false) reasons.push(t('operations.stopping', 'Runtime is shutting down'));
+        if (operationsSnapshot?.sockets?.active >= operationsSnapshot?.sockets?.limit) {
+            reasons.push(t('operations.full', 'Socket capacity reached'));
+        }
+        if (operationsSnapshot?.jobs?.queued > 0) reasons.push(t('operations.queuedHint', 'Background work is waiting for a worker'));
+        const notice = document.getElementById('operationsNotice');
+        if (notice) {
+            notice.textContent = reasons.join(' · ');
+            notice.classList.toggle('hidden', reasons.length === 0);
+        }
+        status.textContent = operationsLoading
+            ? t('operations.loading', 'Loading…')
+            : operationsMaintenance
+                ? t('operations.maintenance', 'Maintenance mode')
+                : operationsFailed
+                ? t('operations.failed', 'Could not load instance status. Please retry.')
+                : operationsUpdatedAt
+                    ? `${t('operations.updated', 'Updated')} ${operationsUpdatedAt.toLocaleTimeString(window.i18n?.getLanguage() || undefined)}`
+                    : t('operations.notLoaded', 'Not loaded');
+        document.getElementById('operationsRefresh').disabled = operationsLoading;
+        document.getElementById('tab-operations').setAttribute('aria-busy', String(operationsLoading));
+    }
+
+    async function loadOperations() {
+        if (operationsLoading || !document.getElementById('tab-operations')) return;
+        operationsLoading = true;
+        operationsFailed = false;
+        operationsMaintenance = false;
+        operationsSnapshot = null;
+        renderOperations();
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        try {
+            const snapshot = await api('/admin/api/operations', { cache: 'no-store', signal: controller.signal });
+            const groups = {
+                sockets: ['active', 'limit', 'per_user_limit', 'http_reserve', 'rejected_total', 'rejected_per_user'],
+                jobs: ['workers', 'running', 'queued', 'cancelling'],
+                transfers: ['pending', 'running', 'cancelling'],
+            };
+            if (!snapshot || typeof snapshot.maintenance !== 'boolean'
+                    || typeof snapshot.jobs?.accepting_work !== 'boolean'
+                    || !Object.entries(groups).every(([group, keys]) => keys.every(key => (
+                        Number.isInteger(snapshot[group]?.[key]) && snapshot[group][key] >= 0
+                    )))) {
+                throw new Error('Invalid instance status');
+            }
+            operationsSnapshot = snapshot;
+            operationsUpdatedAt = new Date();
+        } catch (error) {
+            operationsFailed = true;
+            operationsMaintenance = error.code === 'maintenance';
+            operationsSnapshot = null;
+            operationsUpdatedAt = null;
+        } finally {
+            clearTimeout(timeout);
+            operationsLoading = false;
+            renderOperations();
         }
     }
 
@@ -1504,6 +1582,7 @@
         initAudit();
         initSettings();
         initBackupRestore();
+        document.getElementById('operationsRefresh')?.addEventListener('click', loadOperations);
         document.getElementById('adminUserSearch')?.addEventListener('input', filterUsers);
         document.getElementById('adminUserFilter')?.addEventListener('change', filterUsers);
         document.getElementById('globalHostKeyAdd')?.addEventListener(
@@ -1512,6 +1591,7 @@
         loadUsers();
         loadGlobalHostKeys();
         window.addEventListener('languageChanged', () => {
+            renderOperations();
             renderSecurityFeatures(securityFeatureSnapshot);
             filterUsers();
             loadGitHubConfig();
