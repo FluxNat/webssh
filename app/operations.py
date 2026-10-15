@@ -10,6 +10,7 @@ from .decorators import admin_required, step_up_required
 from .audit_logger import log_security_event
 from .maintenance_mode import is_active
 from .models import SSHSession, SocketSession, User, db
+from . import ssh_manager
 from .ssh_manager import admin_session_snapshot
 from .socket_capacity import socket_capacity
 from .transfer_routes import transfer_manager
@@ -26,6 +27,10 @@ def no_store(response):
 
 def _connection_ref(sid):
     return hashlib.sha256(('admin-connection:' + sid).encode('utf-8')).hexdigest()
+
+
+def _session_ref(session_id):
+    return hashlib.sha256(('admin-ssh:' + session_id).encode('utf-8')).hexdigest()
 
 
 def _connections():
@@ -52,7 +57,7 @@ def _ssh_sessions():
         result.append({
             'target': item['target'],
             'tmux': item['tmux'],
-            'id': hashlib.sha256(('admin-ssh:' + session_id).encode('utf-8')).hexdigest(),
+            'id': _session_ref(session_id),
             'username': owners.get(item['user_id']),
             'created_at': created.isoformat() + 'Z' if created else None,
         })
@@ -104,6 +109,40 @@ def disconnect_connection(connection_ref):
                        target_user_id=match.user_id, connection_ref=connection_ref,
                        outcome='disconnected' if disconnected else 'unavailable')
     return jsonify({'state': 'disconnected' if disconnected else 'unavailable'})
+
+
+@operations_blueprint.post('/admin/api/operations/sessions/<session_ref>/disconnect')
+@admin_required
+@login_required
+@step_up_required('operations.session.disconnect', lambda session_ref: session_ref)
+def disconnect_ssh_session(session_ref):
+    from . import socketio
+
+    _, sessions = admin_session_snapshot()
+    match = next((item for item in sessions if _session_ref(item['session_id']) == session_ref), None)
+    if match is None or match['user_id'] is None:
+        return jsonify({'code': 'unavailable', 'error': 'Session is no longer active'}), 404
+    try:
+        # Detach tmux; an administrator must not terminate remote tmux workloads.
+        if not ssh_manager.close_session(match['session_id'], kill_tmux=False):
+            raise RuntimeError('Disconnection could not be confirmed')
+        SSHSession.query.filter_by(session_id=match['session_id'], user_id=match['user_id']).update(
+            {'connected': False}, synchronize_session=False,
+        )
+        db.session.commit()
+        socketio.emit('ssh_disconnected', {
+            'session_id': match['session_id'],
+            'reason': 'Administrator disconnected SSH connection',
+        }, room=f"user_{match['user_id']}")
+    except Exception as error:
+        db.session.rollback()
+        log_security_event('ADMIN_SSH_DISCONNECT_FAILED', admin_id=current_user.id,
+                           target_user_id=match['user_id'], session_ref=session_ref,
+                           error_type=type(error).__name__)
+        return jsonify({'code': 'action_unconfirmed', 'error': 'Could not confirm disconnection'}), 503
+    log_security_event('ADMIN_SSH_DISCONNECT', admin_id=current_user.id,
+                       target_user_id=match['user_id'], session_ref=session_ref)
+    return jsonify({'state': 'disconnected'})
 
 
 @operations_blueprint.post('/admin/api/operations/transfers/<transfer_id>/cancel')

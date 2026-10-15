@@ -323,12 +323,12 @@
             ? t('operations.loading', 'Loading…')
             : operationsMaintenance
                 ? t('operations.maintenance', 'Maintenance mode')
-                : operationsFailed
+                : (operationsFailed || operationsDetailsFailed)
                 ? t('operations.failed', 'Could not load instance status. Please retry.')
                 : operationsUpdatedAt
                     ? `${t('operations.updated', 'Updated')} ${operationsUpdatedAt.toLocaleTimeString(window.i18n?.getLanguage() || undefined)}`
                     : t('operations.notLoaded', 'Not loaded');
-        document.getElementById('operationsRefresh').disabled = operationsLoading || operationsActionBusy;
+        document.getElementById('operationsRefresh').disabled = operationsLoading || operationsDetailsLoading || operationsActionBusy;
         document.getElementById('tab-operations').setAttribute('aria-busy', String(operationsLoading));
     }
 
@@ -366,9 +366,10 @@
             operationsUpdatedAt = null;
         } finally {
             clearTimeout(timeout);
+            if (operationsView) await loadOperationDetails();
             operationsLoading = false;
             renderOperations();
-            if (operationsView) await loadOperationDetails();
+            renderOperationDetails();
         }
     }
 
@@ -376,7 +377,7 @@
         const panel = document.getElementById('operationsDetails');
         if (!panel || !operationsView) return;
         panel.classList.remove('hidden');
-        const titleKeys = { sessions: 'viewSessions', connections: 'manageConnections', transfers: 'manageTransfers', jobs: 'viewJobs' };
+        const titleKeys = { sessions: 'sessions', connections: 'sockets', transfers: 'transfers', jobs: 'jobs' };
         document.getElementById('operationsDetailsTitle').textContent = t(`operations.${titleKeys[operationsView]}`);
         document.getElementById('operationsDetailsHint').textContent = t(`operations.${operationsView}Hint`);
         const data = operationsDetails?.[operationsView];
@@ -384,40 +385,104 @@
             ? t('operations.loading') : operationsDetailsFailed ? t('operations.failed')
                 : data?.items.length ? t('operations.showing').replace('{shown}', data.items.length).replace('{total}', data.total)
                     : t('operations.empty');
-        document.getElementById('operationsDetailsRefresh').disabled = operationsDetailsLoading || operationsActionBusy;
         document.querySelectorAll('[data-operation-view]').forEach(button => {
             button.disabled = operationsActionBusy;
             button.setAttribute('aria-pressed', String(button.dataset.operationView === operationsView));
         });
+        const columns = {
+            sessions: ['user', 'sshTarget', 'connectionType', 'connectedSince', 'actions'],
+            transfers: ['user', 'directionLabel', 'state', 'age', 'actions'],
+            connections: ['user', 'connectedSince', 'actions'],
+            jobs: ['task', 'state', 'age'],
+        }[operationsView];
+        const labelFor = key => t(key === 'actions' ? 'common.actions' : `operations.${key}`);
+        const head = document.getElementById('operationsDetailHead');
+        head.replaceChildren();
+        columns.forEach(key => {
+            const cell = document.createElement('th');
+            cell.scope = 'col';
+            cell.textContent = labelFor(key);
+            head.appendChild(cell);
+        });
         const rows = document.getElementById('operationsDetailRows');
         rows.replaceChildren();
-        for (const item of data?.items || []) {
+        for (const [index, item] of (data?.items || []).entries()) {
             const row = document.createElement('tr');
             const view = operationsView;
-            const label = view === 'jobs' ? t(`operations.kind.${item.kind}`, t('operations.kind.other'))
-                : `${item.username || t('operations.unknownUser')} (${item.id.slice(0, 12)})`;
-            const state = ['connections', 'sessions'].includes(view) ? 'active' : item.cancelling ? 'cancelling' : item.state;
-            const detail = view === 'sessions'
-                ? `${item.target} · ${item.tmux ? 'tmux' : 'SSH'} · ${fmtDate(item.created_at)}`
-                : view === 'connections' ? fmtDate(item.created_at)
-                : `${view === 'transfers' ? t(`operations.direction.${item.direction}`) + ' · ' : ''}${item.age_seconds} s`;
+            const state = item.cancelling ? 'cancelling' : item.state;
             const stateKey = ['pending', 'queued'].includes(state) ? 'waiting' : state;
-            for (const value of [label, t(`operations.${stateKey}`, state), detail]) {
+            const values = {
+                user: item.username || t('operations.unknownUser'), sshTarget: item.target,
+                connectionType: item.tmux ? 'SSH / tmux' : 'SSH', connectedSince: fmtDate(item.created_at),
+                directionLabel: t(`operations.direction.${item.direction}`),
+                state: t(`operations.${stateKey}`, state), age: `${item.age_seconds} s`,
+                task: t(`operations.kind.${item.kind}`, t('operations.kind.other')),
+            };
+            let detailRow;
+            for (const key of columns) {
                 const cell = document.createElement('td');
-                cell.textContent = value;
+                cell.dataset.label = labelFor(key);
+                if (key !== 'actions') {
+                    cell.textContent = values[key];
+                    if (key === 'sshTarget' || key === 'user') cell.classList.add('operations-identity');
+                    if (key === 'state' || key === 'connectionType') {
+                        const badge = document.createElement('span');
+                        badge.className = 'admin-badge';
+                        badge.textContent = values[key];
+                        cell.replaceChildren(badge);
+                    }
+                } else {
+                    const controls = document.createElement('div');
+                    controls.className = 'operations-row-actions';
+                    const detailsButton = document.createElement('button');
+                    detailsButton.type = 'button';
+                    detailsButton.className = 'btn btn-secondary';
+                    detailsButton.textContent = t('operations.details');
+                    detailsButton.setAttribute('aria-expanded', 'false');
+                    detailRow = document.createElement('tr');
+                    detailRow.id = `operations-entry-${index}`;
+                    detailRow.className = 'operations-entry-details hidden';
+                    detailsButton.setAttribute('aria-controls', detailRow.id);
+                    const detailCell = document.createElement('td');
+                    detailCell.colSpan = columns.length;
+                    const reference = document.createElement('p');
+                    reference.textContent = `${t('operations.reference')}: ${item.id}`;
+                    detailCell.appendChild(reference);
+                    if (view === 'sessions') {
+                        const explanation = document.createElement('p');
+                        explanation.textContent = t('operations.sessionDetailsHint');
+                        detailCell.appendChild(explanation);
+                    }
+                    detailRow.appendChild(detailCell);
+                    detailsButton.addEventListener('click', () => {
+                        const open = detailsButton.getAttribute('aria-expanded') !== 'true';
+                        detailsButton.setAttribute('aria-expanded', String(open));
+                        detailRow.classList.toggle('hidden', !open);
+                    });
+                    controls.appendChild(detailsButton);
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'btn btn-danger';
+                    const actionKey = { sessions: 'disconnectSsh', connections: 'disconnect', transfers: 'cancelTransfer' }[view];
+                    button.textContent = t(`operations.${actionKey}`);
+                    button.disabled = operationsLoading || operationsDetailsLoading || operationsActionBusy || state === 'cancelling';
+                    button.addEventListener('click', () => runOperationAction(view, item));
+                    controls.appendChild(button);
+                    cell.appendChild(controls);
+                }
                 row.appendChild(cell);
             }
-            const actions = document.createElement('td');
-            if (['connections', 'transfers'].includes(view)) {
-                const button = document.createElement('button');
-                button.type = 'button';
-                button.className = 'btn btn-secondary';
-                button.textContent = t(`operations.${view === 'connections' ? 'disconnect' : 'cancelTransfer'}`);
-                button.disabled = operationsLoading || operationsActionBusy || state === 'cancelling';
-                button.addEventListener('click', () => runOperationAction(view, item));
-                actions.appendChild(button);
-            }
-            row.appendChild(actions);
+            rows.appendChild(row);
+            if (detailRow) rows.appendChild(detailRow);
+        }
+        if (!data?.items.length) {
+            const row = document.createElement('tr');
+            const cell = document.createElement('td');
+            cell.colSpan = columns.length;
+            cell.className = 'operations-empty';
+            cell.textContent = t(operationsDetailsLoading ? 'operations.loading'
+                : operationsDetailsFailed ? 'operations.failed' : 'operations.empty');
+            row.appendChild(cell);
             rows.appendChild(row);
         }
     }
@@ -454,9 +519,11 @@
 
     async function runOperationAction(view, item) {
         if (operationsLoading || operationsActionBusy || operationsDetailsLoading) return;
-        const disconnect = view === 'connections';
-        const confirmation = t(`operations.${disconnect ? 'disconnectConfirm' : 'cancelConfirm'}`)
-            .replace('{user}', item.username || t('operations.unknownUser')).replace('{id}', item.id.slice(0, 12));
+        const disconnect = view !== 'transfers';
+        const confirmationKey = { sessions: 'disconnectSshConfirm', connections: 'disconnectConfirm', transfers: 'cancelConfirm' }[view];
+        const confirmation = t(`operations.${confirmationKey}`)
+            .replace('{user}', item.username || t('operations.unknownUser')).replace('{id}', item.id.slice(0, 12))
+            .replace('{target}', item.target || '');
         if (!window.confirm(confirmation)) return;
         operationsActionBusy = true;
         renderOperations();
@@ -464,7 +531,7 @@
         const status = document.getElementById('operationsActionStatus');
         status.textContent = t('operations.authorizing');
         try {
-            const action = disconnect ? 'operations.connection.disconnect' : 'operations.transfer.cancel';
+            const action = { sessions: 'operations.session.disconnect', connections: 'operations.connection.disconnect', transfers: 'operations.transfer.cancel' }[view];
             const grant = await acquireStepUp(action, item.id);
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 10000);
@@ -476,7 +543,8 @@
             } finally { clearTimeout(timeout); }
             const states = ['disconnected', 'cancelled', 'cancelling', 'completed', 'failed', 'unavailable'];
             if (!states.includes(result?.state)) throw new Error('Invalid action result');
-            status.textContent = t(`operations.result.${result.state}`);
+            const resultKey = view === 'sessions' && result.state === 'disconnected' ? 'sshDisconnected' : result.state;
+            status.textContent = t(`operations.result.${resultKey}`);
         } catch (error) {
             status.textContent = error.code === 'unavailable' ? t('operations.result.unavailable') : t('operations.actionUnconfirmed');
         } finally {
@@ -1705,13 +1773,13 @@
         initSettings();
         initBackupRestore();
         document.getElementById('operationsRefresh')?.addEventListener('click', loadOperations);
-        document.getElementById('operationsDetailsRefresh')?.addEventListener('click', loadOperationDetails);
         document.querySelectorAll('[data-operation-view]').forEach(button => {
             button.addEventListener('click', () => {
                 operationsView = button.dataset.operationView;
                 document.getElementById('operationsActionStatus').textContent = '';
                 renderOperationDetails();
-                loadOperationDetails();
+                document.getElementById('operationsDetailsTitle').focus({ preventScroll: true });
+                document.getElementById('operationsDetails').scrollIntoView({ block: 'nearest' });
             });
         });
         document.getElementById('adminUserSearch')?.addEventListener('input', filterUsers);

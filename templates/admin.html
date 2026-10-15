@@ -60,41 +60,29 @@
 {% endif %}
 
         <section class="admin-panel hidden" id="tab-operations" aria-labelledby="operationsTitle">
-            <div class="admin-page-header"><div><h2 id="operationsTitle" data-i18n="operations.title">Instance status</h2><p data-i18n="operations.hint">Active SSH sessions and file transfers. Refresh to update this snapshot.</p></div></div>
-            <div class="admin-toolbar">
-                <button type="button" class="btn btn-secondary" id="operationsRefresh" data-i18n="admin.refresh">Refresh</button>
-                <span id="operationsStatus" role="status" aria-live="polite" data-i18n="operations.notLoaded">Not loaded</span>
+            <div class="admin-page-header operations-header">
+                <div><h2 id="operationsTitle" data-i18n="operations.title">Instance status</h2><p data-i18n="operations.hint">Manage active connections and transfers.</p></div>
+                <div class="operations-refresh"><span id="operationsStatus" role="status" aria-live="polite" data-i18n="operations.notLoaded">Not loaded</span><button type="button" class="btn btn-secondary" id="operationsRefresh"><span class="material-icons" aria-hidden="true">refresh</span><span data-i18n="admin.refresh">Refresh</span></button></div>
             </div>
             <p id="operationsNotice" class="alert alert-warning hidden" role="status"></p>
-            <div class="operations-grid">
-                <section class="admin-card"><h3 data-i18n="operations.sessions">SSH sessions</h3><dl>
-                    <dt data-i18n="operations.active">Active</dt><dd data-operation="sessions.active">—</dd>
-                    <dt data-i18n="operations.sessionUsers">Users with sessions</dt><dd data-operation="sessions.users">—</dd>
-                    <dt data-i18n="operations.tmuxSessions">Using tmux</dt><dd data-operation="sessions.tmux">—</dd>
-                </dl><button type="button" class="btn btn-secondary" data-operation-view="sessions" data-i18n="operations.viewSessions">View SSH sessions</button></section>
-                <section class="admin-card"><h3 data-i18n="operations.transfers">File transfers</h3><dl>
-                    <dt data-i18n="operations.waiting">Waiting</dt><dd data-operation="transfers.pending">—</dd>
-                    <dt data-i18n="operations.running">Running</dt><dd data-operation="transfers.running">—</dd>
-                    <dt data-i18n="operations.cancelling">Cancellation requested</dt><dd data-operation="transfers.cancelling">—</dd>
-                </dl><button type="button" class="btn btn-secondary" data-operation-view="transfers" data-i18n="operations.manageTransfers">Manage transfers</button></section>
+            <div class="operations-metrics">
+                <section class="operations-metric"><span class="material-icons" aria-hidden="true">terminal</span><div><h3 data-i18n="operations.sessions">SSH sessions</h3><strong data-operation="sessions.active">—</strong><span class="operations-metric-note"><span data-operation="sessions.tmux">—</span> <span data-i18n="operations.tmuxSessions">Using tmux</span></span></div></section>
+                <section class="operations-metric"><span class="material-icons" aria-hidden="true">group</span><div><h3 data-i18n="operations.sessionUsers">Users with sessions</h3><strong data-operation="sessions.users">—</strong></div></section>
+                <section class="operations-metric"><span class="material-icons" aria-hidden="true">swap_vert</span><div><h3 data-i18n="operations.transfers">File transfers</h3><strong data-operation="transfers.running">—</strong><span class="operations-metric-note" data-i18n="operations.running">Running</span><p class="operations-metric-note"><span data-operation="transfers.pending">—</span> <span data-i18n="operations.waiting">Waiting</span> · <span data-operation="transfers.cancelling">—</span> <span data-i18n="operations.cancelling">Cancellation requested</span></p></div></section>
             </div>
-            <p class="admin-muted" data-i18n="operations.sessionExplanation">SSH sessions remain listed when you switch to Settings. This snapshot covers connections managed by WebSSH, not detached tmux sessions on remote servers.</p>
+            <nav class="operations-views" aria-label="Instance views" data-i18n-aria-label="operations.views">
+                <button type="button" class="btn btn-secondary" data-operation-view="sessions" aria-pressed="true"><span class="material-icons" aria-hidden="true">terminal</span><span data-i18n="operations.sessions">SSH sessions</span></button>
+                <button type="button" class="btn btn-secondary" data-operation-view="transfers" aria-pressed="false"><span class="material-icons" aria-hidden="true">swap_vert</span><span data-i18n="operations.transfers">File transfers</span></button>
+            </nav>
             <section id="operationsDetails" class="hidden" aria-labelledby="operationsDetailsTitle">
-                <h3 id="operationsDetailsTitle"></h3>
+                <div class="operations-list-header"><h3 id="operationsDetailsTitle" tabindex="-1"></h3><span id="operationsDetailsStatus" role="status" aria-live="polite"></span></div>
                 <p id="operationsDetailsHint" class="admin-muted"></p>
-                <div class="admin-toolbar">
-                    <button type="button" class="btn btn-secondary" id="operationsDetailsRefresh" data-i18n="admin.refresh">Refresh</button>
-                    <span id="operationsDetailsStatus" role="status" aria-live="polite"></span>
-                </div>
                 <p id="operationsActionStatus" role="status" aria-live="polite"></p>
-                <div class="operations-table-wrap" tabindex="0" role="region" aria-labelledby="operationsDetailsTitle">
-                    <table class="admin-table">
-                        <thead><tr><th data-i18n="operations.target">Target</th><th data-i18n="operations.state">State</th><th data-i18n="operations.details">Details</th><th data-i18n="common.actions">Actions</th></tr></thead>
-                        <tbody id="operationsDetailRows"></tbody>
-                    </table>
+                <div class="admin-table-wrap operations-table-wrap" tabindex="0" role="region" aria-labelledby="operationsDetailsTitle">
+                    <table class="admin-table operations-table"><thead><tr id="operationsDetailHead"></tr></thead><tbody id="operationsDetailRows"></tbody></table>
                 </div>
             </section>
-            <details id="operationsTransportDiagnostics">
+            <details id="operationsTransportDiagnostics" class="operations-disclosure">
                 <summary data-i18n="operations.technical">Connection and worker diagnostics</summary>
                 <p class="admin-muted" data-i18n="operations.browserExplanation">Browser connections are separate from SSH sessions. Opening Settings in the same tab closes that browser connection.</p>
                 <div class="operations-grid">
@@ -114,8 +102,9 @@
                 </dl><button type="button" class="btn btn-secondary" data-operation-view="jobs" data-i18n="operations.viewJobs">View tasks</button></section>
                 </div>
             <p class="admin-muted" data-i18n="operations.explanation">Background counts include maintenance tasks. Cancellation requests overlap running or waiting jobs. The HTTP reserve is a configuration value, not a measurement of idle threads.</p>
+            <p class="admin-muted" data-i18n="operations.sessionExplanation">Only SSH connections managed by WebSSH are listed; detached remote tmux sessions are not included.</p>
             </details>
-            <details id="operationsConfiguration">
+            <details id="operationsConfiguration" class="operations-disclosure">
                 <summary data-i18n="operations.configure">Change capacity limits</summary>
                 <p data-i18n="operations.configHint">Set these environment variables in your deployment configuration, then restart WebSSH. Plan the restart: active browser connections and in-process transfers will be interrupted.</p>
                 <ul>
