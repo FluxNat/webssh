@@ -408,3 +408,65 @@ def test_admin_ssh_disconnect_failure_is_not_reported_as_success(app, client, mo
     assert 'secret' not in response.get_data(as_text=True)
     assert 'secret' not in str(audits)
     assert audits[-1][0] == 'ADMIN_SSH_DISCONNECT_FAILED'
+
+
+@pytest.mark.parametrize('reader_state', ['running', 'queued', 'not_attached', 'reader_notified'])
+def test_admin_disconnect_notifies_once_with_real_output_reader(app, client, monkeypatch, reader_state):
+    from types import SimpleNamespace
+    from app import ssh_manager, socketio
+    from app.models import SSHSession, db
+    from tests.test_admin_routes import _prepare_role
+    from tests.step_up_helpers import password_step_up_headers
+
+    owner = _prepare_role(app, client, 'admin')
+    runtime = RuntimeLifecycle(1)
+    started, stop, release_worker = threading.Event(), threading.Event(), threading.Event()
+    notified, release_notice = threading.Event(), threading.Event()
+    events = []
+    def recv(_size):
+        started.set()
+        assert stop.wait(5)
+        return b''
+    channel = SimpleNamespace(recv=recv, close=stop.set)
+    live = {'user_id': owner, 'connected': True, 'host': 'edge.example', 'port': 22,
+            'username': 'ops', 'client': SimpleNamespace(close=lambda: None), 'channel': channel,
+            'disconnect_notice': {}}
+    monkeypatch.setattr(ssh_manager, 'sessions', {'reader-session': live})
+    def emit(event, data, **kw):
+        events.append((event, data, kw))
+        if reader_state == 'reader_notified' and event == 'ssh_disconnected':
+            notified.set()
+            assert release_notice.wait(5)
+    monkeypatch.setattr(socketio, 'emit', emit)
+    with app.app_context():
+        db.session.add(SSHSession(session_id='reader-session', user_id=owner, host='edge.example',
+                                  port=22, username='ops', connected=True))
+        db.session.commit()
+    try:
+        if reader_state in {'queued', 'not_attached'}:
+            runtime.start_job('blocker', lambda cancel: release_worker.wait(5))
+        handle = runtime.start_job('ssh_output_reader', lambda cancel: ssh_manager.read_ssh_output(
+            'reader-session', socketio, app, cancel, live['disconnect_notice']))
+        if reader_state != 'not_attached':
+            live['reader_handle'] = handle
+        if reader_state not in {'queued', 'not_attached'}:
+            assert started.wait(2)
+        if reader_state == 'reader_notified':
+            stop.set()
+            assert notified.wait(2)
+        ref = client.get('/admin/api/operations/details').get_json()['sessions']['items'][0]['id']
+        headers, _ = password_step_up_headers(client, 'operations.session.disconnect', ref)
+        response = client.post(f'/admin/api/operations/sessions/{ref}/disconnect', headers=headers)
+        assert response.status_code == 200
+        release_worker.set()
+        release_notice.set()
+        assert handle.join(2)
+        disconnects = [event for event in events if event[0] == 'ssh_disconnected']
+        assert len(disconnects) == 1
+        assert disconnects[0][1]['session_id'] == 'reader-session'
+        assert disconnects[0][2] == {'room': f'user_{owner}'}
+    finally:
+        stop.set()
+        release_notice.set()
+        release_worker.set()
+        runtime.begin_shutdown(3)

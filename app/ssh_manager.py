@@ -527,6 +527,7 @@ def create_ssh_connection(host, port, username, password=None, key_path=None, ke
             channel.settimeout(0.1)
 
         session_id = str(uuid.uuid4())
+        disconnect_notice = {}
 
         time.sleep(0.1)
 
@@ -560,6 +561,7 @@ def create_ssh_connection(host, port, username, password=None, key_path=None, ke
                 'output_sequence': 0,
                 'quota_reservation': reservation,
                 'reader_handle': None,
+                'disconnect_notice': disconnect_notice,
             }
             connection_stored = True
 
@@ -582,7 +584,7 @@ def create_ssh_connection(host, port, username, password=None, key_path=None, ke
                 reader_handle = lifecycle.start_job(
                     'ssh_output_reader',
                     lambda cancel_event: read_ssh_output(
-                        session_id, socketio_instance, app, cancel_event
+                        session_id, socketio_instance, app, cancel_event, disconnect_notice
                     ),
                     owner_id=user_id,
                 )
@@ -719,7 +721,7 @@ def record_output(session_id, decoded_data, *, now=None):
         return sequence
 
 
-def read_ssh_output(session_id, socketio_instance, app, cancel_event=None):
+def read_ssh_output(session_id, socketio_instance, app, cancel_event=None, disconnect_notice=None):
     """Continuously read SSH output and emit it until cancelled or disconnected.
 
     IMPORTANT: Do NOT use select.select() on the Paramiko channel here.
@@ -728,6 +730,12 @@ def read_ssh_output(session_id, socketio_instance, app, cancel_event=None):
     continues to make progress on the shared transport.
     """
     from datetime import datetime, timezone
+
+    if disconnect_notice is None:
+        with sessions_lock:
+            session = sessions.get(session_id)
+            if session is not None:
+                disconnect_notice = session.setdefault('disconnect_notice', {})
 
     cached_room = None
     cached_user_id = None
@@ -838,10 +846,15 @@ def read_ssh_output(session_id, socketio_instance, app, cancel_event=None):
                     db_session.connected = False
                 db.session.commit()
 
-                socketio_instance.emit('ssh_disconnected', {
-                    'session_id': session_id,
-                    'reason': 'Connection closed'
-                }, room=room)
+                with sessions_lock:
+                    notify = disconnect_notice is None or not disconnect_notice.get('claimed')
+                    if disconnect_notice is not None:
+                        disconnect_notice['claimed'] = True
+                if notify:
+                    socketio_instance.emit('ssh_disconnected', {
+                        'session_id': session_id,
+                        'reason': 'Connection closed'
+                    }, room=room)
 
         close_session(session_id)
 
@@ -909,13 +922,15 @@ def resize_terminal(session_id, rows, cols):
     except Exception as e:
         return False, str(e)
 
-def close_session(session_id, kill_tmux=False):
+def close_session(session_id, kill_tmux=False, on_disconnect=None):
     """Close SSH session and clean up resources.
 
     kill_tmux: If True and the session uses tmux, kill the remote tmux session.
                Default False — idle timeout and server restart detach only,
                leaving tmux running so the session shows up as a reconnect
                candidate. Pass True only from explicit user disconnect.
+    on_disconnect: Optional notification callback. Claims the shared reader notice
+                   before cancellation so exactly one path notifies the owner.
     """
     reservation = None
     reader_handle = None
@@ -925,6 +940,10 @@ def close_session(session_id, kill_tmux=False):
             if session is None:
                 return False
             session['connected'] = False
+            notice = session.setdefault('disconnect_notice', {})
+            notify = on_disconnect is not None and not notice.get('claimed')
+            if notify:
+                notice['claimed'] = True
         reservation = session.get('quota_reservation')
         reader_handle = session.get('reader_handle')
         if reader_handle is not None:
@@ -984,6 +1003,8 @@ def close_session(session_id, kill_tmux=False):
         if reader_handle is not None:
             reader_handle.join(1.0)
 
+        if notify:
+            on_disconnect()
         return True
     except Exception as e:
         log_error("Error closing session", session_id=session_id, error=str(e))

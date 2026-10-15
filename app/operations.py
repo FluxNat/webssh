@@ -124,16 +124,18 @@ def disconnect_ssh_session(session_ref):
         return jsonify({'code': 'unavailable', 'error': 'Session is no longer active'}), 404
     try:
         # Detach tmux; an administrator must not terminate remote tmux workloads.
-        if not ssh_manager.close_session(match['session_id'], kill_tmux=False):
+        def notify_owner():
+            socketio.emit('ssh_disconnected', {
+                'session_id': match['session_id'],
+                'reason': 'Administrator disconnected SSH connection',
+            }, room=f"user_{match['user_id']}")
+
+        if not ssh_manager.close_session(match['session_id'], kill_tmux=False, on_disconnect=notify_owner):
             raise RuntimeError('Disconnection could not be confirmed')
         SSHSession.query.filter_by(session_id=match['session_id'], user_id=match['user_id']).update(
             {'connected': False}, synchronize_session=False,
         )
         db.session.commit()
-        socketio.emit('ssh_disconnected', {
-            'session_id': match['session_id'],
-            'reason': 'Administrator disconnected SSH connection',
-        }, room=f"user_{match['user_id']}")
     except Exception as error:
         db.session.rollback()
         log_security_event('ADMIN_SSH_DISCONNECT_FAILED', admin_id=current_user.id,

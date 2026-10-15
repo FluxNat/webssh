@@ -246,7 +246,7 @@ def test_ssh_reader_is_a_lifecycle_job_and_close_cancels_it(monkeypatch):
     class App:
         extensions = {'runtime_lifecycle': lifecycle}
 
-    def reader(_session_id, _socketio, _app, cancel_event):
+    def reader(_session_id, _socketio, _app, cancel_event, _disconnect_notice):
         reader_started.set()
         cancel_event.wait(1)
 
@@ -283,7 +283,7 @@ def test_reader_closing_its_own_session_never_joins_itself(monkeypatch):
     class App:
         extensions = {'runtime_lifecycle': lifecycle}
 
-    def reader(session_id, _socketio, _app, _cancel_event):
+    def reader(session_id, _socketio, _app, _cancel_event, _disconnect_notice):
         assert allow_close.wait(1)
         ssh_manager.close_session(session_id)
         reader_finished.set()
