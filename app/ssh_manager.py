@@ -991,6 +991,31 @@ def close_session(session_id, kill_tmux=False):
     finally:
         release_reservation(reservation)
 
+
+def admin_session_snapshot(limit=200):
+    """Copy active session metadata without probing or modifying SSH transports."""
+    items = []
+    owners = set()
+    active = tmux = 0
+    with sessions_lock:
+        for session_id, session in sessions.items():
+            if not session.get('connected'):
+                continue
+            active += 1
+            owners.add(session.get('user_id'))
+            persistent = bool(session.get('use_tmux'))
+            tmux += int(persistent)
+            if len(items) < limit:
+                items.append({
+                    'session_id': session_id,
+                    'user_id': session.get('user_id'),
+                    'target': f"{session.get('username', '')}@{session.get('host', '')}:{session.get('port', 22)}",
+                    'tmux': persistent,
+                })
+    owners.discard(None)
+    return {'active': active, 'users': len(owners), 'tmux': tmux}, items
+
+
 def get_session(session_id):
     """Get session info by ID."""
     with sessions_lock:

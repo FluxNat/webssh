@@ -224,7 +224,9 @@ async function seedLinuxSession(page, options = {}) {
                             window.__workspaceExpandedRequests || 0
                         ) + 1;
                         Object.assign(stats, {
-                            load: { one: 1.25, five: 0.75, fifteen: 0.5, cpu_count: 8 },
+                            load: seedOptions.highLoad
+                                ? { one: 4, five: 3, fifteen: 2, cpu_count: 3 }
+                                : { one: 1.25, five: 0.75, fifteen: 0.5, cpu_count: 8 },
                             swap: {
                                 total_kib: 2 * 1024 * 1024,
                                 available_kib: 1536 * 1024,
@@ -2951,4 +2953,24 @@ test.describe('mobile session header touch interaction', () => {
         await expect(page.locator('.terminal-pane.active .xterm')).toBeVisible();
         await assertNoExternalRequests(page);
     });
+});
+
+
+test('diagnostics explains high load and keeps metric and inventory timestamps distinct', async ({ page }, testInfo) => {
+    await login(page);
+    await seedLinuxSession(page, { highLoad: true });
+    await page.locator('#contextDiagnosticsTab').click();
+    await expect(page.locator('#sessionDiagnosticsLoadValue')).toHaveText('133.3%');
+    await expect(page.locator('#sessionDiagnosticsLoadDetail')).toContainText('4.00 / 3.00 / 2.00');
+    await expect(page.locator('#sessionDiagnosticsFindings')).toContainText('I/O');
+    await expect(page.locator('#sessionDiagnosticsPressureScale')).toHaveText('133.3%');
+    await expect(page.locator('#sessionDiagnosticsMetricsUpdated')).toContainText('Measurements received');
+    await expect(page.locator('#sessionDiagnosticsLastUpdated')).toContainText('Inventory updated');
+    await expect(page.locator('#sessionDiagnosticsHistoryCaption')).toContainText('samples over', { timeout: 6500 });
+    await expect(page.locator('#sessionDiagnosticsCpuValue')).toContainText('%');
+    await page.screenshot({ path: testInfo.outputPath('diagnostics-high-load.png') });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.locator('#contextWorkspaceLauncher').click();
+    await expect(page.locator('#sessionDiagnosticsFindings')).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });

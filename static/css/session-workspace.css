@@ -847,9 +847,9 @@ body.session-diagnostics-open {
 }
 
 .session-diagnostics-primary-card {
-    --session-metric-color: var(--success-color, #3fb950);
+    --session-metric-color: var(--accent-primary);
     min-width: 0;
-    padding: 15px;
+    padding: 12px;
     border: 1px solid var(--border-color);
     border-radius: 11px;
     background: linear-gradient(155deg, var(--bg-secondary), color-mix(in srgb, var(--bg-tertiary) 70%, transparent));
@@ -893,13 +893,13 @@ body.session-diagnostics-open {
 
 .session-diagnostics-primary-card > small {
     display: block;
-    min-height: 28px;
+    min-height: 0;
     margin-top: 4px;
-    overflow: hidden;
+    overflow: visible;
     color: var(--text-muted);
-    font-family: var(--font-mono);
+    font-family: inherit;
     font-size: 12px;
-    text-overflow: ellipsis;
+    line-height: 1.4;
 }
 
 .session-diagnostics-bar {
@@ -922,7 +922,7 @@ body.session-diagnostics-open {
 .session-diagnostics-primary-card canvas {
     display: block;
     width: 100%;
-    height: 52px;
+    height: 30px;
     margin-top: 8px;
     --session-chart-sparkline: var(--session-metric-color);
     --session-chart-line: var(--session-metric-color);
@@ -941,7 +941,7 @@ body.session-diagnostics-open {
 .session-diagnostics-chart-panel canvas {
     display: block;
     width: 100%;
-    height: 220px;
+    height: 160px;
     --session-chart-grid: color-mix(in srgb, var(--border-color) 72%, transparent);
     --session-chart-cpu: #58a6ff;
     --session-chart-memory: #a371f7;
@@ -1244,3 +1244,17 @@ body.session-diagnostics-open {
         transition: none;
     }
 }
+
+
+.session-diagnostics-assessment {
+    padding: 12px 14px;
+    border-left: 3px solid var(--accent-primary);
+    background: var(--bg-secondary);
+    overflow-wrap: anywhere;
+}
+.session-diagnostics-assessment h3 { margin: 0 0 6px; font-size: 13px; }
+.session-diagnostics-assessment ul { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.5; }
+.session-diagnostics-assessment li + li { margin-top: 5px; }
+.session-diagnostics-chart-caption { margin: 4px 0; color: var(--text-muted); font-size: 12px; line-height: 1.5; }
+.session-diagnostics-chart-frame { display: grid; grid-template-columns: minmax(48px, auto) minmax(0, 1fr); gap: 8px; }
+.session-diagnostics-axis { display: flex; flex-direction: column; justify-content: space-between; color: var(--text-muted); font-size: 11px; }

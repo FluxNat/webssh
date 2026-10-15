@@ -293,7 +293,7 @@
     let operationsUpdatedAt = null;
     let operationsFailed = false;
     let operationsMaintenance = false;
-    let operationsView = null;
+    let operationsView = 'sessions';
     let operationsDetails = null;
     let operationsDetailsLoading = false;
     let operationsDetailsFailed = false;
@@ -345,6 +345,7 @@
         try {
             const snapshot = await api('/admin/api/operations', { cache: 'no-store', signal: controller.signal });
             const groups = {
+                sessions: ['active', 'users', 'tmux'],
                 sockets: ['active', 'limit', 'per_user_limit', 'http_reserve', 'rejected_total', 'rejected_per_user'],
                 jobs: ['workers', 'running', 'queued', 'cancelling'],
                 transfers: ['pending', 'running', 'cancelling'],
@@ -375,7 +376,7 @@
         const panel = document.getElementById('operationsDetails');
         if (!panel || !operationsView) return;
         panel.classList.remove('hidden');
-        const titleKeys = { connections: 'manageConnections', transfers: 'manageTransfers', jobs: 'viewJobs' };
+        const titleKeys = { sessions: 'viewSessions', connections: 'manageConnections', transfers: 'manageTransfers', jobs: 'viewJobs' };
         document.getElementById('operationsDetailsTitle').textContent = t(`operations.${titleKeys[operationsView]}`);
         document.getElementById('operationsDetailsHint').textContent = t(`operations.${operationsView}Hint`);
         const data = operationsDetails?.[operationsView];
@@ -395,8 +396,10 @@
             const view = operationsView;
             const label = view === 'jobs' ? t(`operations.kind.${item.kind}`, t('operations.kind.other'))
                 : `${item.username || t('operations.unknownUser')} (${item.id.slice(0, 12)})`;
-            const state = view === 'connections' ? 'active' : item.cancelling ? 'cancelling' : item.state;
-            const detail = view === 'connections' ? fmtDate(item.created_at)
+            const state = ['connections', 'sessions'].includes(view) ? 'active' : item.cancelling ? 'cancelling' : item.state;
+            const detail = view === 'sessions'
+                ? `${item.target} · ${item.tmux ? 'tmux' : 'SSH'} · ${fmtDate(item.created_at)}`
+                : view === 'connections' ? fmtDate(item.created_at)
                 : `${view === 'transfers' ? t(`operations.direction.${item.direction}`) + ' · ' : ''}${item.age_seconds} s`;
             const stateKey = ['pending', 'queued'].includes(state) ? 'waiting' : state;
             for (const value of [label, t(`operations.${stateKey}`, state), detail]) {
@@ -405,7 +408,7 @@
                 row.appendChild(cell);
             }
             const actions = document.createElement('td');
-            if (view !== 'jobs') {
+            if (['connections', 'transfers'].includes(view)) {
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.className = 'btn btn-secondary';
@@ -429,13 +432,14 @@
         const timeout = setTimeout(() => controller.abort(), 10000);
         try {
             const data = await api('/admin/api/operations/details', { cache: 'no-store', signal: controller.signal });
-            const valid = ['connections', 'transfers', 'jobs'].every(group => {
+            const valid = ['sessions', 'connections', 'transfers', 'jobs'].every(group => {
                 const section = data?.[group];
                 return Number.isInteger(section?.total) && section.total >= 0
                     && Array.isArray(section.items) && section.items.length <= 200
                     && section.items.every(item => item && (group === 'jobs'
                         ? typeof item.kind === 'string' && Number.isInteger(item.age_seconds)
-                        : typeof item.id === 'string' && (typeof item.username === 'string' || item.username === null)));
+                        : typeof item.id === 'string' && (typeof item.username === 'string' || item.username === null)
+                            && (group !== 'sessions' || (typeof item.target === 'string' && typeof item.tmux === 'boolean'))));
             });
             if (!valid) throw new Error('Invalid instance details');
             operationsDetails = data;

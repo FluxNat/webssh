@@ -93,3 +93,31 @@ test('does not draw data paths with fewer than two finite values and supports sp
     charts.drawSparkline(sparkline, [1, null, 3]);
     assert.equal(sparkline.calls.filter(call => call[0] === 'moveTo').length, 2);
 });
+
+
+test('load above 100 percent retains its peak on a shared scale', () => {
+    const series = charts.buildPressureSeries([
+        { cpuPercent: 40, memoryPercent: 60, normalizedLoadPercent: 150 },
+        { cpuPercent: 50, memoryPercent: 65, normalizedLoadPercent: 325 },
+    ]);
+    assert.deepEqual(series[2].values, [150, 325]);
+    assert.ok(series.every(item => item.max === 325));
+});
+
+test('network rates above 100 bytes per second are not clipped as percentages', () => {
+    const canvas = fakeCanvas();
+    charts.drawLineChart(canvas, [{ key: 'received', label: 'Received', values: [150, 200], max: 200 }]);
+    assert.ok(canvas.calls.some(call => call[0] === 'lineTo' && call[2] === 0));
+});
+
+
+test('history uses elapsed sample time and breaks lines across polling gaps', () => {
+    const canvas = fakeCanvas();
+    charts.drawLineChart(canvas, [{ key: 'cpu', label: 'CPU', values: [10, 20, 30], max: 100 }], {
+        grid: false, sampleTimes: [1000, 5000, 25000],
+    });
+    const lines = canvas.calls.filter(call => call[0] === 'lineTo');
+    assert.equal(lines.length, 1);
+    assert.ok(Math.abs(lines[0][1] - 200 / 6) < 0.001);
+    assert.equal(canvas.calls.filter(call => call[0] === 'moveTo').length, 2);
+});

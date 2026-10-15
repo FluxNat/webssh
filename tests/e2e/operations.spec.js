@@ -9,6 +9,7 @@ test('administrator disconnects one browser after confirmation and reauthenticat
         await expect.poll(() => other.evaluate(() => window.socket.connected)).toBe(true);
         await login(page);
         await page.goto('/settings#operations');
+        await page.locator('#operationsTransportDiagnostics summary').click();
         await page.locator('[data-operation-view="connections"]').click();
         const row = page.locator('#operationsDetailRows tr').filter({ hasText: 'e2e_user' });
         await expect(row).toHaveCount(1);
@@ -30,7 +31,7 @@ test('transfer cancellation retains cancelling state and renders user text safel
     let cancelling = false;
     await page.route('**/admin/api/operations/details', route => route.fulfill({
         json: {
-            connections: { total: 0, items: [] }, jobs: { total: 0, items: [] },
+            sessions: { total: 0, items: [] }, connections: { total: 0, items: [] }, jobs: { total: 0, items: [] },
             transfers: { total: 1, items: [{ id: 'transfer-test', username: '<img src=x onerror=alert(1)>',
                 direction: 'download', state: cancelling ? 'cancelling' : 'running', age_seconds: 12 }] },
         },
@@ -57,6 +58,7 @@ test('task details and capacity guidance remain usable on mobile', async ({ page
     await page.setViewportSize({ width: 390, height: 844 });
     await login(page);
     await page.goto('/settings#operations');
+    await page.locator('#operationsTransportDiagnostics summary').click();
     await page.locator('[data-operation-view="jobs"]').click();
     await expect(page.locator('#operationsDetailsHint')).toContainText('System tasks');
     await expect(page.locator('#operationsDetailRows button')).toHaveCount(0);
@@ -149,7 +151,7 @@ test('failed detail refresh removes stale action rows and allows retry', async (
     let failed = false;
     await page.route('**/admin/api/operations/details', route => route.fulfill(failed
         ? { status: 503, json: {} }
-        : { json: { connections: { total: 0, items: [] }, jobs: { total: 0, items: [] },
+        : { json: { sessions: { total: 0, items: [] }, connections: { total: 0, items: [] }, jobs: { total: 0, items: [] },
             transfers: { total: 1, items: [{ id: 'pending-transfer', username: 'test-user',
                 direction: 'upload', state: 'pending', age_seconds: 1 }] } } }));
     await page.goto('/settings#operations');
@@ -162,4 +164,32 @@ test('failed detail refresh removes stale action rows and allows retry', async (
     failed = false;
     await page.locator('#operationsDetailsRefresh').click();
     await expect(page.locator('#operationsDetailRows tr')).toHaveCount(1);
+});
+
+
+test('same-tab Settings keeps SSH sessions visible without a browser transport', async ({ page }, testInfo) => {
+    await login(page);
+    await expect.poll(() => page.evaluate(() => window.socket.connected)).toBe(true);
+    await page.route('**/admin/api/operations', async route => {
+        const response = await route.fetch();
+        const data = await response.json();
+        await route.fulfill({ json: { ...data, sessions: { active: 1, users: 1, tmux: 1 } } });
+    });
+    await page.route('**/admin/api/operations/details', async route => {
+        const response = await route.fetch();
+        const data = await response.json();
+        await route.fulfill({ json: { ...data, sessions: { total: 1, items: [{
+            id: 'session-reference', username: 'e2e_admin', target: 'ops@edge.example:22',
+            tmux: true, created_at: '2026-10-15T08:00:00Z',
+        }] } } });
+    });
+    const href = await page.locator('#accountSettingsBtn').getAttribute('href');
+    await page.goto(href.replace('#preferences', '#operations'));
+    await expect(page.locator('[data-operation="sessions.active"]')).toHaveText('1');
+    await expect(page.locator('#operationsDetailRows')).toContainText('ops@edge.example:22');
+    await expect(page.locator('#operationsDetailRows')).toContainText('e2e_admin');
+    await expect(page.locator('#operationsDetailRows button')).toHaveCount(0);
+    await expect.poll(async () => (await (await page.request.get('/admin/api/operations')).json()).sockets.active).toBe(0);
+    await expect(page.locator('#operationsTransportDiagnostics')).not.toHaveAttribute('open');
+    await page.screenshot({ path: testInfo.outputPath('instance-status-sessions.png'), fullPage: true });
 });

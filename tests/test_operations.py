@@ -58,7 +58,7 @@ def test_operations_admin_only_and_no_store(app, client):
     assert response.status_code == 200
     assert response.headers['Cache-Control'] == 'no-store'
     data = response.get_json()
-    assert set(data) == {'sockets', 'jobs', 'transfers', 'maintenance'}
+    assert set(data) == {'sockets', 'jobs', 'transfers', 'maintenance', 'sessions'}
     assert data['sockets']['limit'] > 0
     assert data['sockets']['http_reserve'] >= 4
     assert set(data['transfers']) == {'pending', 'running', 'cancelling'}
@@ -268,3 +268,51 @@ def test_transfer_action_failure_is_sanitized_and_audited(app, client, monkeypat
     assert 'private' not in response.get_data(as_text=True)
     assert 'private' not in str(events)
     assert events[0][0] == 'ADMIN_TRANSFER_CANCEL_FAILED'
+
+
+def test_operations_counts_live_ssh_independently_of_browser_and_stale_database(app, client, monkeypatch):
+    from app import ssh_manager
+    from app.models import SSHSession, db
+    from tests.test_admin_routes import _prepare_role
+
+    owner = _prepare_role(app, client, 'admin')
+    monkeypatch.setattr(ssh_manager, 'sessions', {
+        'live-ssh': {'user_id': owner, 'connected': True, 'host': 'edge.example',
+                     'port': 22, 'username': 'ops', 'use_tmux': True,
+                     'output_buffer': ['secret-terminal-content'], 'client': object()},
+        'closed-ssh': {'user_id': owner, 'connected': False},
+    })
+    with app.app_context():
+        db.session.add(SSHSession(session_id='stale-db', user_id=owner,
+                                  host='stale.example', port=22, username='ops', connected=True))
+        db.session.commit()
+    data = client.get('/admin/api/operations').get_json()
+    assert data['sockets']['active'] == 0
+    assert data['sessions'] == {'active': 1, 'users': 1, 'tmux': 1}
+    details = client.get('/admin/api/operations/details').get_json()['sessions']
+    assert details['total'] == 1
+    row = details['items'][0]
+    assert row['username'] == 'targetuser'
+    assert row['target'] == 'ops@edge.example:22'
+    assert row['tmux'] is True
+    assert 'secret-terminal-content' not in str(details)
+    assert 'stale.example' not in str(details)
+    assert 'live-ssh' not in str(details)
+    ssh_manager.sessions.clear()
+    assert client.get('/admin/api/operations').get_json()['sessions']['active'] == 0
+
+
+def test_operations_session_details_limit_does_not_truncate_totals(app, client, monkeypatch):
+    from app import ssh_manager
+    from tests.test_admin_routes import _prepare_role
+
+    owner = _prepare_role(app, client, 'admin')
+    monkeypatch.setattr(ssh_manager, 'sessions', {
+        f'session-{number}': {'user_id': owner, 'connected': True, 'host': 'edge.example',
+                             'port': 22, 'username': 'ops', 'use_tmux': False}
+        for number in range(205)
+    })
+    details = client.get('/admin/api/operations/details').get_json()['sessions']
+    assert details['total'] == 205
+    assert len(details['items']) == 200
+    assert client.get('/admin/api/operations').get_json()['sessions']['active'] == 205

@@ -321,11 +321,11 @@ test('translates generated diagnostics copy without changing remote values', () 
     const translated = {
         'workspace.noActiveSession': 'Keine aktive Sitzung',
         'diagnostics.statusLive': 'Live-Daten',
-        'diagnostics.currentUtilization': 'Aktuelle Auslastung',
+        'diagnostics.cpuBasis': 'Aktuelle Auslastung',
         'diagnostics.showingServices': '{returned} von {total} Diensten',
         'diagnostics.showingContainers': '{returned} von {total} Containern',
         'diagnostics.permissionDocker': 'Docker-Zugriff eingeschränkt',
-        'diagnostics.severityNormal': 'Normalbereich',
+        'diagnostics.sample': 'Normalbereich',
     };
     const translate = key => translated[key] || key;
     const denied = inventoryState({ permissionDenied: ['docker'] });
@@ -422,4 +422,38 @@ test('expands embedded diagnostics into the existing right-side overlay and rest
     assert.equal(harness.backdrop.hidden, true);
     assert.equal(harness.close.hidden, true);
     assert.equal(harness.controller.isExpanded(), false);
+});
+
+
+test('stale and partial telemetry never produce a current health assessment', () => {
+    const state = coreState({ disk: { percent: 98, available_kib: 20 } });
+    const stale = diagnostics.buildViewModel({ ...state, status: 'stale' });
+    assert.deepEqual(stale.findings.map(item => item.kind), ['stale']);
+    const partial = diagnostics.buildViewModel({ sessionId: 'session-a', status: 'ready', stats: { uptime_seconds: 60 } });
+    assert.ok(partial.findings.some(item => item.kind === 'partial'));
+    assert.ok(!partial.findings.some(item => item.kind === 'healthy'));
+});
+
+test('assessment distinguishes load, free memory, root space and stale service inventory', () => {
+    const state = coreState({
+        load: { one: 12, five: 8, fifteen: 4, cpu_count: 4 },
+        memory: { total_kib: 1000, used_kib: 960, available_kib: 40 },
+        disk: { percent: 97, available_kib: 60, total_kib: 2000, used_kib: 1940 },
+    });
+    const model = diagnostics.buildViewModel(state, null, inventoryState());
+    assert.ok(model.findings.some(item => item.kind === 'load'));
+    assert.ok(model.findings.some(item => item.kind === 'memory'));
+    assert.ok(model.findings.some(item => item.kind === 'disk'));
+    assert.ok(model.findings.some(item => item.kind === 'services'));
+    const staleInventory = diagnostics.buildViewModel(state, null, inventoryState({ status: 'stale' }));
+    assert.ok(!staleInventory.findings.some(item => item.kind === 'services'));
+    assert.ok(model.resources.load.detail.includes('12.00 / 8.00 / 4.00'));
+    assert.equal(model.resources.load.percent, 300);
+});
+
+
+test('waits for two measurements before displaying a history chart', () => {
+    const first = { memoryPercent: 60, sampledAt: 1000 };
+    assert.equal(diagnostics.buildViewModel(coreState({}, [first])).hasPressureHistory, false);
+    assert.equal(diagnostics.buildViewModel(coreState({}, [first, { memoryPercent: 61, sampledAt: 5000 }])).hasPressureHistory, true);
 });
