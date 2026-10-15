@@ -305,7 +305,7 @@
             || topMemory.length
             || (typeof stats.os_name === 'string' && stats.os_name.trim())
         ));
-        const hasPressureHistory = ['cpuPercent', 'memoryPercent', 'normalizedLoadPercent'].some(
+        const hasPressureHistory = ['cpuPercent', 'memoryPercent', 'normalizedLoadPercent', 'diskPercent'].some(
             key => history.filter(sample => sample[key] !== null).length >= 2,
         );
         const inventory = scopedInventoryState.inventory || null;
@@ -363,6 +363,7 @@
                 pressureHistory: history.map(sample => ({
                     cpuPercent: sample.cpuPercent,
                     memoryPercent: sample.memoryPercent,
+                    diskPercent: sample.diskPercent,
                     normalizedLoadPercent: sample.normalizedLoadPercent,
                 })),
                 networkHistory: history.map(sample => ({

@@ -90,6 +90,7 @@ async function seedLinuxSession(page, options = {}) {
             const sampleCount = Math.max(0, ...series.map(item => item.values?.length || 0));
             if (canvas.id === 'sessionDiagnosticsPressureChart') {
                 window.__workspaceChartSamples.pressure = sampleCount;
+                window.__workspacePressureSeries = series;
             } else if (canvas.id === 'sessionDiagnosticsNetworkChart') {
                 window.__workspaceChartSamples.network = sampleCount;
             }
@@ -250,6 +251,16 @@ async function seedLinuxSession(page, options = {}) {
                                 ],
                             },
                         });
+                    }
+                    if (seedOptions.diskOnlyMetrics) {
+                        Object.keys(stats).forEach(key => delete stats[key]);
+                        const percent = insightSample === 1 ? 20 : 80;
+                        stats.disk = {
+                            total_kib: 100 * 1024 * 1024,
+                            used_kib: percent * 1024 * 1024,
+                            available_kib: (100 - percent) * 1024 * 1024,
+                            percent,
+                        };
                     }
                     deliver('session_insights', {
                         success: true,
@@ -2999,5 +3010,29 @@ test('diagnostics explains high load and keeps metric and inventory timestamps d
     const headerHeight = await page.locator('.session-diagnostics-header').evaluate(el => el.getBoundingClientRect().height);
     expect(headerHeight).toBeLessThan(190);
     await page.screenshot({ path: testInfo.outputPath('diagnostics-mobile.png') });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});
+
+
+test('diagnostics retains the root disk trend when other measurements are unavailable', async ({ page }) => {
+    await login(page);
+    await seedLinuxSession(page, { diskOnlyMetrics: true });
+    await page.locator('#contextDiagnosticsTab').click();
+    await expect(page.locator('#sessionDiagnosticsPressureChart')).toBeVisible({ timeout: 6500 });
+    await expect(page.locator('#sessionDiagnosticsDiskValue')).toHaveText('80.0%');
+    await expect(page.locator('#sessionDiagnosticsPressureSection .session-chart-legend .disk')).toHaveText('Root disk');
+    await expect.poll(() => page.evaluate(() => {
+        const disk = window.__workspacePressureSeries?.find(item => item.key === 'disk');
+        return disk?.values.filter(value => value !== null).slice(0, 2);
+    })).toEqual([20, 80]);
+    await expect(page.locator('#sessionDiagnosticsPressureChart')).toHaveAttribute('aria-label', /Root disk 80\.0%/);
+    for (const metric of ['Cpu', 'Memory', 'Load']) {
+        await expect(page.locator(`#sessionDiagnostics${metric}Metric`)).toBeHidden();
+    }
+    await page.locator('[data-diagnostics-view="systemd"]').click();
+    await expect(page.locator('#sessionDiagnosticsSystemdServices')).toContainText('nginx.service');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.locator('#contextWorkspaceLauncher').click();
+    await expect(page.locator('#sessionDiagnosticsPressureChart')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });

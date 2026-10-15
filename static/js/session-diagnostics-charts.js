@@ -47,6 +47,12 @@
                 }),
                 max: maximum,
             },
+            {
+                key: 'disk',
+                label: 'Root disk',
+                values: samples.map(sample => boundedPercent(sample?.diskPercent)),
+                max: maximum,
+            },
         ];
     }
 

@@ -946,6 +946,7 @@ body.session-diagnostics-open {
     --session-chart-cpu: #58a6ff;
     --session-chart-memory: #a371f7;
     --session-chart-load: #d29922;
+    --session-chart-disk: #f778ba;
     --session-chart-received: #3fb950;
     --session-chart-transmitted: #f778ba;
 }
@@ -972,6 +973,7 @@ body.session-diagnostics-open {
 .session-chart-legend .cpu { color: #58a6ff; }
 .session-chart-legend .memory { color: #a371f7; }
 .session-chart-legend .load { color: #d29922; }
+.session-chart-legend .disk { color: #f778ba; }
 .session-chart-legend .received { color: #3fb950; }
 .session-chart-legend .transmitted { color: #f778ba; }
 

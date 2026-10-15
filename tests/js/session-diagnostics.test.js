@@ -457,3 +457,20 @@ test('waits for two measurements before displaying a history chart', () => {
     assert.equal(diagnostics.buildViewModel(coreState({}, [first])).hasPressureHistory, false);
     assert.equal(diagnostics.buildViewModel(coreState({}, [first, { memoryPercent: 61, sampledAt: 5000 }])).hasPressureHistory, true);
 });
+
+
+test('shows disk-only history after two readings without inventing missing metrics', () => {
+    const first = { diskPercent: 20, sampledAt: 1000 };
+    const state = { sessionId: 'session-a', status: 'ready', stats: { disk: { percent: 80 } } };
+    assert.equal(diagnostics.buildViewModel({ ...state, metricHistory: [first] }).hasPressureHistory, false);
+    const model = diagnostics.buildViewModel({ ...state, metricHistory: [
+        first, { diskPercent: 80, sampledAt: 5000 },
+    ] });
+    assert.equal(model.hasPressureHistory, true);
+    assert.deepEqual(model.resources.disk.history, [20, 80]);
+    const series = require('../../static/js/session-diagnostics-charts.js').buildPressureSeries(model.charts.pressureHistory);
+    assert.deepEqual(series.find(item => item.key === 'disk').values, [20, 80]);
+    assert.equal(model.resources.cpu, null);
+    assert.equal(model.resources.memory, null);
+    assert.equal(model.resources.load, null);
+});

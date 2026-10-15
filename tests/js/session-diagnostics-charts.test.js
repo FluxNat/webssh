@@ -37,8 +37,9 @@ test('builds pressure series with null gaps preserved', () => {
         { key: 'cpu', label: 'CPU', values: [20, null, 40], max: 100 },
         { key: 'memory', label: 'Memory', values: [60, 61, 62], max: 100 },
         { key: 'load', label: 'Load', values: [13, 25, 50], max: 100 },
+        { key: 'disk', label: 'Root disk', values: [null, null, null], max: 100 },
     ]);
-    assert.equal(charts.buildPressureSeries([]).length, 3);
+    assert.equal(charts.buildPressureSeries([]).length, 4);
     assert.deepEqual(charts.buildPressureSeries([{ cpuPercent: 1 }])[0].values, [1]);
 });
 
@@ -120,4 +121,24 @@ test('history uses elapsed sample time and breaks lines across polling gaps', ()
     assert.equal(lines.length, 1);
     assert.ok(Math.abs(lines[0][1] - 200 / 6) < 0.001);
     assert.equal(canvas.calls.filter(call => call[0] === 'moveTo').length, 2);
+});
+
+
+test('renders root disk history with gaps on the shared load scale', () => {
+    const series = charts.buildPressureSeries([
+        { diskPercent: 20, normalizedLoadPercent: 200 },
+        { diskPercent: null, normalizedLoadPercent: 200 },
+        { diskPercent: 60, normalizedLoadPercent: 200 },
+        { diskPercent: 80, normalizedLoadPercent: 200 },
+    ]);
+    const disk = series.find(item => item.key === 'disk');
+    assert.ok(disk, 'root disk must remain visible in resource history');
+    assert.deepEqual(disk.values, [20, null, 60, 80]);
+    assert.equal(disk.max, 200);
+    const canvas = fakeCanvas();
+    charts.drawLineChart(canvas, [disk], { grid: false });
+    assert.deepEqual(canvas.calls.filter(call => call[0] === 'moveTo'), [
+        ['moveTo', 0, 72], ['moveTo', 400 / 3, 56],
+    ]);
+    assert.deepEqual(canvas.calls.filter(call => call[0] === 'lineTo'), [['lineTo', 200, 48]]);
 });
