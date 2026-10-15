@@ -48,9 +48,18 @@ Retention updates are authenticated administrator operations and are themselves 
 
 Administrators can open **Settings Center > Instance status** to inspect a
 snapshot of this WebSSH process and open its management controls. Use **Refresh** to fetch new values.
-The page does not poll in the background. It shows browser socket occupancy and
-limits, capacity rejection counters, running and queued background jobs, and
-pending/running/cancelling HTTP file transfers. Notices identify maintenance,
+The page does not poll in the background. It leads with active SSH sessions,
+users with sessions, tmux usage, and pending/running/cancelling HTTP file
+transfers. The session list identifies the WebSSH account, SSH target, connection
+time and tmux usage. It is read-only and remains available when the terminal tab
+navigates to Settings. Counts come from the current SSH runtime, not historical
+database rows. Detached tmux sessions with no active WebSSH SSH connection are
+not included.
+
+**Connection and worker diagnostics** contains browser socket occupancy and
+limits, capacity rejection counters, and running/queued background jobs.
+Opening Settings in the terminal's browser tab closes its browser socket while
+preserving SSH sessions; a zero browser count does not mean zero SSH sessions. Notices identify maintenance,
 shutdown, a full socket registry, or waiting background work.
 
 Background counts include long-running maintenance tasks. A job with a
@@ -96,22 +105,40 @@ Keep one Gunicorn worker and at least four HTTP threads outside the socket limit
 
 `GET /admin/api/operations/details` requires the same administrator access as the
 aggregate endpoint. Each list returns at most 200 entries and reports its total.
-It exposes account names and action references, but no raw socket IDs, transfer
-tokens, remote hosts, file paths or arbitrary task names. Detail responses are not
+It exposes account names, references, and the SSH user/host/port for session
+entries. It does not expose terminal output, raw session/socket IDs, transfer
+tokens, file paths or arbitrary task names. Detail responses are not
 cached. Refresh is manual; a failed detail refresh removes stale action rows.
 
 ### Session diagnostics
 
-Diagnostics expose bounded information about:
+Diagnostics uses compact metric rows and a shared resource chart for CPU, memory, normalized load and root filesystem usage. The disk trend remains available even when other measurements are missing. Expand the findings row for interpretation or the network row for throughput history. Processes, systemd services and Docker containers have separate keyboard-accessible tabs; existing filters and copy-command actions remain available. Additional server facts are collapsed below the selected view.
 
-- admitted Socket.IO connections;
-- active SSH and quick connections;
-- transfers and temporary storage;
-- background executor activity;
-- runtime shutdown or maintenance state;
-- configured capacity limits.
+Open **Workspaces > Diagnostics** for measurements from the selected SSH host.
+CPU measures time used between two samples. Memory shows usage based on
+`MemAvailable`, along with available capacity. Disk values describe the root
+filesystem only. Normalized load is the one-minute Linux load average divided
+by CPU count; it includes runnable and uninterruptible tasks and can exceed
+100%. The raw 1/5/15-minute averages are shown alongside it.
 
-Use diagnostics to compare demand with `GUNICORN_THREADS`, socket admission, SSH quotas, transfer quotas, and background workers. Avoid treating a single counter as the entire capacity picture.
+The interpretation panel uses explicit guide thresholds: 90% for CPU, memory
+and root disk, and one task per CPU for load. These trigger investigation hints,
+not a health verdict or an automatic action. Missing or stale telemetry is
+identified rather than interpreted as healthy. Failed-service hints refer to
+the separately refreshed service inventory.
+
+Charts retain up to 150 samples, show their observed duration and value scale,
+and use sample receipt times for spacing. Gaps longer than 12 seconds break the
+line. Load peaks remain visible above 100%. Measurement receipt time and remote
+inventory timestamp are displayed separately.
+
+Network rates sum non-loopback interfaces and may count traffic again across
+bridges or virtual interfaces. Process CPU values come from `ps` lifetime
+averages, not the current sampling interval; compare them with the live CPU
+trend. Inventory commands remain explicit clipboard actions. No extra remote
+commands or automatic interventions are performed by the interpretation panel.
+Measurement definitions follow the [Linux proc documentation](https://www.kernel.org/doc/html/latest/filesystems/proc.html)
+and the [ps manual](https://man7.org/linux/man-pages/man1/ps.1.html).
 
 ## Host-key administration
 

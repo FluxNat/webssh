@@ -90,6 +90,7 @@ async function seedLinuxSession(page, options = {}) {
             const sampleCount = Math.max(0, ...series.map(item => item.values?.length || 0));
             if (canvas.id === 'sessionDiagnosticsPressureChart') {
                 window.__workspaceChartSamples.pressure = sampleCount;
+                window.__workspacePressureSeries = series;
             } else if (canvas.id === 'sessionDiagnosticsNetworkChart') {
                 window.__workspaceChartSamples.network = sampleCount;
             }
@@ -208,7 +209,9 @@ async function seedLinuxSession(page, options = {}) {
                         used_kib: 10 * 1024 * 1024,
                     };
                     const stats = seedOptions.partialMetrics ? { memory } : {
-                        cpu: cpuSamples[Math.min(insightSample - 1, cpuSamples.length - 1)],
+                        cpu: cpuSamples[Math.min(insightSample - 1, cpuSamples.length - 1)].map(
+                            (value, index) => value + Math.max(0, insightSample - cpuSamples.length) * [60, 0, 30, 110][index],
+                        ),
                         memory,
                         disk: {
                             total_kib: 100 * 1024 * 1024,
@@ -224,7 +227,9 @@ async function seedLinuxSession(page, options = {}) {
                             window.__workspaceExpandedRequests || 0
                         ) + 1;
                         Object.assign(stats, {
-                            load: { one: 1.25, five: 0.75, fifteen: 0.5, cpu_count: 8 },
+                            load: seedOptions.highLoad
+                                ? { one: 4, five: 3, fifteen: 2, cpu_count: 3 }
+                                : { one: 1.25, five: 0.75, fifteen: 0.5, cpu_count: 8 },
                             swap: {
                                 total_kib: 2 * 1024 * 1024,
                                 available_kib: 1536 * 1024,
@@ -246,6 +251,16 @@ async function seedLinuxSession(page, options = {}) {
                                 ],
                             },
                         });
+                    }
+                    if (seedOptions.diskOnlyMetrics) {
+                        Object.keys(stats).forEach(key => delete stats[key]);
+                        const percent = insightSample === 1 ? 20 : 80;
+                        stats.disk = {
+                            total_kib: 100 * 1024 * 1024,
+                            used_kib: percent * 1024 * 1024,
+                            available_kib: (100 - percent) * 1024 * 1024,
+                            percent,
+                        };
                     }
                     deliver('session_insights', {
                         success: true,
@@ -1438,7 +1453,7 @@ test('narrow desktop tools contain German diagnostics and commands inside every 
             return childBox.left >= parentBox.left - 1
                 && childBox.right <= parentBox.right + 1;
         };
-        const cards = visible('.session-diagnostics-primary-card');
+        const cards = visible('.session-diagnostics-metric-row');
         const sections = visible('.session-diagnostics-section');
         const escapedDescendants = [...cards, ...sections].flatMap(surface => (
             visible('h3, h4, strong, small, canvas, .session-diagnostics-card-heading')
@@ -1459,7 +1474,8 @@ test('narrow desktop tools contain German diagnostics and commands inside every 
             documentContained: document.documentElement.scrollWidth <= innerWidth,
             panelClipsOverflow: getComputedStyle(panel).overflowX === 'hidden',
             contentContained: content.scrollWidth <= content.clientWidth + 1,
-            columns: getComputedStyle(grid).gridTemplateColumns.split(' ').length,
+            rowsStacked: getComputedStyle(grid).display === 'block' && cards.every((card, index) => index === 0
+                || card.getBoundingClientRect().top >= cards[index - 1].getBoundingClientRect().bottom - 1),
             escapedDescendants,
             overflowingSurfaces,
         };
@@ -1468,7 +1484,7 @@ test('narrow desktop tools contain German diagnostics and commands inside every 
         documentContained: true,
         panelClipsOverflow: true,
         contentContained: true,
-        columns: 1,
+        rowsStacked: true,
         escapedDescendants: [],
         overflowingSurfaces: [],
     });
@@ -2664,16 +2680,19 @@ test('diagnostics canvas renders correlated inventory and keeps controls clipboa
         await expect(page.locator(selector)).toBeVisible();
     }
     await expect(page.locator('#sessionDiagnosticsPressureChart')).toBeVisible();
+    await page.locator('#sessionDiagnosticsNetworkSection summary').click();
     await expect(page.locator('#sessionDiagnosticsNetworkChart')).toBeVisible({ timeout: 6000 });
     await expect(page.locator('#sessionDiagnosticsProcessesSection')).toBeVisible();
     await expect(page.locator('#sessionDiagnosticsCpuProcesses')).toContainText('postgres');
     await expect(page.locator('#sessionDiagnosticsMemoryProcesses')).toContainText('redis-server');
     await expect(page.locator('.session-process-percent .session-diagnostics-bar > span')).toHaveCount(3);
+    await page.locator('[data-diagnostics-view="systemd"]').click();
     await expect(page.locator('#sessionDiagnosticsSystemdSection')).toBeVisible();
     await expect(page.locator('#sessionDiagnosticsSystemdServices tr')).toHaveCount(3);
     await expect(page.locator('#sessionDiagnosticsSystemdServices')).toContainText('nginx.service');
     await expect(page.locator('#sessionDiagnosticsSystemdServices')).toContainText('backup.service');
     await expect(page.locator('#sessionDiagnosticsSystemdServices')).toContainText('cleanup.service');
+    await page.locator('[data-diagnostics-view="docker"]').click();
     await expect(page.locator('#sessionDiagnosticsDockerSection')).toBeVisible();
     await expect(page.locator('#sessionDiagnosticsDockerContainers tr')).toHaveCount(2);
     await expect(page.locator('#sessionDiagnosticsDockerContainers')).toContainText('webssh');
@@ -2689,6 +2708,7 @@ test('diagnostics canvas renders correlated inventory and keeps controls clipboa
         expect(pngSize(screenshotPath)).toEqual({ width: 2560, height: 1440 });
     }
 
+    await page.locator('[data-diagnostics-view="systemd"]').click();
     const services = page.locator('#sessionDiagnosticsSystemdServices tr');
     const search = page.locator('#sessionDiagnosticsSystemdSearch');
     await search.fill('backup');
@@ -2759,6 +2779,7 @@ test('diagnostics canvas renders correlated inventory and keeps controls clipboa
         'systemd service details are restricted',
     );
     await expect(page.locator('#sessionDiagnosticsSystemdSection')).toBeHidden();
+    await page.locator('[data-diagnostics-view="docker"]').click();
     await expect(page.locator('#sessionDiagnosticsDockerSection')).toBeVisible();
 
     await page.evaluate(() => SessionManager.removeSessionUI('workspace-linux'));
@@ -2782,13 +2803,10 @@ test('diagnostics charts keep stable dimensions across primary workspace navigat
     await seedLinuxSession(page);
     await page.locator('#contextDiagnosticsTab').click();
     await expect(page.locator('#sessionDiagnosticsOverlay')).toBeVisible();
+    await page.locator('#sessionDiagnosticsNetworkSection summary').click();
     await expect(page.locator('#sessionDiagnosticsNetworkChart')).toBeVisible({ timeout: 6000 });
 
     const canvases = page.locator([
-        '#sessionDiagnosticsCpuSparkline',
-        '#sessionDiagnosticsMemorySparkline',
-        '#sessionDiagnosticsDiskSparkline',
-        '#sessionDiagnosticsLoadSparkline',
         '#sessionDiagnosticsPressureChart',
         '#sessionDiagnosticsNetworkChart',
     ].join(', '));
@@ -2801,7 +2819,7 @@ test('diagnostics charts keep stable dimensions across primary workspace navigat
         styleHeight: canvas.style.height,
     })));
     const initial = await dimensions();
-    expect(initial).toHaveLength(6);
+    expect(initial).toHaveLength(2);
     expect(initial.every(({ clientWidth, clientHeight }) => clientWidth > 0 && clientHeight > 0)).toBe(true);
     expect(initial.every(({ styleWidth, styleHeight }) => !styleWidth && !styleHeight)).toBe(true);
 
@@ -2951,4 +2969,70 @@ test.describe('mobile session header touch interaction', () => {
         await expect(page.locator('.terminal-pane.active .xterm')).toBeVisible();
         await assertNoExternalRequests(page);
     });
+});
+
+
+test('diagnostics explains high load and keeps metric and inventory timestamps distinct', async ({ page }, testInfo) => {
+    await login(page);
+    await seedLinuxSession(page, { highLoad: true });
+    await page.locator('#contextDiagnosticsTab').click();
+    await expect(page.locator('#sessionDiagnosticsLoadValue')).toHaveText('133.3%');
+    await expect(page.locator('#sessionDiagnosticsAssessment')).not.toHaveAttribute('open');
+    await expect(page.locator('#sessionDiagnosticsFindings')).toBeHidden();
+    const metricsHeight = await page.locator('.session-diagnostics-primary-grid').evaluate(el => el.getBoundingClientRect().height);
+    expect(metricsHeight).toBeLessThan(220);
+    await page.locator('#sessionDiagnosticsAssessment summary').click();
+    await expect(page.locator('#sessionDiagnosticsLoadDetail')).toContainText('4.00 / 3.00 / 2.00');
+    await expect(page.locator('#sessionDiagnosticsFindings')).toContainText('I/O');
+    await expect(page.locator('#sessionDiagnosticsPressureScale')).toHaveText('133.3%');
+    await expect(page.locator('#sessionDiagnosticsMetricsUpdated')).toContainText('Measurements received');
+    await expect(page.locator('#sessionDiagnosticsLastUpdated')).toContainText('Inventory updated');
+    await expect(page.locator('#sessionDiagnosticsHistoryCaption')).toContainText('samples over', { timeout: 6500 });
+    await expect(page.locator('#sessionDiagnosticsCpuValue')).toContainText('%');
+    await page.locator('#sessionDiagnosticsAssessment summary').click();
+    await expect(page.locator('#sessionDiagnosticsCpuProcesses')).toBeInViewport();
+    await expect.poll(() => page.evaluate(() => window.__workspaceChartSamples?.pressure || 0), { timeout: 6500 }).toBeGreaterThan(2);
+    await page.screenshot({ path: testInfo.outputPath('diagnostics-high-load.png') });
+    await page.locator('#contextWorkspace').screenshot({ path: testInfo.outputPath('diagnostics-panel.png') });
+    await page.locator('[data-diagnostics-view="systemd"]').click();
+    await expect(page.locator('#sessionDiagnosticsSystemdSection')).toBeVisible();
+    await expect(page.locator('#sessionDiagnosticsProcessesSection')).toBeHidden();
+    await page.locator('[data-diagnostics-view="systemd"]').press('ArrowRight');
+    await expect(page.locator('#sessionDiagnosticsDockerSection')).toBeVisible();
+    await page.locator('[data-diagnostics-view="processes"]').click();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.locator('#contextWorkspaceLauncher').click();
+    await page.locator('#sessionDiagnosticsAssessment summary').click();
+    await expect(page.locator('#sessionDiagnosticsFindings')).toBeVisible();
+    await page.locator('#sessionDiagnosticsAssessment summary').click();
+    await expect(page.locator('#sessionDiagnosticsCpuValue')).toContainText('%', { timeout: 6500 });
+    await expect(page.locator('#sessionDiagnosticsCpuMetric')).toBeVisible({ timeout: 6500 });
+    const headerHeight = await page.locator('.session-diagnostics-header').evaluate(el => el.getBoundingClientRect().height);
+    expect(headerHeight).toBeLessThan(190);
+    await page.screenshot({ path: testInfo.outputPath('diagnostics-mobile.png') });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+});
+
+
+test('diagnostics retains the root disk trend when other measurements are unavailable', async ({ page }) => {
+    await login(page);
+    await seedLinuxSession(page, { diskOnlyMetrics: true });
+    await page.locator('#contextDiagnosticsTab').click();
+    await expect(page.locator('#sessionDiagnosticsPressureChart')).toBeVisible({ timeout: 6500 });
+    await expect(page.locator('#sessionDiagnosticsDiskValue')).toHaveText('80.0%');
+    await expect(page.locator('#sessionDiagnosticsPressureSection .session-chart-legend .disk')).toHaveText('Root disk');
+    await expect.poll(() => page.evaluate(() => {
+        const disk = window.__workspacePressureSeries?.find(item => item.key === 'disk');
+        return disk?.values.filter(value => value !== null).slice(0, 2);
+    })).toEqual([20, 80]);
+    await expect(page.locator('#sessionDiagnosticsPressureChart')).toHaveAttribute('aria-label', /Root disk 80\.0%/);
+    for (const metric of ['Cpu', 'Memory', 'Load']) {
+        await expect(page.locator(`#sessionDiagnostics${metric}Metric`)).toBeHidden();
+    }
+    await page.locator('[data-diagnostics-view="systemd"]').click();
+    await expect(page.locator('#sessionDiagnosticsSystemdServices')).toContainText('nginx.service');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.locator('#contextWorkspaceLauncher').click();
+    await expect(page.locator('#sessionDiagnosticsPressureChart')).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });

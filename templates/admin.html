@@ -60,34 +60,25 @@
 {% endif %}
 
         <section class="admin-panel hidden" id="tab-operations" aria-labelledby="operationsTitle">
-            <div class="admin-page-header"><div><h2 id="operationsTitle" data-i18n="operations.title">Instance status</h2><p data-i18n="operations.hint">Current process capacity. Refresh for a new snapshot; counters reset on restart.</p></div></div>
+            <div class="admin-page-header"><div><h2 id="operationsTitle" data-i18n="operations.title">Instance status</h2><p data-i18n="operations.hint">Active SSH sessions and file transfers. Refresh to update this snapshot.</p></div></div>
             <div class="admin-toolbar">
                 <button type="button" class="btn btn-secondary" id="operationsRefresh" data-i18n="admin.refresh">Refresh</button>
                 <span id="operationsStatus" role="status" aria-live="polite" data-i18n="operations.notLoaded">Not loaded</span>
             </div>
             <p id="operationsNotice" class="alert alert-warning hidden" role="status"></p>
             <div class="operations-grid">
-                <section class="admin-card"><h3 data-i18n="operations.sockets">Browser connections</h3><dl>
-                    <dt data-i18n="operations.active">Active</dt><dd data-operation="sockets.active">—</dd>
-                    <dt data-i18n="operations.limit">Limit</dt><dd data-operation="sockets.limit">—</dd>
-                    <dt data-i18n="operations.perUser">Limit per user</dt><dd data-operation="sockets.per_user_limit">—</dd>
-                    <dt data-i18n="operations.httpReserve">Configured HTTP thread reserve</dt><dd data-operation="sockets.http_reserve">—</dd>
-                    <dt data-i18n="operations.rejectedTotal">Rejected: instance limit</dt><dd data-operation="sockets.rejected_total">—</dd>
-                    <dt data-i18n="operations.rejectedUser">Rejected: user limit</dt><dd data-operation="sockets.rejected_per_user">—</dd>
-                </dl><button type="button" class="btn btn-secondary" data-operation-view="connections" data-i18n="operations.manageConnections">Manage connections</button></section>
-                <section class="admin-card"><h3 data-i18n="operations.jobs">Background work</h3><dl>
-                    <dt data-i18n="operations.workers">Worker limit</dt><dd data-operation="jobs.workers">—</dd>
-                    <dt data-i18n="operations.running">Running</dt><dd data-operation="jobs.running">—</dd>
-                    <dt data-i18n="operations.waiting">Waiting</dt><dd data-operation="jobs.queued">—</dd>
-                    <dt data-i18n="operations.cancelling">Cancellation requested</dt><dd data-operation="jobs.cancelling">—</dd>
-                </dl><button type="button" class="btn btn-secondary" data-operation-view="jobs" data-i18n="operations.viewJobs">View tasks</button></section>
+                <section class="admin-card"><h3 data-i18n="operations.sessions">SSH sessions</h3><dl>
+                    <dt data-i18n="operations.active">Active</dt><dd data-operation="sessions.active">—</dd>
+                    <dt data-i18n="operations.sessionUsers">Users with sessions</dt><dd data-operation="sessions.users">—</dd>
+                    <dt data-i18n="operations.tmuxSessions">Using tmux</dt><dd data-operation="sessions.tmux">—</dd>
+                </dl><button type="button" class="btn btn-secondary" data-operation-view="sessions" data-i18n="operations.viewSessions">View SSH sessions</button></section>
                 <section class="admin-card"><h3 data-i18n="operations.transfers">File transfers</h3><dl>
                     <dt data-i18n="operations.waiting">Waiting</dt><dd data-operation="transfers.pending">—</dd>
                     <dt data-i18n="operations.running">Running</dt><dd data-operation="transfers.running">—</dd>
                     <dt data-i18n="operations.cancelling">Cancellation requested</dt><dd data-operation="transfers.cancelling">—</dd>
                 </dl><button type="button" class="btn btn-secondary" data-operation-view="transfers" data-i18n="operations.manageTransfers">Manage transfers</button></section>
             </div>
-            <p class="admin-muted" data-i18n="operations.explanation">Background counts include maintenance tasks. Cancellation requests overlap running or waiting jobs. The HTTP reserve is a configuration value, not a measurement of idle threads.</p>
+            <p class="admin-muted" data-i18n="operations.sessionExplanation">SSH sessions remain listed when you switch to Settings. This snapshot covers connections managed by WebSSH, not detached tmux sessions on remote servers.</p>
             <section id="operationsDetails" class="hidden" aria-labelledby="operationsDetailsTitle">
                 <h3 id="operationsDetailsTitle"></h3>
                 <p id="operationsDetailsHint" class="admin-muted"></p>
@@ -103,6 +94,27 @@
                     </table>
                 </div>
             </section>
+            <details id="operationsTransportDiagnostics">
+                <summary data-i18n="operations.technical">Connection and worker diagnostics</summary>
+                <p class="admin-muted" data-i18n="operations.browserExplanation">Browser connections are separate from SSH sessions. Opening Settings in the same tab closes that browser connection.</p>
+                <div class="operations-grid">
+                <section class="admin-card"><h3 data-i18n="operations.sockets">Browser connections</h3><dl>
+                    <dt data-i18n="operations.active">Active</dt><dd data-operation="sockets.active">—</dd>
+                    <dt data-i18n="operations.limit">Limit</dt><dd data-operation="sockets.limit">—</dd>
+                    <dt data-i18n="operations.perUser">Limit per user</dt><dd data-operation="sockets.per_user_limit">—</dd>
+                    <dt data-i18n="operations.httpReserve">Configured HTTP thread reserve</dt><dd data-operation="sockets.http_reserve">—</dd>
+                    <dt data-i18n="operations.rejectedTotal">Rejected: instance limit</dt><dd data-operation="sockets.rejected_total">—</dd>
+                    <dt data-i18n="operations.rejectedUser">Rejected: user limit</dt><dd data-operation="sockets.rejected_per_user">—</dd>
+                </dl><button type="button" class="btn btn-secondary" data-operation-view="connections" data-i18n="operations.manageConnections">Manage connections</button></section>
+                <section class="admin-card"><h3 data-i18n="operations.jobs">Background work</h3><dl>
+                    <dt data-i18n="operations.workers">Worker limit</dt><dd data-operation="jobs.workers">—</dd>
+                    <dt data-i18n="operations.running">Running</dt><dd data-operation="jobs.running">—</dd>
+                    <dt data-i18n="operations.waiting">Waiting</dt><dd data-operation="jobs.queued">—</dd>
+                    <dt data-i18n="operations.cancelling">Cancellation requested</dt><dd data-operation="jobs.cancelling">—</dd>
+                </dl><button type="button" class="btn btn-secondary" data-operation-view="jobs" data-i18n="operations.viewJobs">View tasks</button></section>
+                </div>
+            <p class="admin-muted" data-i18n="operations.explanation">Background counts include maintenance tasks. Cancellation requests overlap running or waiting jobs. The HTTP reserve is a configuration value, not a measurement of idle threads.</p>
+            </details>
             <details id="operationsConfiguration">
                 <summary data-i18n="operations.configure">Change capacity limits</summary>
                 <p data-i18n="operations.configHint">Set these environment variables in your deployment configuration, then restart WebSSH. Plan the restart: active browser connections and in-process transfers will be interrupted.</p>

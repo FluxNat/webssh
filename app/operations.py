@@ -9,7 +9,8 @@ import config
 from .decorators import admin_required, step_up_required
 from .audit_logger import log_security_event
 from .maintenance_mode import is_active
-from .models import SocketSession, User, db
+from .models import SSHSession, SocketSession, User, db
+from .ssh_manager import admin_session_snapshot
 from .socket_capacity import socket_capacity
 from .transfer_routes import transfer_manager
 
@@ -36,6 +37,28 @@ def _connections():
     ).filter(SocketSession.socket_sid.in_(sids)).order_by(SocketSession.created_at).all()
 
 
+def _ssh_sessions():
+    summary, items = admin_session_snapshot()
+    owner_ids = {item['user_id'] for item in items if item['user_id'] is not None}
+    owners = dict(db.session.query(User.id, User.username).filter(User.id.in_(owner_ids)).all())
+    ids = [item['session_id'] for item in items]
+    dates = dict(db.session.query(SSHSession.session_id, SSHSession.created_at).filter(
+        SSHSession.session_id.in_(ids),
+    ).all())
+    result = []
+    for item in items:
+        session_id = item['session_id']
+        created = dates.get(session_id)
+        result.append({
+            'target': item['target'],
+            'tmux': item['tmux'],
+            'id': hashlib.sha256(('admin-ssh:' + session_id).encode('utf-8')).hexdigest(),
+            'username': owners.get(item['user_id']),
+            'created_at': created.isoformat() + 'Z' if created else None,
+        })
+    return {'total': summary['active'], 'items': result}
+
+
 @operations_blueprint.get('/admin/api/operations/details')
 @admin_required
 @login_required
@@ -54,6 +77,7 @@ def operations_details():
         item['username'] = owners.get(int(owner_id)) if str(owner_id).isdigit() else None
     return jsonify({
         'connections': connections,
+        'sessions': _ssh_sessions(),
         'transfers': transfers,
         'jobs': current_app.extensions['runtime_lifecycle'].admin_details(),
     })
@@ -111,6 +135,7 @@ def operations_status():
     })
     response = jsonify({
         'sockets': sockets,
+        'sessions': admin_session_snapshot(limit=0)[0],
         'jobs': current_app.extensions['runtime_lifecycle'].snapshot(),
         'transfers': transfer_manager.snapshot(),
         'maintenance': is_active(),

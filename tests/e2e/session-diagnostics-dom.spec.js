@@ -70,6 +70,18 @@ test('renders hostile inventory only as DOM text with unique service action name
                 }
             });
 
+        const overlay = document.getElementById('sessionDiagnosticsOverlay');
+        ['systemd', 'docker'].forEach(key => {
+            const title = key[0].toUpperCase() + key.slice(1);
+            const button = document.createElement('button');
+            button.dataset.diagnosticsView = key;
+            button.id = `sessionDiagnostics${title}Tab`;
+            overlay.appendChild(button);
+            overlay.appendChild(document.getElementById(`sessionDiagnostics${title}Section`));
+        });
+        document.getElementById('sessionDiagnosticsSystemdSection').appendChild(
+            document.getElementById('sessionDiagnosticsSystemdSearch'),
+        );
         window.workspaceLayoutController = {
             getState: () => ({ activeContext: 'diagnostics' }),
             setContextAvailability() {},
@@ -134,6 +146,10 @@ test('renders hostile inventory only as DOM text with unique service action name
             diagnosticsVisible: !document.getElementById('sessionDiagnosticsOverlay')
                 .classList.contains('hidden'),
         };
+        document.getElementById('sessionDiagnosticsSystemdSearch').focus();
+        controller.render(state, { connected: true }, { ...inventory, permissionDenied: ['systemd'] });
+        result.fallbackFocus = document.activeElement.id;
+        result.systemdTabHidden = document.getElementById('sessionDiagnosticsSystemdTab').hidden;
         controller.destroy();
         return result;
     }, { hostileUnit });
@@ -148,6 +164,8 @@ test('renders hostile inventory only as DOM text with unique service action name
     expect(rendered.unitTag).toBe('TH');
     expect(rendered.unitScope).toBe('row');
     expect(rendered.diagnosticsVisible).toBe(true);
+    expect(rendered.fallbackFocus).toBe('sessionDiagnosticsDockerTab');
+    expect(rendered.systemdTabHidden).toBe(true);
     await expect(page.getByRole('button', {
         name: `Restart for ${hostileUnit}`,
         exact: true,

@@ -24,24 +24,34 @@
 
     function buildPressureSeries(history) {
         const samples = Array.isArray(history) ? history : [];
+        const maximum = Math.max(100, ...samples.map(sample => Math.max(0, finite(sample?.normalizedLoadPercent) ?? 0)));
         return [
             {
                 key: 'cpu',
                 label: 'CPU',
                 values: samples.map(sample => boundedPercent(sample?.cpuPercent)),
-                max: 100,
+                max: maximum,
             },
             {
                 key: 'memory',
                 label: 'Memory',
                 values: samples.map(sample => boundedPercent(sample?.memoryPercent)),
-                max: 100,
+                max: maximum,
             },
             {
                 key: 'load',
                 label: 'Load',
-                values: samples.map(sample => boundedPercent(sample?.normalizedLoadPercent)),
-                max: 100,
+                values: samples.map(sample => {
+                    const value = finite(sample?.normalizedLoadPercent);
+                    return value === null || value < 0 ? null : value;
+                }),
+                max: maximum,
+            },
+            {
+                key: 'disk',
+                label: 'Root disk',
+                values: samples.map(sample => boundedPercent(sample?.diskPercent)),
+                max: maximum,
             },
         ];
     }
@@ -119,6 +129,10 @@
         if (validCount < 2) return;
         const max = Number(item.max) > 0 ? Number(item.max) : 100;
         const step = values.length > 1 ? width / (values.length - 1) : width;
+        const times = Array.isArray(options?.sampleTimes) ? options.sampleTimes : [];
+        const timed = times.length === values.length && times.every((time, index) =>
+            finite(time) !== null && (index === 0 || time > times[index - 1]));
+        const duration = timed ? times.at(-1) - times[0] : 0;
         let drawing = false;
         context.strokeStyle = cssValue(
             options?.canvas,
@@ -134,8 +148,9 @@
                 drawing = false;
                 return;
             }
-            const bounded = item.max === 100 ? Math.max(0, Math.min(100, number)) : Math.max(0, number);
-            const x = index * step;
+            const bounded = Math.max(0, Math.min(max, number));
+            if (timed && index > 0 && times[index] - times[index - 1] > 12000) drawing = false;
+            const x = duration > 0 ? ((times[index] - times[0]) / duration) * width : index * step;
             const y = height - ((bounded / max) * height);
             if (!drawing) {
                 context.moveTo(x, y);

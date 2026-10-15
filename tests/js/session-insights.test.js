@@ -504,7 +504,7 @@ test('stores immutable, normalized metric samples including null gaps', () => {
         swapPercent: 25,
         diskPercent: 61,
         loadOne: 1.25,
-        normalizedLoadPercent: 16,
+        normalizedLoadPercent: 15.625,
         receivedBps: 2048,
         transmittedBps: 1024,
         processTotal: 215,
@@ -595,4 +595,16 @@ test('CPU counters support older layouts and reject invalid values and resets', 
     assert.equal(insights.calculateCpuPercent([-1, 0, 0, 0], [25, 0, 0, 100]), null);
     assert.equal(insights.calculateCpuPercent([20, 0, 0, 0], [10, 0, 0, 100]), null);
     assert.equal(insights.calculateCpuPercent([0, 0, 0, 0], [0, 0, 0, 0]), null);
+});
+
+
+test('retains normalized load above 100 percent in the collected history', () => {
+    const runtime = fakeRuntime();
+    runtime.controller.setSession('session-a', true);
+    const request = runtime.emitted.at(-1).payload;
+    runtime.handlers.get('session_insights')({
+        success: true, session_id: 'session-a', request_id: request.request_id,
+        stats: { load: { one: 4, cpu_count: 3 } },
+    });
+    assert.ok(Math.abs(runtime.renders.at(-1).metricHistory.at(-1).normalizedLoadPercent - 133.33333333333333) < 0.00001);
 });

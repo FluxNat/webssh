@@ -698,3 +698,35 @@ def test_disconnect_cancels_only_transfers_prepared_by_that_socket(app, monkeypa
     assert str(second_record.user_id) == str(user_id)
 
     second_socket.disconnect()
+
+
+def test_admin_status_retains_ssh_session_after_browser_disconnect_and_restore(app, monkeypatch):
+    from app.models import SSHSession, User, db
+
+    username = 'status_navigation_admin'
+    socket_client, owner = _authenticated_socket(app, username)
+    with app.app_context():
+        db.session.get(User, owner).is_admin = True
+        db.session.add(SSHSession(session_id='status-ssh', user_id=owner,
+                                  host='edge.example', port=22, username='ops', connected=True))
+        db.session.commit()
+    monkeypatch.setattr(ssh_manager, 'sessions', {
+        'status-ssh': {'user_id': owner, 'host': 'edge.example', 'port': 22,
+                       'username': 'ops', 'connected': True, 'use_tmux': True,
+                       'last_activity': time.time(), 'output_buffer': ['preserved output'],
+                       'output_sequence': 1},
+    })
+    http_client = _logged_in_http_client(app, username)
+    assert http_client.get('/admin/api/operations').get_json()['sessions']['active'] == 1
+    socket_client.disconnect()
+    assert http_client.get('/settings').status_code == 200
+    assert http_client.get('/admin/api/operations').get_json()['sessions']['active'] == 1
+    assert http_client.get('/admin/api/operations/details').get_json()['sessions']['items'][0]['target'] == 'ops@edge.example:22'
+    restored = socketio.test_client(app, flask_test_client=http_client, auth=_socket_auth())
+    try:
+        events = restored.get_received()
+        session_event = next(event['args'][0] for event in events if event['name'] == 'ssh_session_restored')
+        assert session_event['session_id'] == 'status-ssh'
+        assert session_event['buffered_output'] == 'preserved output'
+    finally:
+        restored.disconnect()

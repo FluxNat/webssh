@@ -103,6 +103,7 @@
 
     function buildMetricSample(stats, sampledAt, cpuPercent, networkRates) {
         const loadOne = nonNegativeNumber(stats.load?.one);
+        const cpuCount = nonNegativeNumber(stats.load?.cpu_count);
         return Object.freeze({
             sampledAt: Number.isFinite(Number(sampledAt)) ? Number(sampledAt) : null,
             cpuPercent: boundedPercent(cpuPercent),
@@ -110,9 +111,9 @@
             swapPercent: percent(stats.swap?.used_kib, stats.swap?.total_kib),
             diskPercent: boundedPercent(stats.disk?.percent),
             loadOne,
-            normalizedLoadPercent: loadOne === null
-                ? null
-                : percent(loadOne, stats.load?.cpu_count),
+            normalizedLoadPercent: loadOne !== null && cpuCount > 0
+                ? (loadOne / cpuCount) * 100
+                : null,
             receivedBps: nonNegativeNumber(networkRates?.received_bps),
             transmittedBps: nonNegativeNumber(networkRates?.transmitted_bps),
             processTotal: nonNegativeNumber(stats.processes?.total),

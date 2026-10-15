@@ -23,12 +23,6 @@
         processes: ['diagnostics.permissionProcesses', 'Process details are restricted for this SSH user.'],
         systemd: ['diagnostics.permissionSystemd', 'systemd service details are restricted for this SSH user.'],
     };
-    const SEVERITY_LABELS = {
-        normal: ['diagnostics.severityNormal', 'Normal'],
-        warning: ['diagnostics.severityWarning', 'Warning'],
-        critical: ['diagnostics.severityCritical', 'Critical'],
-    };
-
     function createTranslator(translate) {
         return (key, fallback, replacements = {}) => {
             const candidate = typeof translate === 'function' ? translate(key) : null;
@@ -69,19 +63,12 @@
         return (numerator / denominator) * 100;
     }
 
-    function severityForPercent(value) {
-        const percent = finiteNumber(value) || 0;
-        if (percent >= 90) return 'critical';
-        if (percent >= 75) return 'warning';
-        return 'normal';
-    }
-
     function formatKib(value) {
         const kib = finiteNumber(value);
         if (kib === null) return null;
         const mib = kib / 1024;
-        if (mib < 1024) return `${mib.toFixed(1)} MB`;
-        return `${(mib / 1024).toFixed(1)} GB`;
+        if (mib < 1024) return `${mib.toFixed(1)} MiB`;
+        return `${(mib / 1024).toFixed(1)} GiB`;
     }
 
     function formatRate(value) {
@@ -89,10 +76,10 @@
         if (bytes === null) return null;
         if (bytes < 1024) return `${Math.round(bytes)} B/s`;
         const kib = bytes / 1024;
-        if (kib < 1024) return `${kib.toFixed(1)} KB/s`;
+        if (kib < 1024) return `${kib.toFixed(1)} KiB/s`;
         const mib = kib / 1024;
-        if (mib < 1024) return `${mib.toFixed(1)} MB/s`;
-        return `${(mib / 1024).toFixed(1)} GB/s`;
+        if (mib < 1024) return `${mib.toFixed(1)} MiB/s`;
+        return `${(mib / 1024).toFixed(1)} GiB/s`;
     }
 
     function formatUptime(seconds, t = createTranslator()) {
@@ -125,14 +112,15 @@
 
     function resource(percent, detail, historyKey, history, t, allowEmpty = false) {
         if (percent === null && !allowEmpty) return null;
-        const severity = severityForPercent(percent);
+        const threshold = historyKey === 'normalizedLoadPercent' ? 100 : 90;
+        const severity = percent !== null && percent >= threshold ? 'warning' : 'normal';
         return {
             percent,
             barPercent: boundedPercent(percent) || 0,
             label: formatPercent(percent) || '--',
             detail,
             severity,
-            severityLabel: t(...SEVERITY_LABELS[severity]),
+            severityLabel: severity === 'warning' ? `≥ ${threshold}%` : t('diagnostics.sample', 'Sample'),
             history: history.map(sample => finiteNumber(sample?.[historyKey])),
         };
     }
@@ -248,6 +236,27 @@
         };
     }
 
+    function buildFindings(state, inventoryState, metrics, t) {
+        if (state.status !== 'ready') {
+            return [{ kind: 'stale', text: t('diagnostics.assessmentStale', 'No current assessment: measurements are unavailable or out of date. Wait for a new sample.') }];
+        }
+        const findings = [];
+        const add = (kind, key, fallback) => findings.push({ kind, text: t(key, fallback) });
+        if (Object.values(metrics).some(value => value === null)) {
+            add('partial', 'diagnostics.assessmentPartial', 'Some measurements are missing. The available values give only a partial view.');
+        }
+        if (metrics.cpu >= 90) add('cpu', 'diagnostics.assessmentCpu', 'CPU usage is at least 90% in this sample. Check whether it stays high and compare the process list.');
+        if (metrics.memory >= 90) add('memory', 'diagnostics.assessmentMemory', 'At most 10% of RAM is available. Compare the memory trend and largest processes before attributing a cause.');
+        if (metrics.disk >= 90) add('disk', 'diagnostics.assessmentDisk', 'The root filesystem is at least 90% full. Check available space and large files or logs on that filesystem.');
+        if (metrics.load >= 100) add('load', 'diagnostics.assessmentLoad', 'One-minute load is at least one task per CPU. Compare CPU usage and I/O waits; load includes runnable and uninterruptible tasks.');
+        if (inventoryState.status === 'ready' && !inventoryState.permissionDenied?.includes('systemd')
+                && finiteNumber(inventoryState.inventory?.systemd?.failed) > 0) {
+            add('services', 'diagnostics.assessmentServices', 'The service inventory reports failed units. Filter for failed services below and inspect their status or logs.');
+        }
+        if (!findings.length) add('scope', 'diagnostics.assessmentScope', 'No guide threshold is exceeded in the available readings. These samples do not establish overall server health.');
+        return findings;
+    }
+
     function buildViewModel(state = {}, session = null, inventoryState = {}, filters = {}, translate) {
         const t = createTranslator(translate);
         const stats = state.stats || null;
@@ -296,16 +305,22 @@
             || topMemory.length
             || (typeof stats.os_name === 'string' && stats.os_name.trim())
         ));
-        const hasPressureHistory = history.some(sample => (
-            sample.cpuPercent !== null
-            || sample.memoryPercent !== null
-            || sample.normalizedLoadPercent !== null
-        ));
+        const hasPressureHistory = ['cpuPercent', 'memoryPercent', 'normalizedLoadPercent', 'diskPercent'].some(
+            key => history.filter(sample => sample[key] !== null).length >= 2,
+        );
         const inventory = scopedInventoryState.inventory || null;
         const sampledAt = finiteNumber(scopedInventoryState.sampledAt);
 
         return {
             available,
+            findings: buildFindings(state, scopedInventoryState, {
+                cpu: finiteNumber(state.cpuPercent), memory: memoryPercent, disk: diskPercent, load: loadPercent,
+            }, t),
+            metricsUpdatedAt: formatTimestamp(finiteNumber(state.metricHistory?.at(-1)?.sampledAt) === null
+                ? null : state.metricHistory.at(-1).sampledAt / 1000, root?.i18n?.getLanguage?.()),
+            sampleCount: history.length,
+            sampleTimes: (Array.isArray(state.metricHistory) ? state.metricHistory : []).slice(-HISTORY_LIMIT)
+                .map(sample => finiteNumber(sample?.sampledAt)),
             host,
             os: stats?.os_name ? String(stats.os_name) : null,
             status: t(...(STATUS_LABELS[state.status] || STATUS_LABELS.disconnected)),
@@ -313,33 +328,33 @@
             resources: {
                 cpu: available ? resource(
                     finiteNumber(state.cpuPercent),
-                    t('diagnostics.currentUtilization', 'Current utilization'),
+                    t('diagnostics.cpuBasis', 'CPU time used between two samples'),
                     'cpuPercent', history, t,
                 ) : null,
                 memory: available ? resource(
                     memoryPercent,
                     memoryPercent === null ? '' : t(
-                        'diagnostics.memoryDetail',
-                        `${formatKib(stats.memory.used_kib)} of ${formatKib(stats.memory.total_kib)}`,
-                        { used: formatKib(stats.memory.used_kib), total: formatKib(stats.memory.total_kib) },
+                        'diagnostics.memoryAvailable',
+                        '{available} available of {total}',
+                        { available: formatKib(stats.memory.available_kib) || '--', total: formatKib(stats.memory.total_kib) || '--' },
                     ),
                     'memoryPercent', history, t,
                 ) : null,
                 disk: available ? resource(
                     diskPercent,
                     diskPercent === null ? '' : t(
-                        'diagnostics.diskDetail',
-                        `${formatKib(stats.disk.used_kib)} of ${formatKib(stats.disk.total_kib)} on /`,
-                        { used: formatKib(stats.disk.used_kib), total: formatKib(stats.disk.total_kib) },
+                        'diagnostics.diskAvailable',
+                        '{available} available on / ({total} total)',
+                        { available: formatKib(stats.disk.available_kib) || '--', total: formatKib(stats.disk.total_kib) || '--' },
                     ),
                     'diskPercent', history, t,
                 ) : null,
                 load: available ? resource(
                     loadPercent,
                     loadPercent === null ? '' : t(
-                        'diagnostics.loadDetail',
-                        `Load ${loadOne.toFixed(2)} across ${cpuCount} CPUs`,
-                        { load: loadOne.toFixed(2), cpus: cpuCount },
+                        'diagnostics.loadAverages',
+                        '1 / 5 / 15 min: {loads} · {cpus} CPUs',
+                        { loads: [stats.load.one, stats.load.five, stats.load.fifteen].map(value => finiteNumber(value)?.toFixed(2) ?? '--').join(' / '), cpus: cpuCount },
                     ),
                     'normalizedLoadPercent', history, t,
                 ) : null,
@@ -348,6 +363,7 @@
                 pressureHistory: history.map(sample => ({
                     cpuPercent: sample.cpuPercent,
                     memoryPercent: sample.memoryPercent,
+                    diskPercent: sample.diskPercent,
                     normalizedLoadPercent: sample.normalizedLoadPercent,
                 })),
                 networkHistory: history.map(sample => ({
@@ -366,7 +382,7 @@
                         `${formatKib(stats.swap.used_kib)} of ${formatKib(stats.swap.total_kib)}`,
                         { used: formatKib(stats.swap.used_kib), total: formatKib(stats.swap.total_kib) },
                     ),
-                    severity: severityForPercent(swapPercent),
+                    severity: 'normal',
                 },
                 uptime,
                 processTotal: finiteNumber(processes?.total),
@@ -412,6 +428,10 @@
             expand: byId('sessionDiagnosticsExpand'),
             refresh: byId('sessionDiagnosticsRefresh'), lastUpdated: byId('sessionDiagnosticsLastUpdated'),
             host: byId('sessionDiagnosticsHost'), os: byId('sessionDiagnosticsOs'), state: byId('sessionDiagnosticsState'),
+            assessmentTitle: byId('sessionDiagnosticsAssessmentTitle'),
+            findings: byId('sessionDiagnosticsFindings'), metricsUpdated: byId('sessionDiagnosticsMetricsUpdated'),
+            pressureScale: byId('sessionDiagnosticsPressureScale'), networkScale: byId('sessionDiagnosticsNetworkScale'),
+            historyCaption: byId('sessionDiagnosticsHistoryCaption'),
             permissions: byId('sessionDiagnosticsPermissions'), permissionList: byId('sessionDiagnosticsPermissionList'),
             pressureSection: byId('sessionDiagnosticsPressureSection'), pressureChart: byId('sessionDiagnosticsPressureChart'),
             networkSection: byId('sessionDiagnosticsNetworkSection'), networkChart: byId('sessionDiagnosticsNetworkChart'),
@@ -437,9 +457,6 @@
             elements[`${key}Metric`] = byId(`sessionDiagnostics${title}Metric`);
             elements[`${key}Value`] = byId(`sessionDiagnostics${title}Value`);
             elements[`${key}Detail`] = byId(`sessionDiagnostics${title}Detail`);
-            elements[`${key}Severity`] = byId(`sessionDiagnostics${title}Severity`);
-            elements[`${key}Bar`] = byId(`sessionDiagnostics${title}Bar`);
-            elements[`${key}Sparkline`] = byId(`sessionDiagnostics${title}Sparkline`);
         });
         if (!elements.trigger || !elements.overlay || !elements.mount) return null;
 
@@ -450,6 +467,8 @@
         let latestInventoryState = {};
         let latestModel = null;
         let redrawFrame = null;
+        let selectedView = 'processes';
+        const viewButtons = Array.from(elements.overlay.querySelectorAll?.('[data-diagnostics-view]') || []);
         const filters = { systemdStatus: 'all', systemdQuery: '', dockerQuery: '' };
         const filterButtons = Array.from(elements.overlay.querySelectorAll?.('[data-systemd-filter]') || []);
 
@@ -542,8 +561,7 @@
             wrapper.classList.add(value.severity);
             elements[`${key}Value`].textContent = value.label;
             elements[`${key}Detail`].textContent = value.detail || '';
-            elements[`${key}Severity`].textContent = value.severityLabel;
-            elements[`${key}Bar`].style.width = `${value.barPercent}%`;
+            wrapper.setAttribute('title', value.severityLabel);
         }
 
         function replaceProcesses(container, rows) {
@@ -730,29 +748,18 @@
         function drawCharts() {
             if (!latestModel || !chartModule) return;
             const model = latestModel;
-            ['cpu', 'memory', 'disk', 'load'].forEach(key => {
-                if (!model.resources[key]) return;
-                chartModule.drawSparkline(elements[`${key}Sparkline`], model.resources[key].history, {
-                    key: 'sparkline',
-                    label: t(
-                        'diagnostics.utilizationTrend',
-                        `${key} utilization`,
-                        { metric: t(`diagnostics.${key}`, key) },
-                    ),
-                    max: 100,
-                });
-            });
             if (!elements.pressureSection.hidden) {
                 chartModule.drawLineChart(
                     elements.pressureChart,
                     chartModule.buildPressureSeries(model.charts.pressureHistory),
+                    { formatValue: value => `${value.toFixed(1)}%`, sampleTimes: model.sampleTimes },
                 );
             }
-            if (!elements.networkSection.hidden) {
+            if (!elements.networkSection.hidden && elements.networkSection.open) {
                 chartModule.drawLineChart(
                     elements.networkChart,
                     chartModule.buildNetworkSeries(model.charts.networkHistory),
-                    { formatValue: value => formatRate(value) || '0 B/s' },
+                    { formatValue: value => formatRate(value) || '0 B/s', sampleTimes: model.sampleTimes },
                 );
             }
         }
@@ -766,7 +773,32 @@
             });
         }
 
+        function focusedView() {
+            const focused = documentRef.activeElement;
+            return viewButtons.find(button => button === focused
+                || elements[`${button.dataset.diagnosticsView}Section`]?.contains(focused))?.dataset.diagnosticsView;
+        }
+
+        function updateViews(previousFocus = focusedView()) {
+            const available = viewButtons.filter(button => Boolean(latestModel?.[button.dataset.diagnosticsView]));
+            const activeView = available.some(button => button.dataset.diagnosticsView === selectedView)
+                ? selectedView : available[0]?.dataset.diagnosticsView;
+            viewButtons.forEach(button => {
+                const key = button.dataset.diagnosticsView;
+                const exists = Boolean(latestModel?.[key]);
+                const selected = exists && key === activeView;
+                button.hidden = !exists;
+                button.setAttribute('aria-selected', String(selected));
+                button.tabIndex = selected ? 0 : -1;
+                elements[`${key}Section`].hidden = !selected;
+            });
+            if (previousFocus && previousFocus !== activeView) {
+                (available.find(button => button.dataset.diagnosticsView === activeView) || elements.refresh)?.focus();
+            }
+        }
+
         function render(state, session, inventoryState) {
+            const previousFocus = focusedView();
             latestState = state || {};
             latestSession = session || null;
             latestInventoryState = inventoryState || {};
@@ -790,6 +822,44 @@
             } else if (!context.open && open) {
                 setOpen(false);
             }
+            if (elements.assessmentTitle) {
+                const labels = {
+                    cpu: ['diagnostics.cpu', 'CPU'], memory: ['diagnostics.memory', 'Memory'],
+                    disk: ['diagnostics.rootDisk', 'Root disk'], load: ['diagnostics.normalizedLoad', 'Normalized load'],
+                    services: ['diagnostics.systemdServices', 'systemd services'],
+                };
+                elements.assessmentTitle.textContent = model.findings.map(finding => {
+                    if (labels[finding.kind]) return `${t(...labels[finding.kind])}: ${finding.kind === 'services'
+                        ? `${model.systemd?.failed || 0} ${t('diagnostics.failed', 'Failed')}`
+                        : finding.kind === 'load' ? '≥ 100%' : '≥ 90%'}`;
+                    if (finding.kind === 'stale') return model.status;
+                    if (finding.kind === 'partial') return t('diagnostics.partialMeasurements', 'Partial readings');
+                    return t('diagnostics.assessmentTitle', 'Reading these measurements');
+                }).join(' · ');
+            }
+            if (elements.findings) {
+                elements.findings.replaceChildren();
+                model.findings.forEach(finding => {
+                    const item = documentRef.createElement('li');
+                    item.textContent = finding.text;
+                    elements.findings.appendChild(item);
+                });
+            }
+            if (elements.metricsUpdated) elements.metricsUpdated.textContent = model.metricsUpdatedAt
+                ? t('diagnostics.metricsUpdated', 'Measurements received: {time}', { time: model.metricsUpdatedAt })
+                : t('diagnostics.metricsWaiting', 'Waiting for measurements');
+            if (elements.pressureScale) elements.pressureScale.textContent = formatPercent(Math.max(100,
+                ...model.charts.pressureHistory.map(sample => sample.normalizedLoadPercent ?? 0)));
+            if (elements.networkScale) elements.networkScale.textContent = formatRate(Math.max(1,
+                ...model.charts.networkHistory.flatMap(sample => [sample.receivedBps ?? 0, sample.transmittedBps ?? 0])));
+            if (elements.historyCaption) elements.historyCaption.textContent = model.sampleCount < 2
+                ? t('diagnostics.historyCollecting', 'Collecting the next sample to build a trend…')
+                : t('diagnostics.historySamples',
+                '{count} samples over {seconds}s · newest at right · gaps indicate missing data',
+                { count: model.sampleCount, seconds: model.sampleTimes.length > 1
+                    && model.sampleTimes.every(value => value !== null)
+                    ? Math.max(0, Math.round((model.sampleTimes.at(-1) - model.sampleTimes[0]) / 1000)) : '--' });
+            if (elements.historyCaption) elements.historyCaption.hidden = model.sampleCount === 0;
             elements.host.textContent = model.host;
             elements.os.textContent = model.os || '';
             elements.os.hidden = !model.os;
@@ -805,8 +875,8 @@
                         { time: model.inventory.sampledAtLabel },
                     )
                     : t(
-                        'diagnostics.lastUpdated',
-                        `Last updated ${model.inventory.sampledAtLabel}`,
+                        'diagnostics.inventoryUpdated',
+                        `Inventory updated ${model.inventory.sampledAtLabel}`,
                         { time: model.inventory.sampledAtLabel },
                     ))
                 : (model.inventory.loading
@@ -855,6 +925,7 @@
             }
             renderSystemd(model.systemd);
             renderDocker(model.docker);
+            updateViews(previousFocus);
             scheduleRedraw();
         }
 
@@ -862,6 +933,28 @@
             render(latestState, latestSession, latestInventoryState);
         }
 
+        const viewHandlers = new Map();
+        viewButtons.forEach(button => {
+            const click = () => { selectedView = button.dataset.diagnosticsView; updateViews(); };
+            const keydown = event => {
+                const visible = viewButtons.filter(item => !item.hidden);
+                const index = visible.indexOf(button);
+                let next;
+                if (event.key === 'ArrowRight') next = visible[(index + 1) % visible.length];
+                if (event.key === 'ArrowLeft') next = visible[(index + visible.length - 1) % visible.length];
+                if (event.key === 'Home') next = visible[0];
+                if (event.key === 'End') next = visible.at(-1);
+                if (!next) return;
+                event.preventDefault();
+                selectedView = next.dataset.diagnosticsView;
+                updateViews();
+                next.focus();
+            };
+            viewHandlers.set(button, { click, keydown });
+            button.addEventListener('click', click);
+            button.addEventListener('keydown', keydown);
+        });
+        elements.networkSection?.addEventListener('toggle', scheduleRedraw);
         const handleRefresh = () => onRefreshInventory();
         const handleExpand = () => setExpanded(!expanded);
         const handleCollapse = () => setExpanded(false);
@@ -915,6 +1008,11 @@
                 elements.systemdSearch?.removeEventListener('input', handleSystemdSearch);
                 elements.dockerSearch?.removeEventListener('input', handleDockerSearch);
                 filterHandlers.forEach((handler, button) => button.removeEventListener('click', handler));
+                elements.networkSection?.removeEventListener('toggle', scheduleRedraw);
+                viewHandlers.forEach(({ click, keydown }, button) => {
+                    button.removeEventListener('click', click);
+                    button.removeEventListener('keydown', keydown);
+                });
                 windowRef?.removeEventListener?.('themeChanged', scheduleRedraw);
                 windowRef?.removeEventListener?.('languageChanged', handleLanguageChanged);
                 windowRef?.removeEventListener?.('primary-workspace-change', handlePrimaryWorkspaceChange);
