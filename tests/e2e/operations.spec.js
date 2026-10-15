@@ -1,3 +1,4 @@
+const { createHash } = require('node:crypto');
 const { test, expect } = require('playwright/test');
 const { login } = require('./helpers');
 
@@ -167,29 +168,50 @@ test('failed detail refresh removes stale action rows and allows retry', async (
 });
 
 
-test('same-tab Settings keeps SSH sessions visible without a browser transport', async ({ page }, testInfo) => {
-    await login(page);
-    await expect.poll(() => page.evaluate(() => window.socket.connected)).toBe(true);
-    await page.route('**/admin/api/operations', async route => {
-        const response = await route.fetch();
-        const data = await response.json();
-        await route.fulfill({ json: { ...data, sessions: { active: 1, users: 1, tmux: 1 } } });
-    });
-    await page.route('**/admin/api/operations/details', async route => {
-        const response = await route.fetch();
-        const data = await response.json();
-        await route.fulfill({ json: { ...data, sessions: { total: 1, items: [{
-            id: 'session-reference', username: 'e2e_admin', target: 'ops@edge.example:22',
-            tmux: true, created_at: '2026-10-15T08:00:00Z',
-        }] } } });
-    });
-    const href = await page.locator('#accountSettingsBtn').getAttribute('href');
-    await page.goto(href.replace('#preferences', '#operations'));
-    await expect(page.locator('[data-operation="sessions.active"]')).toHaveText('1');
-    await expect(page.locator('#operationsDetailRows')).toContainText('ops@edge.example:22');
-    await expect(page.locator('#operationsDetailRows')).toContainText('e2e_admin');
-    await expect(page.locator('#operationsDetailRows button')).toHaveCount(0);
-    await expect.poll(async () => (await (await page.request.get('/admin/api/operations')).json()).sockets.active).toBe(0);
-    await expect(page.locator('#operationsTransportDiagnostics')).not.toHaveAttribute('open');
-    await page.screenshot({ path: testInfo.outputPath('instance-status-sessions.png'), fullPage: true });
+test('same-tab Settings keeps SSH sessions visible while another browser stays connected', async ({ page, browser }, testInfo) => {
+    const otherContext = await browser.newContext({ baseURL: 'http://127.0.0.1:' + (process.env.WEBSSH_E2E_PORT || '4173') });
+    try {
+        const other = await otherContext.newPage();
+        await login(other, 'e2e_user');
+        await expect.poll(() => other.evaluate(() => window.socket.connected)).toBe(true);
+        await login(page);
+        await expect.poll(() => page.evaluate(() => window.socket.connected)).toBe(true);
+        const ownRef = createHash('sha256').update('admin-connection:' + await page.evaluate(() => window.socket.id)).digest('hex');
+        const otherRef = createHash('sha256').update('admin-connection:' + await other.evaluate(() => window.socket.id)).digest('hex');
+        const connectionRefs = async () => {
+            const response = await page.request.get('/admin/api/operations/details');
+            expect(response.ok()).toBe(true);
+            return (await response.json()).connections.items.map(item => item.id);
+        };
+        await expect.poll(connectionRefs).toEqual(expect.arrayContaining([ownRef, otherRef]));
+        await page.route('**/admin/api/operations', async route => {
+            const response = await route.fetch();
+            const data = await response.json();
+            await route.fulfill({ json: { ...data, sessions: { active: 1, users: 1, tmux: 1 } } });
+        });
+        await page.route('**/admin/api/operations/details', async route => {
+            const response = await route.fetch();
+            const data = await response.json();
+            await route.fulfill({ json: { ...data, sessions: { total: 1, items: [{
+                id: 'session-reference', username: 'e2e_admin', target: 'ops@edge.example:22',
+                tmux: true, created_at: '2026-10-15T08:00:00Z',
+            }] } } });
+        });
+        const href = await page.locator('#accountSettingsBtn').getAttribute('href');
+        await page.goto(href.replace('#preferences', '#operations'));
+        await expect(page.locator('[data-operation="sessions.active"]')).toHaveText('1');
+        await expect(page.locator('#operationsDetailRows')).toContainText('ops@edge.example:22');
+        await expect(page.locator('#operationsDetailRows')).toContainText('e2e_admin');
+        await expect(page.locator('#operationsDetailRows button')).toHaveCount(0);
+        await expect.poll(async () => {
+            const refs = await connectionRefs();
+            return { own: refs.includes(ownRef), other: refs.includes(otherRef) };
+        }).toEqual({ own: false, other: true });
+        expect(await page.evaluate(() => window.socket?.connected === true)).toBe(false);
+        expect(await other.evaluate(() => window.socket.connected)).toBe(true);
+        await expect(page.locator('#operationsTransportDiagnostics')).not.toHaveAttribute('open');
+        await page.screenshot({ path: testInfo.outputPath('instance-status-sessions.png'), fullPage: true });
+    } finally {
+        await otherContext.close();
+    }
 });
