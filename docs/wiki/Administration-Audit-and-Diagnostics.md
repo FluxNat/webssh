@@ -112,6 +112,8 @@ cached. Refresh is manual; a failed detail refresh removes stale action rows.
 
 ### Session diagnostics
 
+Diagnostics uses compact metric rows and a shared resource chart. Expand the findings row for interpretation or the network row for throughput history. Processes, systemd services and Docker containers have separate keyboard-accessible tabs; existing filters and copy-command actions remain available. Additional server facts are collapsed below the selected view.
+
 Open **Workspaces > Diagnostics** for measurements from the selected SSH host.
 CPU measures time used between two samples. Memory shows usage based on
 `MemAvailable`, along with available capacity. Disk values describe the root

@@ -427,6 +427,7 @@
             expand: byId('sessionDiagnosticsExpand'),
             refresh: byId('sessionDiagnosticsRefresh'), lastUpdated: byId('sessionDiagnosticsLastUpdated'),
             host: byId('sessionDiagnosticsHost'), os: byId('sessionDiagnosticsOs'), state: byId('sessionDiagnosticsState'),
+            assessmentTitle: byId('sessionDiagnosticsAssessmentTitle'),
             findings: byId('sessionDiagnosticsFindings'), metricsUpdated: byId('sessionDiagnosticsMetricsUpdated'),
             pressureScale: byId('sessionDiagnosticsPressureScale'), networkScale: byId('sessionDiagnosticsNetworkScale'),
             historyCaption: byId('sessionDiagnosticsHistoryCaption'),
@@ -455,9 +456,6 @@
             elements[`${key}Metric`] = byId(`sessionDiagnostics${title}Metric`);
             elements[`${key}Value`] = byId(`sessionDiagnostics${title}Value`);
             elements[`${key}Detail`] = byId(`sessionDiagnostics${title}Detail`);
-            elements[`${key}Severity`] = byId(`sessionDiagnostics${title}Severity`);
-            elements[`${key}Bar`] = byId(`sessionDiagnostics${title}Bar`);
-            elements[`${key}Sparkline`] = byId(`sessionDiagnostics${title}Sparkline`);
         });
         if (!elements.trigger || !elements.overlay || !elements.mount) return null;
 
@@ -468,6 +466,8 @@
         let latestInventoryState = {};
         let latestModel = null;
         let redrawFrame = null;
+        let selectedView = 'processes';
+        const viewButtons = Array.from(elements.overlay.querySelectorAll?.('[data-diagnostics-view]') || []);
         const filters = { systemdStatus: 'all', systemdQuery: '', dockerQuery: '' };
         const filterButtons = Array.from(elements.overlay.querySelectorAll?.('[data-systemd-filter]') || []);
 
@@ -560,8 +560,7 @@
             wrapper.classList.add(value.severity);
             elements[`${key}Value`].textContent = value.label;
             elements[`${key}Detail`].textContent = value.detail || '';
-            elements[`${key}Severity`].textContent = value.severityLabel;
-            elements[`${key}Bar`].style.width = `${value.barPercent}%`;
+            wrapper.setAttribute('title', value.severityLabel);
         }
 
         function replaceProcesses(container, rows) {
@@ -748,19 +747,6 @@
         function drawCharts() {
             if (!latestModel || !chartModule) return;
             const model = latestModel;
-            ['cpu', 'memory', 'disk', 'load'].forEach(key => {
-                if (!model.resources[key]) return;
-                chartModule.drawSparkline(elements[`${key}Sparkline`], model.resources[key].history, {
-                    key: 'sparkline',
-                    sampleTimes: model.sampleTimes,
-                    label: t(
-                        'diagnostics.utilizationTrend',
-                        `${key} utilization`,
-                        { metric: t(`diagnostics.${key}`, key) },
-                    ),
-                    max: key === 'load' ? Math.max(100, ...model.resources.load.history.map(value => value ?? 0)) : 100,
-                });
-            });
             if (!elements.pressureSection.hidden) {
                 chartModule.drawLineChart(
                     elements.pressureChart,
@@ -768,7 +754,7 @@
                     { formatValue: value => `${value.toFixed(1)}%`, sampleTimes: model.sampleTimes },
                 );
             }
-            if (!elements.networkSection.hidden) {
+            if (!elements.networkSection.hidden && elements.networkSection.open) {
                 chartModule.drawLineChart(
                     elements.networkChart,
                     chartModule.buildNetworkSeries(model.charts.networkHistory),
@@ -786,7 +772,32 @@
             });
         }
 
+        function focusedView() {
+            const focused = documentRef.activeElement;
+            return viewButtons.find(button => button === focused
+                || elements[`${button.dataset.diagnosticsView}Section`]?.contains(focused))?.dataset.diagnosticsView;
+        }
+
+        function updateViews(previousFocus = focusedView()) {
+            const available = viewButtons.filter(button => Boolean(latestModel?.[button.dataset.diagnosticsView]));
+            const activeView = available.some(button => button.dataset.diagnosticsView === selectedView)
+                ? selectedView : available[0]?.dataset.diagnosticsView;
+            viewButtons.forEach(button => {
+                const key = button.dataset.diagnosticsView;
+                const exists = Boolean(latestModel?.[key]);
+                const selected = exists && key === activeView;
+                button.hidden = !exists;
+                button.setAttribute('aria-selected', String(selected));
+                button.tabIndex = selected ? 0 : -1;
+                elements[`${key}Section`].hidden = !selected;
+            });
+            if (previousFocus && previousFocus !== activeView) {
+                (available.find(button => button.dataset.diagnosticsView === activeView) || elements.refresh)?.focus();
+            }
+        }
+
         function render(state, session, inventoryState) {
+            const previousFocus = focusedView();
             latestState = state || {};
             latestSession = session || null;
             latestInventoryState = inventoryState || {};
@@ -809,6 +820,21 @@
                 setOpen(context.available && selectedContext === 'diagnostics');
             } else if (!context.open && open) {
                 setOpen(false);
+            }
+            if (elements.assessmentTitle) {
+                const labels = {
+                    cpu: ['diagnostics.cpu', 'CPU'], memory: ['diagnostics.memory', 'Memory'],
+                    disk: ['diagnostics.rootDisk', 'Root disk'], load: ['diagnostics.normalizedLoad', 'Normalized load'],
+                    services: ['diagnostics.systemdServices', 'systemd services'],
+                };
+                elements.assessmentTitle.textContent = model.findings.map(finding => {
+                    if (labels[finding.kind]) return `${t(...labels[finding.kind])}: ${finding.kind === 'services'
+                        ? `${model.systemd?.failed || 0} ${t('diagnostics.failed', 'Failed')}`
+                        : finding.kind === 'load' ? '≥ 100%' : '≥ 90%'}`;
+                    if (finding.kind === 'stale') return model.status;
+                    if (finding.kind === 'partial') return t('diagnostics.partialMeasurements', 'Partial readings');
+                    return t('diagnostics.assessmentTitle', 'Reading these measurements');
+                }).join(' · ');
             }
             if (elements.findings) {
                 elements.findings.replaceChildren();
@@ -898,6 +924,7 @@
             }
             renderSystemd(model.systemd);
             renderDocker(model.docker);
+            updateViews(previousFocus);
             scheduleRedraw();
         }
 
@@ -905,6 +932,28 @@
             render(latestState, latestSession, latestInventoryState);
         }
 
+        const viewHandlers = new Map();
+        viewButtons.forEach(button => {
+            const click = () => { selectedView = button.dataset.diagnosticsView; updateViews(); };
+            const keydown = event => {
+                const visible = viewButtons.filter(item => !item.hidden);
+                const index = visible.indexOf(button);
+                let next;
+                if (event.key === 'ArrowRight') next = visible[(index + 1) % visible.length];
+                if (event.key === 'ArrowLeft') next = visible[(index + visible.length - 1) % visible.length];
+                if (event.key === 'Home') next = visible[0];
+                if (event.key === 'End') next = visible.at(-1);
+                if (!next) return;
+                event.preventDefault();
+                selectedView = next.dataset.diagnosticsView;
+                updateViews();
+                next.focus();
+            };
+            viewHandlers.set(button, { click, keydown });
+            button.addEventListener('click', click);
+            button.addEventListener('keydown', keydown);
+        });
+        elements.networkSection?.addEventListener('toggle', scheduleRedraw);
         const handleRefresh = () => onRefreshInventory();
         const handleExpand = () => setExpanded(!expanded);
         const handleCollapse = () => setExpanded(false);
@@ -958,6 +1007,11 @@
                 elements.systemdSearch?.removeEventListener('input', handleSystemdSearch);
                 elements.dockerSearch?.removeEventListener('input', handleDockerSearch);
                 filterHandlers.forEach((handler, button) => button.removeEventListener('click', handler));
+                elements.networkSection?.removeEventListener('toggle', scheduleRedraw);
+                viewHandlers.forEach(({ click, keydown }, button) => {
+                    button.removeEventListener('click', click);
+                    button.removeEventListener('keydown', keydown);
+                });
                 windowRef?.removeEventListener?.('themeChanged', scheduleRedraw);
                 windowRef?.removeEventListener?.('languageChanged', handleLanguageChanged);
                 windowRef?.removeEventListener?.('primary-workspace-change', handlePrimaryWorkspaceChange);

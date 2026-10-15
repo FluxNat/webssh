@@ -3,6 +3,7 @@ const translations = {
     en: {
         'diagnostics.historyCollecting': "Collecting the next sample to build a trend…",
         'diagnostics.sample': "Sample",
+        'diagnostics.partialMeasurements': 'Partial readings',
         'diagnostics.assessmentTitle': "Reading these measurements",
         'diagnostics.assessmentStale': "No current assessment: measurements are unavailable or out of date. Wait for a new sample.",
         'diagnostics.assessmentPartial': "Some measurements are missing. The available values give only a partial view.",
@@ -1513,6 +1514,7 @@ const translations = {
     vi: {
         'diagnostics.historyCollecting': "Đang chờ mẫu tiếp theo để vẽ xu hướng…",
         'diagnostics.sample': "Mẫu đo",
+        'diagnostics.partialMeasurements': 'Số liệu chưa đầy đủ',
         'diagnostics.assessmentTitle': "Diễn giải số đo",
         'diagnostics.assessmentStale': "Chưa thể đánh giá: số đo thiếu hoặc đã cũ. Chờ mẫu mới.",
         'diagnostics.assessmentPartial': "Thiếu một số số đo. Dữ liệu hiện có chỉ phản ánh một phần trạng thái.",
@@ -3022,6 +3024,7 @@ const translations = {
     de: {
         'diagnostics.historyCollecting': "Warte auf die nächste Messung für den Verlauf…",
         'diagnostics.sample': "Messwert",
+        'diagnostics.partialMeasurements': 'Unvollständige Messwerte',
         'diagnostics.assessmentTitle': "Messwerte einordnen",
         'diagnostics.assessmentStale': "Keine aktuelle Einordnung: Messwerte fehlen oder sind veraltet. Eine neue Messung abwarten.",
         'diagnostics.assessmentPartial': "Einige Messwerte fehlen. Die verfügbaren Werte zeigen nur einen Teil des Zustands.",
@@ -4530,6 +4533,7 @@ const translations = {
     fr: {
         'diagnostics.historyCollecting': "En attente de la prochaine mesure pour tracer la tendance…",
         'diagnostics.sample': "Mesure",
+        'diagnostics.partialMeasurements': 'Mesures partielles',
         'diagnostics.assessmentTitle': "Interpréter les mesures",
         'diagnostics.assessmentStale': "Pas de bilan actuel : mesures absentes ou périmées. Attendez une nouvelle mesure.",
         'diagnostics.assessmentPartial': "Certaines mesures manquent. Les valeurs disponibles ne donnent qu’une vue partielle.",
@@ -6038,6 +6042,7 @@ const translations = {
     es: {
         'diagnostics.historyCollecting': "Esperando la siguiente muestra para trazar la tendencia…",
         'diagnostics.sample': "Medición",
+        'diagnostics.partialMeasurements': 'Mediciones parciales',
         'diagnostics.assessmentTitle': "Interpretar las mediciones",
         'diagnostics.assessmentStale': "Sin evaluación actual: faltan mediciones o están desactualizadas. Espera una nueva muestra.",
         'diagnostics.assessmentPartial': "Faltan algunas mediciones. Los valores disponibles solo ofrecen una vista parcial.",
@@ -7546,6 +7551,7 @@ const translations = {
     zh: {
         'diagnostics.historyCollecting': "等待下一次采样以绘制趋势…",
         'diagnostics.sample': "采样值",
+        'diagnostics.partialMeasurements': '部分测量数据',
         'diagnostics.assessmentTitle': "解读测量数据",
         'diagnostics.assessmentStale': "暂无法评估：测量值缺失或过期。请等待新采样。",
         'diagnostics.assessmentPartial': "部分测量值缺失。现有数据只能反映部分状态。",
