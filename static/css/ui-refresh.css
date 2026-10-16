@@ -104,10 +104,11 @@ html {
 /* ------------------------------------------------------------------ */
 /* Global header                                                       */
 /* ------------------------------------------------------------------ */
-.header {
-    background-color: color-mix(in srgb, var(--ws2-surface) 86%, transparent);
-    backdrop-filter: saturate(150%) blur(14px);
-}
+/*
+ * No backdrop-filter or transform on the header or other containers: either
+ * makes them the containing block for fixed descendants such as the mobile
+ * navigation and "More" sheets, which would then render off-screen.
+ */
 
 .app-brand-logo {
     border-color: transparent;
@@ -341,7 +342,7 @@ body[data-theme="paper"] .app-brand-logo {
 /* Settings and administration                                         */
 /* ------------------------------------------------------------------ */
 .admin-content {
-    animation: ui-fade-up var(--ui-dur-slow) var(--ui-ease-out) backwards;
+    animation: ui-fade-in var(--ui-dur-slow) var(--ui-ease-out) backwards;
 }
 
 .admin-tab {
@@ -426,6 +427,12 @@ body[data-theme="paper"] .app-brand-logo {
 /* ------------------------------------------------------------------ */
 /* Keyframes                                                           */
 /* ------------------------------------------------------------------ */
+@keyframes ui-fade-in {
+    from {
+        opacity: 0;
+    }
+}
+
 @keyframes ui-fade-up {
     from {
         opacity: 0;
