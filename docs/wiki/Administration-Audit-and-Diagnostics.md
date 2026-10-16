@@ -47,16 +47,17 @@ Retention updates are authenticated administrator operations and are themselves 
 ### Instance status
 
 Administrators can open **Settings Center > Instance status** to inspect a
-snapshot of this WebSSH process and open its management controls. Use **Refresh** to fetch new values.
+snapshot of this WebSSH process and open its management controls. A single
+**Refresh** updates both the overview and the selected list.
 The page does not poll in the background. It leads with active SSH sessions,
 users with sessions, tmux usage, and pending/running/cancelling HTTP file
 transfers. The session list identifies the WebSSH account, SSH target, connection
-time and tmux usage. It is read-only and remains available when the terminal tab
-navigates to Settings. Counts come from the current SSH runtime, not historical
+time and tmux usage. **Details** reveals the connection reference and the effect
+of disconnecting. The list remains available when the terminal tab navigates to Settings. Counts come from the current SSH runtime, not historical
 database rows. Detached tmux sessions with no active WebSSH SSH connection are
 not included.
 
-**Connection and worker diagnostics** contains browser socket occupancy and
+**Technical details** contains browser socket occupancy and
 limits, capacity rejection counters, and running/queued background jobs.
 Opening Settings in the terminal's browser tab closes its browser socket while
 preserving SSH sessions; a zero browser count does not mean zero SSH sessions. Notices identify maintenance,
@@ -78,6 +79,13 @@ A failed refresh clears the displayed counts and offers a retry. Existing
 
 ### Runtime controls
 
+**Disconnect SSH** closes only the selected SSH connection and its SFTP access.
+The confirmation identifies the account and SSH target. Remote tmux sessions are
+preserved for reconnection; ordinary shell processes may stop and transfers using
+that connection may fail. The owning user's connected browsers receive the
+normal disconnect notification. This action does not revoke access or prevent
+reconnection. It does not terminate remote tmux sessions.
+
 **Manage connections** lists authenticated browser connections by account,
 connection reference and creation time. **Disconnect browser** targets exactly
 that connection. It cleans up socket-owned transfers and temporary file sources;
@@ -86,17 +94,17 @@ user from connecting again. Use account locking when access must be revoked.
 Transport reservations that have not completed authentication are included in the
 aggregate occupancy, but are not actionable browser entries.
 
-**Manage transfers** lists pending, running and cancelling HTTP transfers with
+**File transfers** lists pending, running and cancelling HTTP transfers with
 account, reference, direction and age. **Cancel transfer** uses the normal
 cooperative cancellation path: pending transfers finish immediately, while a
 running transfer remains **Cancelling** until its request releases its resources.
 Cancellation does not roll back bytes already written to the destination.
 
-Both actions require confirmation and recent, action- and target-bound
+All three actions require confirmation and recent, action- and target-bound
 reauthentication, enforce CSRF protection, and record their outcome in the audit
 log. After an uncertain response, refresh and check the current state before
 retrying. An expired or completed target cannot affect a different connection or
-transfer.
+transfer or SSH session.
 
 **View tasks** shows task categories, state and age. System tasks cannot be stopped
 from this list; use the existing backup controls for backup operations. Capacity

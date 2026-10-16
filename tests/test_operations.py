@@ -199,6 +199,7 @@ def test_disconnect_targets_exact_browser_and_audits_without_socket_secret(app, 
     '/admin/api/operations/details',
     '/admin/api/operations/connections/unknown/disconnect',
     '/admin/api/operations/transfers/unknown/cancel',
+    '/admin/api/operations/sessions/unknown/disconnect',
 ])
 @pytest.mark.parametrize('role', ['anonymous', 'normal', 'locked'])
 def test_operations_controls_reject_non_admin(app, client, path, role):
@@ -316,3 +317,156 @@ def test_operations_session_details_limit_does_not_truncate_totals(app, client, 
     assert details['total'] == 205
     assert len(details['items']) == 200
     assert client.get('/admin/api/operations').get_json()['sessions']['active'] == 205
+
+
+@pytest.mark.parametrize('persistent', [False, True])
+def test_admin_ssh_disconnect_preserves_tmux_and_other_sessions(app, client, monkeypatch, persistent):
+    from types import SimpleNamespace
+    from app import operations, ssh_manager, socketio
+    from app.models import SSHSession, db
+    from tests.test_admin_routes import _prepare_role
+    from tests.step_up_helpers import password_step_up_headers
+
+    owner = _prepare_role(app, client, 'admin')
+    closed, events, audits, tmux_requests = [], [], [], []
+    transport = SimpleNamespace(close=lambda: closed.append('client'),
+                                get_transport=lambda: tmux_requests.append('tmux') or None)
+    channel = SimpleNamespace(close=lambda: closed.append('channel'))
+    live = {'user_id': owner, 'connected': True, 'host': 'edge.example', 'port': 22,
+            'username': 'ops', 'use_tmux': persistent, 'tmux_session_name': 'keep-running',
+            'client': transport, 'channel': channel}
+    monkeypatch.setattr(ssh_manager, 'sessions', {'private-session': live, 'other-session': dict(live)})
+    with app.app_context():
+        db.session.add(SSHSession(session_id='private-session', user_id=owner, host='edge.example',
+                                  port=22, username='ops', connected=True, is_persistent=persistent,
+                                  tmux_session_name='keep-running' if persistent else None))
+        db.session.commit()
+    monkeypatch.setattr(socketio, 'emit', lambda event, data, **kw: events.append((event, data, kw)))
+    monkeypatch.setattr(operations, 'log_security_event', lambda event, **fields: audits.append((event, fields)))
+    ref = client.get('/admin/api/operations/details').get_json()['sessions']['items'][0]['id']
+    path = f'/admin/api/operations/sessions/{ref}/disconnect'
+    assert client.post(path).status_code == 403
+    for action, target in [('operations.session.disconnect', 'other'), ('operations.connection.disconnect', ref)]:
+        headers, _ = password_step_up_headers(client, action, target)
+        assert client.post(path, headers=headers).status_code == 403
+    assert closed == []
+    headers, _ = password_step_up_headers(client, 'operations.session.disconnect', ref)
+    response = client.post(path, headers=headers)
+    assert response.status_code == 200
+    assert response.get_json()['state'] == 'disconnected'
+    assert response.headers['Cache-Control'] == 'no-store'
+    assert closed == ['channel', 'client']
+    assert tmux_requests == []
+    assert 'private-session' not in ssh_manager.sessions
+    assert ssh_manager.sessions['other-session']['connected']
+    with app.app_context():
+        row = SSHSession.query.filter_by(session_id='private-session').one()
+        assert row.connected is False
+        assert row.is_persistent is persistent
+        if persistent:
+            assert row.tmux_session_name == 'keep-running'
+    assert events == [('ssh_disconnected', {'session_id': 'private-session',
+                       'reason': 'Administrator disconnected SSH connection'}, {'room': f'user_{owner}'})]
+    assert audits[-1][0] == 'ADMIN_SSH_DISCONNECT'
+    assert 'private-session' not in str(audits)
+    assert client.post(path, headers=headers).status_code == 403
+    headers, _ = password_step_up_headers(client, 'operations.session.disconnect', ref)
+    assert client.post(path, headers=headers).status_code == 404
+    assert closed == ['channel', 'client']
+    assert tmux_requests == []
+
+
+def test_admin_ssh_disconnect_requires_csrf(app, client):
+    from tests.test_admin_routes import _prepare_role
+    from tests.step_up_helpers import password_step_up_headers
+    _prepare_role(app, client, 'admin')
+    headers, _ = password_step_up_headers(client, 'operations.session.disconnect', 'unknown')
+    app.config['WTF_CSRF_ENABLED'] = True
+    assert client.post('/admin/api/operations/sessions/unknown/disconnect', headers=headers).status_code == 400
+
+
+@pytest.mark.parametrize('raises', [False, True])
+def test_admin_ssh_disconnect_failure_is_not_reported_as_success(app, client, monkeypatch, raises):
+    from app import operations, ssh_manager
+    from tests.test_admin_routes import _prepare_role
+    from tests.step_up_helpers import password_step_up_headers
+    owner = _prepare_role(app, client, 'admin')
+    monkeypatch.setattr(ssh_manager, 'sessions', {'live': {'user_id': owner, 'connected': True,
+                        'host': 'edge.example', 'username': 'ops', 'port': 22}})
+    ref = client.get('/admin/api/operations/details').get_json()['sessions']['items'][0]['id']
+    def fail(*args, **kwargs):
+        if raises:
+            raise RuntimeError('secret path and host')
+        return False
+    monkeypatch.setattr(ssh_manager, 'close_session', fail)
+    audits = []
+    monkeypatch.setattr(operations, 'log_security_event', lambda event, **fields: audits.append((event, fields)))
+    headers, _ = password_step_up_headers(client, 'operations.session.disconnect', ref)
+    response = client.post(f'/admin/api/operations/sessions/{ref}/disconnect', headers=headers)
+    assert response.status_code == 503
+    assert response.get_json()['code'] == 'action_unconfirmed'
+    assert 'secret' not in response.get_data(as_text=True)
+    assert 'secret' not in str(audits)
+    assert audits[-1][0] == 'ADMIN_SSH_DISCONNECT_FAILED'
+
+
+@pytest.mark.parametrize('reader_state', ['running', 'queued', 'not_attached', 'reader_notified'])
+def test_admin_disconnect_notifies_once_with_real_output_reader(app, client, monkeypatch, reader_state):
+    from types import SimpleNamespace
+    from app import ssh_manager, socketio
+    from app.models import SSHSession, db
+    from tests.test_admin_routes import _prepare_role
+    from tests.step_up_helpers import password_step_up_headers
+
+    owner = _prepare_role(app, client, 'admin')
+    runtime = RuntimeLifecycle(1)
+    started, stop, release_worker = threading.Event(), threading.Event(), threading.Event()
+    notified, release_notice = threading.Event(), threading.Event()
+    events = []
+    def recv(_size):
+        started.set()
+        assert stop.wait(5)
+        return b''
+    channel = SimpleNamespace(recv=recv, close=stop.set)
+    live = {'user_id': owner, 'connected': True, 'host': 'edge.example', 'port': 22,
+            'username': 'ops', 'client': SimpleNamespace(close=lambda: None), 'channel': channel,
+            'disconnect_notice': {}}
+    monkeypatch.setattr(ssh_manager, 'sessions', {'reader-session': live})
+    def emit(event, data, **kw):
+        events.append((event, data, kw))
+        if reader_state == 'reader_notified' and event == 'ssh_disconnected':
+            notified.set()
+            assert release_notice.wait(5)
+    monkeypatch.setattr(socketio, 'emit', emit)
+    with app.app_context():
+        db.session.add(SSHSession(session_id='reader-session', user_id=owner, host='edge.example',
+                                  port=22, username='ops', connected=True))
+        db.session.commit()
+    try:
+        if reader_state in {'queued', 'not_attached'}:
+            runtime.start_job('blocker', lambda cancel: release_worker.wait(5))
+        handle = runtime.start_job('ssh_output_reader', lambda cancel: ssh_manager.read_ssh_output(
+            'reader-session', socketio, app, cancel, live['disconnect_notice']))
+        if reader_state != 'not_attached':
+            live['reader_handle'] = handle
+        if reader_state not in {'queued', 'not_attached'}:
+            assert started.wait(2)
+        if reader_state == 'reader_notified':
+            stop.set()
+            assert notified.wait(2)
+        ref = client.get('/admin/api/operations/details').get_json()['sessions']['items'][0]['id']
+        headers, _ = password_step_up_headers(client, 'operations.session.disconnect', ref)
+        response = client.post(f'/admin/api/operations/sessions/{ref}/disconnect', headers=headers)
+        assert response.status_code == 200
+        release_worker.set()
+        release_notice.set()
+        assert handle.join(2)
+        disconnects = [event for event in events if event[0] == 'ssh_disconnected']
+        assert len(disconnects) == 1
+        assert disconnects[0][1]['session_id'] == 'reader-session'
+        assert disconnects[0][2] == {'room': f'user_{owner}'}
+    finally:
+        stop.set()
+        release_notice.set()
+        release_worker.set()
+        runtime.begin_shutdown(3)

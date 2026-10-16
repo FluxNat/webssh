@@ -1252,3 +1252,58 @@
 .settings-center-navigation .admin-nav-group {
     flex-wrap: wrap;
 }
+
+
+/* Instance operations: overview first, technical capacity on demand. */
+.operations-header { justify-content: space-between; gap: 20px; }
+.operations-refresh { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.operations-refresh > span, .operations-list-header > span { font-size: 12px; color: var(--text-muted); }
+.operations-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
+.operations-metric { display: flex; align-items: flex-start; gap: 14px; padding: 18px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); min-width: 0; }
+.operations-metric > .material-icons { color: var(--text-muted); font-size: 22px; margin-top: 2px; }
+.operations-metric h3 { margin: 0 0 8px; font-size: 13px; font-weight: 500; color: var(--text-muted); }
+.operations-metric strong { font-size: 28px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.operations-metric-note { color: var(--text-muted); font-size: 12px; }
+span.operations-metric-note { margin-left: 10px; }
+p.operations-metric-note { margin: 8px 0 0; }
+.operations-views { display: flex; gap: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; }
+.operations-views .btn { min-height: 40px; }
+.operations-views .btn, .operations-refresh .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+[data-operation-view][aria-pressed="true"] { color: var(--accent-primary); border-color: currentColor; }
+.operations-list-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.operations-list-header h3 { margin: 0; font-size: 16px; }
+#operationsDetailsHint { margin: 8px 0 14px; font-size: 13px; max-width: 85ch; }
+#operationsActionStatus:empty { display: none; }
+#operationsActionStatus { padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; }
+.operations-table td { white-space: normal; overflow-wrap: anywhere; vertical-align: middle; }
+.operations-table .operations-identity { font-weight: 500; }
+.operations-row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.operations-row-actions .btn { min-height: 36px; }
+.operations-entry-details td { background: var(--bg-tertiary); color: var(--text-muted); }
+.operations-entry-details p { margin: 5px 0; font-size: 12px; overflow-wrap: anywhere; }
+.operations-table .operations-empty { padding: 28px 14px; text-align: center; color: var(--text-muted); }
+.operations-disclosure { border: 1px solid var(--border-color); border-radius: 10px; padding: 14px 16px; margin-top: 12px; }
+.operations-disclosure > summary { cursor: pointer; font-weight: 500; }
+.operations-disclosure > p, .operations-disclosure > ul { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+.operations-disclosure .operations-grid { gap: 12px; }
+.operations-disclosure .operations-grid > section { background: var(--bg-secondary); padding: 14px; }
+.operations-disclosure .operations-grid h3 { font-size: 14px; }
+.operations-disclosure .operations-grid dl { font-size: 13px; gap: 8px; }
+@media (max-width: 700px) {
+    .operations-metrics { grid-template-columns: 1fr; gap: 8px; }
+    .operations-metric { padding: 12px 14px; }
+    .operations-metric > div { flex: 1; }
+    .operations-metric h3 { display: inline-block; margin: 0 12px 0 0; }
+    .operations-metric strong { font-size: 23px; }
+    .operations-refresh { margin-top: 12px; }
+    .operations-table thead { display: none; }
+    .operations-table, .operations-table tbody, .operations-table tr, .operations-table td { display: block; width: 100%; }
+    .operations-table tr:not(.operations-entry-details) { padding: 10px 0; border-bottom: 1px solid var(--border-color); }
+    .operations-table td { border: 0; padding: 6px 12px; box-sizing: border-box; }
+    .operations-table td[data-label] { display: grid; grid-template-columns: minmax(85px, 30%) minmax(0, 1fr); gap: 10px; }
+    .operations-table td[data-label]::before { content: attr(data-label); color: var(--text-muted); font-size: 12px; font-weight: 400; }
+    .operations-table .admin-badge { justify-self: start; }
+    .operations-row-actions { flex-direction: column; align-items: stretch; }
+    .operations-row-actions .btn { min-height: 40px; }
+    .operations-views .btn { flex: 1; }
+}
