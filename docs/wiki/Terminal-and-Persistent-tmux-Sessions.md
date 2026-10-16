@@ -190,6 +190,42 @@ Disconnecting the WebSSH transport is different from killing the remote tmux
 session. Use the deliberate kill action only when the remote workload should
 end.
 
+## Sharing a terminal
+
+Select **Share** in the session tab bar to invite someone into the active
+session with a link. Guests open the link in any browser; they need no WebSSH
+account, and they never receive the target host, account name, password,
+private keys, file sources, or any other workspace resource. They see the
+terminal, the link name you choose, and your WebSSH username.
+
+Each link has:
+
+- **Access**: *View only* streams the terminal live. *Can type* also forwards
+  the guest's keystrokes into the session. Use **Allow typing** on an active
+  link to grant or withdraw input at any time.
+- **Expiry**: 15 minutes to 24 hours (capped by
+  `TERMINAL_SHARE_MAX_TTL_MINUTES`).
+- **Viewers**: a per-link seat limit.
+- **Ask me before anyone joins**: guests wait in a lobby, without seeing any
+  output, until you select **Admit**.
+
+The share dialog lists every guest with their connection state. You can remove
+a guest or select **Stop sharing** at any time. A link also ends when it
+expires, when the SSH session closes, and when you sign out or your access is
+revoked. Links live only in server memory, so they never survive a restart.
+
+The link token is kept in the URL fragment (after `#`), which browsers never
+send to a server, so it does not appear in proxy or access logs. The server
+stores only a hash for lookups. Guest keystrokes draw from the owner's SSH
+input budget, and every link creation, join, approval, removal, and first use
+of guest input is written to the security audit log.
+
+A guest that falls behind never slows your terminal: each guest has its own
+bounded queue and is resynchronised from the session's replay buffer instead.
+A guest that briefly loses its connection keeps its seat for
+`TERMINAL_SHARE_VIEWER_GRACE_SECONDS` and resumes without a full redraw when
+nothing was lost.
+
 ## Idle timeout
 
 `SESSION_TIMEOUT` defaults to 1800 seconds and closes idle WebSSH SSH sessions.

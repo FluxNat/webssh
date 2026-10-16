@@ -24,6 +24,8 @@
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/session-workspace.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/webssh-2.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/terminal-appearance.css') }}">
+    <link rel="stylesheet" href="{{ static_asset_url(filename='css/terminal-share.css') }}">
+    <link rel="stylesheet" href="{{ static_asset_url(filename='css/ui-refresh.css') }}">
 </head>
 <body data-sync-terminal-directory="{{ 'true' if sync_terminal_directory else 'false' }}" data-theme="{{ theme|default('glass') }}" data-confirm-session-close="{{ 'true' if confirm_session_close else 'false' }}" data-disconnect-session-action="{{ disconnect_session_action }}" data-connection-history-scope="{{ connection_history_scope }}" data-auth-session-expires-at="{{ auth_session_expires_at }}" data-auth-server-now="{{ auth_server_now }}" data-terminal-appearance="{{ terminal_appearance|default({})|tojson|forceescape }}">
     <script src="{{ static_asset_url(filename='js/theme-preference.js') }}"></script>
@@ -52,6 +54,9 @@
 
                 <div class="mobile-more-actions" aria-label="Session actions" data-i18n-aria-label="workspace.sessionActions">
                     <button class="mobile-more-action" type="button" data-open-terminal-appearance><span class="material-icons" aria-hidden="true">palette</span><span data-i18n="terminalAppearance.title">Terminal appearance</span></button>
+                    {% if terminal_share_enabled %}
+                    <button id="mobileShareAction" class="mobile-more-action" type="button"><span class="material-icons" aria-hidden="true">podcasts</span><span data-i18n="share.title">Share terminal</span></button>
+                    {% endif %}
                     <button id="mobileQuickConnectAction" class="mobile-more-action" type="button" onclick="window.openDefaultConnectionModal?.(); window.mobileAppShell?.closeMoreMenu()"><span class="material-icons" aria-hidden="true">add_link</span><span data-i18n="connection.newConnection">Quick Connect</span></button>
                     <button id="mobileToolsAction" class="mobile-more-action" type="button" onclick="window.primaryWorkspaceController?.showWorkspaces(); window.workspaceLayoutController?.setNotesOpen(true, 'user'); window.mobileAppShell?.closeMoreMenu()"><span class="material-icons" aria-hidden="true">edit_note</span><span data-i18n="workspaceContext.notes">Notes</span></button>
                     <button id="mobileBroadcastAction" class="mobile-more-action" type="button" onclick="window.primaryWorkspaceController?.showWorkspaces(); window.BroadcastInput?.toggle(); window.mobileAppShell?.closeMoreMenu()"><span class="material-icons" aria-hidden="true">cell_tower</span><span data-i18n="broadcast.toggle">Broadcast to all open sessions</span></button>
@@ -109,6 +114,13 @@
             <button class="btn-new-tab material-icons" id="newTabBtn" title="Select a session or use Quick Connect" data-i18n-title="panes.selectSession" aria-label="Select a session or use Quick Connect" data-i18n-aria-label="panes.selectSession">add</button>
             <button class="context-workspace-launcher" id="contextWorkspaceLauncher" type="button" aria-expanded="false" aria-controls="contextWorkspace" aria-label="Open session tools" title="Open session tools" data-i18n-aria-label="workspace.openTools" data-i18n-title="workspace.openTools"><span class="material-icons" aria-hidden="true">tune</span><span data-i18n="workspace.tools">Tools</span></button>
             <div class="tab-row-actions">
+                {% if terminal_share_enabled %}
+                <button class="tab-row-share-btn" id="shareTerminalBtn" type="button" title="Share terminal" aria-label="Share terminal" data-i18n-title="share.title" data-i18n-aria-label="share.title" aria-haspopup="dialog" aria-controls="terminalShareModal">
+                    <span class="material-icons" aria-hidden="true">podcasts</span>
+                    <span class="tab-row-share-label" data-i18n="share.button">Share</span>
+                    <span class="tab-row-share-count" id="shareTerminalCount" hidden></span>
+                </button>
+                {% endif %}
                 <button class="tab-row-icon-btn" id="terminalAppearanceBtn" type="button" data-open-terminal-appearance title="Terminal appearance" aria-label="Terminal appearance" data-i18n-title="terminalAppearance.title" data-i18n-aria-label="terminalAppearance.title"><span class="material-icons" aria-hidden="true">palette</span></button>
                 <div class="split-controls" aria-label="Split layout" data-i18n-aria-label="panes.layout">
                     <button class="split-btn active" data-layout="1" title="Single pane" aria-label="Single pane" data-i18n-title="panes.single" data-i18n-aria-label="panes.single">1</button>
@@ -1229,6 +1241,87 @@
         </div>
     </div>
 
+    {% if terminal_share_enabled %}
+    <div class="modal share-modal" id="terminalShareModal" role="dialog" aria-modal="true" aria-labelledby="terminalShareTitle" aria-hidden="true">
+        <div class="modal-content share-modal-content">
+            <div class="modal-header share-modal-header">
+                <div class="share-modal-heading">
+                    <span class="share-modal-icon" aria-hidden="true"><span class="material-icons">podcasts</span></span>
+                    <div>
+                        <h2 id="terminalShareTitle" data-i18n="share.title">Share terminal</h2>
+                        <p class="share-modal-session" id="terminalShareSession"></p>
+                    </div>
+                </div>
+                <button type="button" class="close material-icons" id="closeTerminalShareModal" aria-label="Close" data-i18n-aria-label="common.close">close</button>
+            </div>
+            <div class="modal-body share-modal-body">
+                <p class="share-lead" data-i18n="share.subtitle">Invite someone to watch or help in this session. They never see your host, account, password, or keys.</p>
+                <form class="share-form" id="terminalShareForm" autocomplete="off">
+                    <label class="share-field">
+                        <span data-i18n="share.linkTitle">Link name</span>
+                        <input type="text" id="terminalShareLinkTitle" maxlength="80" data-i18n-placeholder="share.linkTitlePlaceholder" placeholder="e.g. Debugging the deploy">
+                    </label>
+                    <fieldset class="share-segment">
+                        <legend data-i18n="share.access">Access</legend>
+                        <label class="share-option">
+                            <input type="radio" name="terminalShareMode" value="view" checked>
+                            <span class="share-option-body">
+                                <span class="material-icons" aria-hidden="true">visibility</span>
+                                <strong data-i18n="share.modeView">View only</strong>
+                                <small data-i18n="share.modeViewHint">Guests watch the terminal live.</small>
+                            </span>
+                        </label>
+                        <label class="share-option" id="terminalShareControlOption">
+                            <input type="radio" name="terminalShareMode" value="control">
+                            <span class="share-option-body">
+                                <span class="material-icons" aria-hidden="true">keyboard</span>
+                                <strong data-i18n="share.modeControl">Can type</strong>
+                                <small data-i18n="share.modeControlHint">Guests can type into this session.</small>
+                            </span>
+                        </label>
+                    </fieldset>
+                    <div class="share-row">
+                        <label class="share-field">
+                            <span data-i18n="share.expires">Expires after</span>
+                            <select id="terminalShareTtl">
+                                <option value="15" data-i18n="share.ttl15m">15 minutes</option>
+                                <option value="60" selected data-i18n="share.ttl1h">1 hour</option>
+                                <option value="480" data-i18n="share.ttl8h">8 hours</option>
+                                <option value="1440" data-i18n="share.ttl24h">24 hours</option>
+                            </select>
+                        </label>
+                        <label class="share-field">
+                            <span data-i18n="share.maxViewers">Viewers</span>
+                            <select id="terminalShareMaxViewers"></select>
+                        </label>
+                    </div>
+                    <label class="share-switch">
+                        <input type="checkbox" id="terminalShareApproval">
+                        <span class="share-switch-track" aria-hidden="true"></span>
+                        <span class="share-switch-copy">
+                            <strong data-i18n="share.requireApproval">Ask me before anyone joins</strong>
+                            <small data-i18n="share.requireApprovalHint">New guests wait until you admit them.</small>
+                        </span>
+                    </label>
+                    <p class="share-privacy">
+                        <span class="material-icons" aria-hidden="true">verified_user</span>
+                        <span data-i18n="share.privacyNote">Guests see only the terminal, the link name, and your WebSSH username.</span>
+                    </p>
+                    <button type="submit" class="btn btn-primary share-create" id="terminalShareCreate">
+                        <span class="material-icons" aria-hidden="true">add_link</span>
+                        <span data-i18n="share.create">Create link</span>
+                    </button>
+                </form>
+                <section class="share-links" aria-labelledby="terminalShareLinksTitle">
+                    <h3 id="terminalShareLinksTitle" data-i18n="share.activeLinks">Active links</h3>
+                    <div class="share-link-list" id="terminalShareLinks" aria-live="polite"></div>
+                    <p class="share-footnote" data-i18n="share.securityNote">Anyone with the link can join until it expires or you stop sharing.</p>
+                </section>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="modal modal-small" id="shortcutsModal" role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle" aria-hidden="true">
         <div class="modal-content">
             <div class="modal-header">
@@ -1490,6 +1583,9 @@
     <script src="{{ static_asset_url(filename='js/connection-validation.js') }}"></script>
     <script src="{{ static_asset_url(filename='js/ssh-gateway-dialog.js') }}"></script>
     <script src="{{ static_asset_url(filename='js/app.js') }}"></script>
+    {% if terminal_share_enabled %}
+    <script src="{{ static_asset_url(filename='js/terminal-share.js') }}"></script>
+    {% endif %}
     <script src="{{ static_asset_url(filename='js/terminal-file-bridge.js') }}"></script>
     <script>
         const flashedMessages = {{ get_flashed_messages(with_categories=true) | tojson }};

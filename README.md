@@ -54,6 +54,10 @@ a hosted control plane or runtime CDN dependencies.
   authentication paths.
 - Broadcast input, terminal search, transcripts, reconnect controls, and
   configurable scrollback.
+- **Terminal share links**: invite anyone to watch, or optionally type into, a
+  live session with an expiring link. Guests need no account and never see the
+  host, account, password, or keys; owners can require approval, withdraw
+  typing, remove guests, and stop sharing at any time.
 - Session-aware Files, Commands, Diagnostics, and Notes contexts.
 - **Active Session Monitoring** for supported Linux resource and runtime data.
 - **Expanded Diagnostics** for resource history, processes, systemd services,
@@ -131,6 +135,7 @@ run it only on a trusted host and allowlist only trusted shares.
 - Native backup and restore with maintenance mode, staging isolation, quotas,
   explicit confirmation, and bounded execution.
 - Optional Redis-backed rate-limit counters.
+- Opt-in, token-protected Prometheus metrics with aggregate capacity gauges.
 - Vendored browser dependencies, restrictive CSP, and no built-in telemetry.
 
 ## Screenshots
