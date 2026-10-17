@@ -9,6 +9,7 @@ The terminal supports:
 
 - multiple session tabs;
 - one-, two-, and four-pane layouts;
+- floating terminal windows that move, resize, snap, minimize, and maximize;
 - broadcast input across open sessions;
 - a command palette with `Ctrl+K`;
 - terminal search with `Ctrl+F`;
@@ -77,6 +78,38 @@ These settings belong in the remote account's tmux configuration, or can be
 applied to a running server without killing sessions. See the
 [tmux clipboard guide](https://github.com/tmux/tmux/wiki/Clipboard) for terminal
 capability checks and application-specific setup.
+
+## Floating windows
+
+Select the window button next to the **1**, **2**, and **4** layout buttons to
+place each session in its own window on a desktop, the way a desktop operating
+system arranges applications.
+
+- Drag a window by its title bar. Drop it on the left or right edge to fill
+  that half, on a corner to fill a quarter, or on the top edge to maximize it.
+  A preview shows where the window will land.
+- Resize from any edge or corner. The terminal refits while you drag and the
+  remote shell learns the final size once you release.
+- Use the title-bar buttons to minimize, maximize or restore, and close.
+  Double-clicking the title bar also maximizes or restores the window.
+- With the title bar focused, arrow keys move the window, `Alt`+arrow keys
+  resize it, and `Enter` maximizes or restores it.
+- The session tabs act as a taskbar: minimized sessions appear dimmed, and
+  selecting a tab restores and focuses its window.
+- **+** opens a new window with the connection launcher, and a new connection
+  always opens in a window of its own instead of replacing the focused one.
+- The tile and cascade buttons arrange every open window.
+
+Closing a window ends its SSH session, exactly like closing its tab, including
+the confirmation when **Ask before closing a session** is enabled. A
+minimized session keeps running in the background.
+
+Window placement is kept per session for the browser tab, so windows return to
+the same place after a page reload or after switching to a split layout and
+back. The browser remembers the window layout as a preference. Phones and
+other narrow screens always use the single-pane layout and return to windows
+when there is room again. At most 16 windows are open at once; further
+sessions stay available from their tabs.
 
 ## Broadcast input
 

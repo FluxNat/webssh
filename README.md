@@ -49,6 +49,9 @@ a hosted control plane or runtime CDN dependencies.
 ### Terminal workspace
 
 - Multiple SSH sessions with tabs and 1-, 2-, or 4-pane layouts.
+- **Floating windows**: run every session in its own window that you can drag,
+  resize, snap to halves or quarters, minimize to the tab bar, maximize, tile,
+  or cascade.
 - Persistent remote shells through tmux when tmux is available on the target.
 - Saved connections, jump hosts, key, password, and optional Tailscale SSH
   authentication paths.

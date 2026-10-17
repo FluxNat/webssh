@@ -425,6 +425,108 @@ body[data-theme="paper"] .app-brand-logo {
 }
 
 /* ------------------------------------------------------------------ */
+/* Graphite: the default theme as a deeper, neutral dark               */
+/* ------------------------------------------------------------------ */
+body[data-theme="glass"] {
+    --bg-primary: #08090c;
+    --bg-secondary: #0e1014;
+    --bg-tertiary: #14171c;
+    --bg-hover: #1b1f26;
+    --bg-modal: rgba(14, 16, 20, 0.97);
+    --bg-gradient: linear-gradient(160deg, #08090c 0%, #0b0e13 100%);
+    --bg-active: rgba(91, 156, 246, 0.13);
+    --text-secondary: #aab3c0;
+    --border-color: rgba(214, 226, 242, 0.08);
+    --border-hover: rgba(214, 226, 242, 0.16);
+    --term-background: #0b0d11;
+    --theme-background-opacity: 0.045;
+}
+
+:root {
+    color-scheme: dark;
+}
+
+body[data-theme="paper"] {
+    color-scheme: light;
+}
+
+/* The wordmark carries generous padding inside its artwork; draw it larger
+   and let the empty margin overhang so the header keeps its rhythm. Compact
+   layouts keep their own sizing. */
+@media (min-width: 768px) and (min-height: 521px), (min-width: 768px) and (pointer: fine) {
+    .header .app-brand-logo {
+        width: 150px;
+        height: 45px;
+        margin: -7px -39px -7px -7px;
+        padding: 0;
+    }
+
+    .header .app-brand {
+        gap: 22px;
+    }
+}
+
+@media (max-width: 1279px) {
+    .header .app-brand small {
+        display: none;
+    }
+}
+
+/* Tab actions surface on hover or focus so idle tabs stay calm. Touch
+   screens without hover keep every control visible. */
+@media (hover: hover) and (pointer: fine) {
+    .session-tab:not(.active, .disconnected) :is(.tab-edit, .tab-reconnect) {
+        display: none;
+    }
+
+    .session-tab.active:not(.disconnected) :is(.tab-edit, .tab-reconnect) {
+        opacity: 0.4;
+    }
+
+    .session-tab:not(.active) .tab-close {
+        opacity: 0;
+    }
+
+    .session-tab:is(:hover, :focus-within) :is(.tab-edit, .tab-reconnect, .tab-close) {
+        opacity: 0.85;
+    }
+
+    .session-tab :is(.tab-edit, .tab-reconnect, .tab-close):is(:hover, :focus-visible) {
+        opacity: 1;
+    }
+}
+
+.session-tab.disconnected .tab-reconnect {
+    color: var(--ws2-warning);
+    opacity: 1;
+}
+
+/* Layout switcher reads as one segmented control. */
+.tab-row-actions .split-controls {
+    padding: 2px;
+    border: 1px solid var(--ws2-border);
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--ws2-canvas) 70%, transparent);
+}
+
+.tab-row-actions .split-controls .split-btn {
+    width: 30px;
+    min-width: 0;
+    height: 28px;
+    min-height: 0;
+    padding: 0;
+    border-radius: 7px;
+}
+
+.tab-row-actions .split-controls .split-btn.active {
+    background: var(--ws2-panel);
+    color: var(--ws2-text);
+    box-shadow:
+        0 1px 2px rgb(0 0 0 / 35%),
+        0 0 0 1px color-mix(in srgb, var(--ws2-accent) 42%, transparent) inset;
+}
+
+/* ------------------------------------------------------------------ */
 /* Keyframes                                                           */
 /* ------------------------------------------------------------------ */
 @keyframes ui-fade-in {

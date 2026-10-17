@@ -26,6 +26,7 @@
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/terminal-appearance.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/share-collab.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/terminal-share.css') }}">
+    <link rel="stylesheet" href="{{ static_asset_url(filename='css/terminal-windows.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/ui-refresh.css') }}">
 </head>
 <body data-sync-terminal-directory="{{ 'true' if sync_terminal_directory else 'false' }}" data-theme="{{ theme|default('glass') }}" data-confirm-session-close="{{ 'true' if confirm_session_close else 'false' }}" data-disconnect-session-action="{{ disconnect_session_action }}" data-connection-history-scope="{{ connection_history_scope }}" data-auth-session-expires-at="{{ auth_session_expires_at }}" data-auth-server-now="{{ auth_server_now }}" data-terminal-appearance="{{ terminal_appearance|default({})|tojson|forceescape }}">
@@ -127,6 +128,11 @@
                     <button class="split-btn active" data-layout="1" title="Single pane" aria-label="Single pane" data-i18n-title="panes.single" data-i18n-aria-label="panes.single">1</button>
                     <button class="split-btn" data-layout="2" title="Split pane" aria-label="Split pane" data-i18n-title="panes.split" data-i18n-aria-label="panes.split">2</button>
                     <button class="split-btn" data-layout="4" title="Quad pane" aria-label="Quad pane" data-i18n-title="panes.quad" data-i18n-aria-label="panes.quad">4</button>
+                    <button class="split-btn split-btn-windows" data-layout="windows" type="button" title="Floating windows" aria-label="Floating windows" data-i18n-title="windows.mode" data-i18n-aria-label="windows.mode"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="1.75" y="5.25" width="9" height="7.5" rx="1.5"></rect><path d="M5.25 5.25V4.5A1.5 1.5 0 0 1 6.75 3h6A1.5 1.5 0 0 1 14.25 4.5v4.75a1.5 1.5 0 0 1-1.5 1.5h-2"></path></svg></button>
+                </div>
+                <div class="window-arrange-controls" id="windowArrangeControls" role="group" aria-label="Arrange windows" data-i18n-aria-label="windows.arrange" hidden>
+                    <button class="tab-row-icon-btn" type="button" data-window-arrange="tile" title="Tile windows" aria-label="Tile windows" data-i18n-title="windows.tile" data-i18n-aria-label="windows.tile"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"></rect><rect x="9" y="2.5" width="5" height="5" rx="1"></rect><rect x="2" y="9.5" width="5" height="4" rx="1"></rect><rect x="9" y="9.5" width="5" height="4" rx="1"></rect></svg></button>
+                    <button class="tab-row-icon-btn" type="button" data-window-arrange="cascade" title="Cascade windows" aria-label="Cascade windows" data-i18n-title="windows.cascade" data-i18n-aria-label="windows.cascade"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2" width="8" height="6" rx="1"></rect><path d="M4.5 8v2.5a1 1 0 0 0 1 1H6"></path><rect x="6" y="8" width="8" height="6" rx="1"></rect></svg></button>
                 </div>
                 <button class="tab-row-icon-btn" id="broadcastToggleBtn" type="button" aria-pressed="false" title="Broadcast to all sessions" data-i18n-title="broadcast.toggle">
                     <span class="material-icons" aria-hidden="true">cell_tower</span>
@@ -1589,6 +1595,7 @@
     <script src="{{ static_asset_url(filename='js/terminal-appearance.js') }}"></script>
     <script src="{{ static_asset_url(filename='js/terminal-manager.js') }}"></script>
     <script src="{{ static_asset_url(filename='js/ssh-input.js') }}"></script>
+    <script src="{{ static_asset_url(filename='js/terminal-windows.js') }}"></script>
     <script src="{{ static_asset_url(filename='js/session-manager.js') }}"></script>
     <script src="{{ static_asset_url(filename='js/workspace-layout-controller.js') }}"></script>
     <script src="{{ static_asset_url(filename='js/mobile-app-shell.js') }}"></script>
