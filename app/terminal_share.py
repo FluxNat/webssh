@@ -12,6 +12,10 @@ so persisting shares would only create rows that point at nothing.
 Fan-out never blocks the SSH output reader. Every viewer owns a bounded queue;
 a viewer that falls behind loses its queue and is resynchronised from the
 session's bounded replay buffer instead of applying backpressure to the owner.
+
+Owners and admitted guests can also chat and point at terminal cells. Chat is
+scoped to the session, kept in a short in-memory history, and rides the same
+bounded viewer queues; pointers are ephemeral and never stored.
 """
 
 from collections import deque
@@ -38,12 +42,17 @@ VIEWER_ACTIVE = 'active'
 MAX_TITLE_LENGTH = 80
 MAX_VIEWER_NAME_LENGTH = 32
 MAX_SECRET_LENGTH = 128
+MAX_CHAT_LENGTH = 500
 DEFAULT_COLS = 80
 DEFAULT_ROWS = 24
 
 # Every queued event carries this much bookkeeping cost in addition to its
 # payload, so floods of tiny chunks are bounded as tightly as large ones.
 _EVENT_OVERHEAD_BYTES = 64
+
+# Burst size and refill rate (per second) for each chat or pointer sender.
+_CHAT_RATE = (5, 1.0)
+_POINTER_RATE = (20, 10.0)
 
 
 class ShareError(Exception):
@@ -68,6 +77,15 @@ def _clean_text(value, limit):
         for char in value
     )
     return ' '.join(cleaned.split())[:limit]
+
+
+def _chat_text(value):
+    if not isinstance(value, str):
+        raise ShareError('invalid_request')
+    text = _clean_text(value, MAX_CHAT_LENGTH)
+    if not text:
+        raise ShareError('invalid_request')
+    return text
 
 
 def _valid_secret(value):
@@ -103,6 +121,27 @@ class InputGrant:
     first_use: bool
 
 
+class _Bucket:
+    """Token bucket for one sender's chat or pointer rate."""
+
+    __slots__ = ('capacity', 'rate', 'tokens', 'updated')
+
+    def __init__(self, capacity, rate, now):
+        self.capacity = capacity
+        self.rate = rate
+        self.tokens = float(capacity)
+        self.updated = now
+
+    def take(self, now):
+        elapsed = max(0.0, now - self.updated)
+        self.tokens = min(self.capacity, self.tokens + elapsed * self.rate)
+        self.updated = now
+        if self.tokens < 1:
+            return False
+        self.tokens -= 1
+        return True
+
+
 class _Share:
     __slots__ = (
         'share_id', 'token', 'token_hash', 'owner_id', 'owner_name',
@@ -123,7 +162,7 @@ class _Viewer:
         'share', 'viewer_id', 'ticket_hash', 'name', 'status', 'joined_at',
         'events', 'queued_bytes', 'needs_reset', 'last_seq', 'ended',
         'generation', 'open_streams', 'detached_at', 'wake', 'input_used',
-        'pending_announced',
+        'pending_announced', 'chat_bucket', 'pointer_bucket',
     )
 
     def __init__(self, share, viewer_id, ticket_hash, name, status, now):
@@ -144,6 +183,8 @@ class _Viewer:
         self.wake = threading.Event()
         self.input_used = False
         self.pending_announced = False
+        self.chat_bucket = _Bucket(*_CHAT_RATE, now)
+        self.pointer_bucket = _Bucket(*_POINTER_RATE, now)
 
     @property
     def connected(self):
@@ -197,8 +238,13 @@ class TerminalShareHub:
         self._clock = clock
         self._wall_clock = wall_clock
         self._listener = None
+        self._activity_listener = None
         self._open_streams = 0
         self._resyncs = 0
+        self._chat = {}
+        self._chat_seq = 0
+        self._chat_total = 0
+        self._owner_buckets = {}
 
     # ------------------------------------------------------------------
     # Owner notifications
@@ -206,6 +252,27 @@ class TerminalShareHub:
     def set_listener(self, listener):
         """Register ``listener(owner_id, session_id, event)`` for updates."""
         self._listener = listener
+
+    def set_activity_listener(self, listener):
+        """Register ``listener(owner_id, session_id, kind, payload)``.
+
+        ``kind`` is ``chat`` for every message in a shared session and
+        ``pointer`` for pointers placed by guests.
+        """
+        self._activity_listener = listener
+
+    def _notify_activity(self, items):
+        listener = self._activity_listener
+        if listener is None:
+            return
+        for owner_id, session_id, kind, payload in items:
+            try:
+                listener(owner_id, session_id, kind, payload)
+            except Exception as error:
+                log_warning(
+                    'Terminal share activity notification failed',
+                    error_type=type(error).__name__,
+                )
 
     def _notify(self, notices):
         listener = self._listener
@@ -575,6 +642,7 @@ class TerminalShareHub:
                 'rows': int(rows),
                 'mode': share.mode,
                 'viewers': self._active_count_locked(share),
+                'chat': self._chat_for_viewer_locked(viewer),
             }], None
 
     def _drain_locked(self, viewer):
@@ -627,6 +695,88 @@ class TerminalShareHub:
                 viewer_id=viewer.viewer_id,
                 first_use=first_use,
             )
+
+    # ------------------------------------------------------------------
+    # Chat and pointers
+    # ------------------------------------------------------------------
+    def chat_history(self, owner_id, session_id):
+        """Return the session's recent messages for its owner."""
+        with self._lock:
+            if not self._owns_session_locked(owner_id, session_id):
+                return []
+            return list(self._chat.get(session_id, ()))
+
+    def owner_chat(self, owner_id, session_id, text, *, name=''):
+        text = _chat_text(text)
+        with self._lock:
+            self._require_owned_session_locked(owner_id, session_id)
+            self._take_owner_locked(session_id, 'chat', _CHAT_RATE)
+            message = self._post_chat_locked(
+                session_id,
+                _clean_text(name, MAX_VIEWER_NAME_LENGTH) or 'Owner',
+                'owner',
+                'owner',
+                text,
+                exclude=None,
+            )
+            items = [(int(owner_id), session_id, 'chat', message)]
+        self._notify_activity(items)
+        return message
+
+    def guest_chat(self, ticket, text):
+        text = _chat_text(text)
+        with self._lock:
+            viewer = self._collaborator_locked(ticket)
+            if not viewer.chat_bucket.take(self._clock()):
+                raise ShareError('rate_limited', 429)
+            share = viewer.share
+            message = self._post_chat_locked(
+                share.session_id,
+                viewer.name,
+                'guest',
+                viewer.viewer_id,
+                text,
+                exclude=viewer,
+            )
+            items = [(share.owner_id, share.session_id, 'chat', message)]
+        self._notify_activity(items)
+        return message
+
+    def owner_pointer(self, owner_id, session_id, col, row, *, name=''):
+        with self._lock:
+            self._require_owned_session_locked(owner_id, session_id)
+            col, row = self._pointer_cell_locked(session_id, col, row)
+            self._take_owner_locked(session_id, 'pointer', _POINTER_RATE)
+            pointer = {
+                'name': _clean_text(name, MAX_VIEWER_NAME_LENGTH) or 'Owner',
+                'role': 'owner',
+                'sender': 'owner',
+                'col': col,
+                'row': row,
+            }
+            self._broadcast_session_locked(session_id, 'pointer', pointer, exclude=None)
+        return pointer
+
+    def guest_pointer(self, ticket, col, row):
+        with self._lock:
+            viewer = self._collaborator_locked(ticket)
+            share = viewer.share
+            col, row = self._pointer_cell_locked(share.session_id, col, row)
+            if not viewer.pointer_bucket.take(self._clock()):
+                raise ShareError('rate_limited', 429)
+            pointer = {
+                'name': viewer.name,
+                'role': 'guest',
+                'sender': viewer.viewer_id,
+                'col': col,
+                'row': row,
+            }
+            self._broadcast_session_locked(
+                share.session_id, 'pointer', pointer, exclude=viewer,
+            )
+            items = [(share.owner_id, share.session_id, 'pointer', pointer)]
+        self._notify_activity(items)
+        return pointer
 
     # ------------------------------------------------------------------
     # SSH runtime hooks
@@ -723,6 +873,7 @@ class TerminalShareHub:
                 'streams': self._open_streams,
                 'queued_bytes': sum(item.queued_bytes for item in viewers),
                 'resyncs': self._resyncs,
+                'chat_messages': self._chat_total,
             }
 
     # ------------------------------------------------------------------
@@ -748,6 +899,88 @@ class TerminalShareHub:
             viewer.needs_reset = True
             self._resyncs += 1
         viewer.wake.set()
+
+    def _owns_session_locked(self, owner_id, session_id):
+        return any(
+            self._shares[share_id].owner_id == int(owner_id)
+            for share_id in self._by_session.get(session_id, ())
+        )
+
+    def _require_owned_session_locked(self, owner_id, session_id):
+        if not config.TERMINAL_SHARE_CHAT_ENABLED:
+            raise ShareError('chat_disabled', 403)
+        if (
+            not isinstance(session_id, str)
+            or not self._owns_session_locked(owner_id, session_id)
+        ):
+            raise ShareError('not_shared', 409)
+
+    def _collaborator_locked(self, ticket):
+        if not config.TERMINAL_SHARE_CHAT_ENABLED:
+            raise ShareError('chat_disabled', 403)
+        viewer = self._viewer_for_ticket_locked(ticket)
+        if viewer.status != VIEWER_ACTIVE:
+            raise ShareError('awaiting_approval', 403)
+        return viewer
+
+    def _take_owner_locked(self, session_id, kind, rate):
+        now = self._clock()
+        bucket = self._owner_buckets.get((session_id, kind))
+        if bucket is None:
+            bucket = self._owner_buckets[(session_id, kind)] = _Bucket(*rate, now)
+        if not bucket.take(now):
+            raise ShareError('rate_limited', 429)
+
+    def _pointer_cell_locked(self, session_id, col, row):
+        cols, rows = self._geometry.get(
+            session_id, (DEFAULT_COLS, DEFAULT_ROWS)
+        )
+        if (
+            type(col) is not int
+            or type(row) is not int
+            or not 0 <= col < cols
+            or not 0 <= row < rows
+        ):
+            raise ShareError('invalid_request')
+        return col, row
+
+    def _post_chat_locked(self, session_id, name, role, sender, text, *, exclude):
+        self._chat_seq += 1
+        self._chat_total += 1
+        message = {
+            'id': self._chat_seq,
+            'name': name,
+            'role': role,
+            'sender': sender,
+            'text': text,
+            'at': _iso(self._wall_clock()),
+        }
+        limit = config.TERMINAL_SHARE_CHAT_HISTORY
+        if limit:
+            history = self._chat.get(session_id)
+            if history is None or history.maxlen != limit:
+                history = deque(history or (), maxlen=limit)
+                self._chat[session_id] = history
+            history.append(message)
+        self._broadcast_session_locked(session_id, 'chat', message, exclude=exclude)
+        return message
+
+    def _broadcast_session_locked(self, session_id, kind, payload, *, exclude):
+        size = _EVENT_OVERHEAD_BYTES + sum(
+            len(str(value)) for value in payload.values()
+        )
+        for share_id in self._by_session.get(session_id, ()):
+            share = self._shares.get(share_id)
+            if share is None:
+                continue
+            for viewer in share.viewers.values():
+                if viewer is not exclude and viewer.status == VIEWER_ACTIVE:
+                    self._enqueue_locked(viewer, (kind, payload, size))
+
+    def _chat_for_viewer_locked(self, viewer):
+        if not config.TERMINAL_SHARE_CHAT_ENABLED or viewer.status != VIEWER_ACTIVE:
+            return []
+        return list(self._chat.get(viewer.share.session_id, ()))
 
     def _viewer_for_ticket_locked(self, ticket):
         if not _valid_secret(ticket):
@@ -791,6 +1024,12 @@ class TerminalShareHub:
             if not session_shares:
                 self._by_session.pop(share.session_id, None)
                 self._geometry.pop(share.session_id, None)
+                self._chat.pop(share.session_id, None)
+                for key in [
+                    key for key in self._owner_buckets
+                    if key[0] == share.session_id
+                ]:
+                    del self._owner_buckets[key]
         return [(share.owner_id, share.session_id, {
             'kind': 'ended',
             'reason': reason,
@@ -885,6 +1124,8 @@ class TerminalShareHub:
             'cols': cols,
             'rows': rows,
             'viewers': self._active_count_locked(share),
+            'chat_enabled': config.TERMINAL_SHARE_CHAT_ENABLED,
+            'chat': self._chat_for_viewer_locked(viewer),
         }
 
 

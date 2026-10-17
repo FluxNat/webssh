@@ -379,3 +379,103 @@ def test_only_bearer_viewer_endpoints_skip_csrf(owner, csrf_app):
     ticket = joined.get_json()['ticket']
     left = guest.post('/api/share-view/leave', json={'ticket': ticket})
     assert left.status_code == 200
+
+
+def test_guest_and_owner_chat_round_trip(client, guest, owner, fast_heartbeat, monkeypatch):
+    from app import socketio
+
+    emitted = []
+    monkeypatch.setattr(socketio, 'emit', lambda event, payload, room=None, **_: emitted.append((event, payload, room)))
+    share = _create_share(client)
+    joined = _join(guest, share['token'], 'Kai')
+    assert joined['viewer']['chat_enabled'] is True
+    assert joined['viewer']['chat'] == []
+
+    sent = guest.post('/api/share-view/chat', json={'ticket': joined['ticket'], 'text': 'hello owner'})
+    assert sent.status_code == 200
+    assert sent.get_json()['message']['name'] == 'Kai'
+    chat_events = [item for item in emitted if item[0] == 'terminal_share_chat']
+    assert chat_events[-1][2] == f'user_{owner}'
+    assert chat_events[-1][1]['session_id'] == SESSION_ID
+    assert chat_events[-1][1]['chat']['text'] == 'hello owner'
+
+    stream = guest.post('/api/share-view/stream', json={'ticket': joined['ticket']})
+    _hello, reset = _read_events(stream, 2)
+    assert [item['text'] for item in reset[1]['chat']] == ['hello owner']
+
+    reply = client.post('/api/terminal-shares/chat', json={'session_id': SESSION_ID, 'text': 'hi Kai'})
+    assert reply.status_code == 200
+    assert reply.get_json()['message']['role'] == 'owner'
+    (chat,) = _read_events(stream, 1)
+    assert chat[0] == 'chat'
+    assert chat[1]['text'] == 'hi Kai'
+    stream.close()
+
+    history = client.get(f'/api/terminal-shares/chat?session_id={SESSION_ID}').get_json()
+    assert [item['text'] for item in history['messages']] == ['hello owner', 'hi Kai']
+
+
+def test_pointers_flow_between_guest_and_owner(client, guest, owner, fast_heartbeat, monkeypatch):
+    from app import socketio
+
+    emitted = []
+    monkeypatch.setattr(socketio, 'emit', lambda event, payload, room=None, **_: emitted.append((event, payload, room)))
+    share = _create_share(client)
+    joined = _join(guest, share['token'], 'Ivy')
+    response = guest.post('/api/share-view/pointer', json={'ticket': joined['ticket'], 'col': 5, 'row': 2})
+    assert response.status_code == 200
+    pointers = [item for item in emitted if item[0] == 'terminal_share_pointer']
+    assert pointers[-1][1]['pointer'] == {
+        'name': 'Ivy', 'role': 'guest', 'sender': joined['viewer']['viewer_id'], 'col': 5, 'row': 2,
+    }
+    outside = guest.post('/api/share-view/pointer', json={'ticket': joined['ticket'], 'col': 100, 'row': 0})
+    assert outside.status_code == 400
+
+    stream = guest.post('/api/share-view/stream', json={'ticket': joined['ticket']})
+    _read_events(stream, 2)
+    assert client.post(
+        '/api/terminal-shares/pointer', json={'session_id': SESSION_ID, 'col': 1, 'row': 1},
+    ).status_code == 200
+    (pointer,) = _read_events(stream, 1)
+    assert pointer[0] == 'pointer'
+    assert pointer[1]['role'] == 'owner'
+    stream.close()
+
+
+def test_owner_chat_is_scoped_to_their_own_shared_sessions(app, client, owner):
+    assert client.post(
+        '/api/terminal-shares/chat', json={'session_id': SESSION_ID, 'text': 'nobody here'},
+    ).get_json()['code'] == 'not_shared'
+    _create_share(client)
+    _create_user(app, 'chat_intruder')
+    other = app.test_client()
+    _login(other, 'chat_intruder')
+    refused = other.post('/api/terminal-shares/chat', json={'session_id': SESSION_ID, 'text': 'hi'})
+    assert refused.status_code == 409
+    assert other.get(f'/api/terminal-shares/chat?session_id={SESSION_ID}').get_json()['messages'] == []
+    assert other.post(
+        '/api/terminal-shares/pointer', json={'session_id': SESSION_ID, 'col': 0, 'row': 0},
+    ).status_code == 409
+
+
+def test_guest_chat_rejects_bad_input(client, guest, owner):
+    share = _create_share(client)
+    ticket = _join(guest, share['token'])['ticket']
+    for body in ({'ticket': ticket, 'text': ''}, {'ticket': ticket, 'text': 5}, {'ticket': ticket}):
+        assert guest.post('/api/share-view/chat', json=body).status_code == 400
+    assert guest.post(
+        '/api/share-view/chat', json={'ticket': 'y' * 43, 'text': 'hi'},
+    ).status_code == 404
+
+
+def test_chat_routes_follow_csrf_scope(owner, csrf_app):
+    share = share_hub.create(owner, SESSION_ID)
+    guest = csrf_app.test_client()
+    ticket = guest.post('/api/share-view/join', json={'token': share['token']}).get_json()['ticket']
+    assert guest.post('/api/share-view/chat', json={'ticket': ticket, 'text': 'hi'}).status_code == 200
+    assert guest.post(
+        '/api/share-view/pointer', json={'ticket': ticket, 'col': 0, 'row': 0},
+    ).status_code == 200
+    assert guest.post(
+        '/api/terminal-shares/chat', json={'session_id': SESSION_ID, 'text': 'forged'},
+    ).status_code in (302, 400, 401)

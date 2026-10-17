@@ -144,6 +144,11 @@ def collect():
         'Viewers resynchronised after falling behind.',
         [({}, shares['resyncs'])],
     )
+    out.metric(
+        'webssh_terminal_share_chat_messages_total', 'counter',
+        'Chat messages exchanged in shared sessions.',
+        [({}, shares['chat_messages'])],
+    )
     out.gauge(
         'webssh_terminal_share_viewers_limit',
         'Configured maximum concurrent share viewers.',

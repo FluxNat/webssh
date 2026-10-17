@@ -220,6 +220,28 @@ stores only a hash for lookups. Guest keystrokes draw from the owner's SSH
 input budget, and every link creation, join, approval, removal, and first use
 of guest input is written to the security audit log.
 
+### Inviting guests
+
+Each active link offers **QR code**, which renders a scannable code in the
+browser (no external service sees the link), and **Copy invite**, which copies
+a ready-to-send message with the link name, the link, the access level, and
+the time left. Browsers with a system share sheet also offer **Share…**.
+
+### Chat and pointers
+
+While a session is shared, **Chat** appears in the corner of the workspace.
+Everyone admitted to any link of that session shares one conversation;
+guests waiting for approval see neither past nor new messages. Late joiners
+receive the most recent `TERMINAL_SHARE_CHAT_HISTORY` messages. Messages are
+plain text, limited to 500 characters, rate limited per sender, never written
+to disk or the audit log, and disappear when the session's last link ends.
+
+Select the pointer button (in the chat panel for owners, or **Point** in the
+guest toolbar), then click the terminal to highlight a character for everyone
+else with your name. Pointers fade after a few seconds and address the live
+screen, so they line up for every participant even when someone has scrolled.
+Press `Esc` to leave pointer mode.
+
 A guest that falls behind never slows your terminal: each guest has its own
 bounded queue and is resynchronised from the session's replay buffer instead.
 A guest that briefly loses its connection keeps its seat for

@@ -120,6 +120,7 @@ def test_share_never_exposes_connection_details_to_viewers(hub, runtime):
     assert set(view) == {
         'viewer_id', 'name', 'status', 'title', 'owner', 'mode',
         'expires_at', 'expires_in', 'cols', 'rows', 'viewers',
+        'chat_enabled', 'chat',
     }
     assert view['owner'] == 'alice'
     assert view['name'] == 'Bob'
@@ -210,6 +211,7 @@ def test_first_stream_event_is_a_snapshot_then_live_output(hub, runtime):
         'rows': 24,
         'mode': MODE_VIEW,
         'viewers': 1,
+        'chat': [],
     }]
 
     runtime.record(hub, 's1', 'a')
@@ -484,6 +486,192 @@ def test_listener_failures_never_break_share_operations(hub):
     share = hub.create(1, 's1')
     hub.join(share['token'])
     hub.revoke(1, share['id'])
+
+
+def _live_stream(hub, token, name='Guest'):
+    view, ticket = hub.join(token, name)
+    stream = hub.open_stream(ticket)
+    stream.poll(0)
+    return view, ticket, stream
+
+
+def test_chat_reaches_everyone_in_the_session_but_not_the_sender(hub):
+    activity = []
+    hub.set_activity_listener(lambda owner, session, kind, payload: activity.append(
+        (owner, session, kind, payload['text'])
+    ))
+    view_link = hub.create(1, 's1', mode=MODE_VIEW)
+    control_link = hub.create(1, 's1', mode=MODE_CONTROL)
+    alice, alice_ticket, alice_stream = _live_stream(hub, view_link['token'], 'Alice')
+    _bob, _bob_ticket, bob_stream = _live_stream(hub, control_link['token'], 'Bob')
+
+    message = hub.guest_chat(alice_ticket, 'can you run uptime?')
+    assert message['name'] == 'Alice'
+    assert message['role'] == 'guest'
+    assert message['sender'] == alice['viewer_id']
+    assert _events(alice_stream, 'chat')[0] == []
+    assert [event['text'] for event in _events(bob_stream, 'chat')[0]] == ['can you run uptime?']
+    assert activity == [(1, 's1', 'chat', 'can you run uptime?')]
+
+    reply = hub.owner_chat(1, 's1', 'sure', name='alice-admin')
+    assert reply['role'] == 'owner'
+    assert reply['name'] == 'alice-admin'
+    assert [event['text'] for event in _events(alice_stream, 'chat')[0]] == ['sure']
+    assert [item['text'] for item in hub.chat_history(1, 's1')] == ['can you run uptime?', 'sure']
+    assert hub.chat_history(2, 's1') == []
+    assert hub.stats()['chat_messages'] == 2
+
+
+def test_chat_text_is_single_line_printable_and_bounded(hub):
+    share = hub.create(1, 's1')
+    _view, ticket, _stream = _live_stream(hub, share['token'])
+    message = hub.guest_chat(ticket, 'hi\x1b[31m\nthere\u202e' + 'x' * 900)
+    assert '\x1b' not in message['text']
+    assert '\n' not in message['text']
+    assert '\u202e' not in message['text']
+    assert len(message['text']) <= 500
+    for bad in ('', '   ', '\x07', None, 5):
+        with pytest.raises(ShareError) as error:
+            hub.guest_chat(ticket, bad)
+        assert error.value.code == 'invalid_request'
+
+
+def test_lobby_guests_neither_read_nor_write_chat(hub):
+    share = hub.create(1, 's1', require_approval=True)
+    hub.owner_chat(1, 's1', 'private before admission')
+    view, ticket = hub.join(share['token'], 'Pat')
+    assert view['chat'] == []
+    stream = hub.open_stream(ticket)
+    assert stream.poll(0) == ([{'type': 'pending'}], None)
+    hub.owner_chat(1, 's1', 'still private')
+    assert stream.poll(0) == ([], None)
+    with pytest.raises(ShareError) as error:
+        hub.guest_chat(ticket, 'let me in')
+    assert error.value.code == 'awaiting_approval'
+    with pytest.raises(ShareError):
+        hub.guest_pointer(ticket, 1, 1)
+
+    hub.approve_viewer(1, share['id'], view['viewer_id'])
+    events, _ = stream.poll(0)
+    assert events[0]['type'] == 'reset'
+    assert [item['text'] for item in events[0]['chat']] == [
+        'private before admission', 'still private',
+    ]
+
+
+def test_new_and_resynchronised_guests_receive_recent_history(hub, monkeypatch):
+    monkeypatch.setattr(config, 'TERMINAL_SHARE_CHAT_HISTORY', 2)
+    share = hub.create(1, 's1')
+    for text in ('one', 'two', 'three'):
+        hub.owner_chat(1, 's1', text)
+    view, ticket = hub.join(share['token'])
+    assert [item['text'] for item in view['chat']] == ['two', 'three']
+    stream = hub.open_stream(ticket)
+    events, _ = stream.poll(0)
+    assert [item['text'] for item in events[0]['chat']] == ['two', 'three']
+
+
+def test_owner_chat_requires_an_owned_shared_session(hub, runtime):
+    with pytest.raises(ShareError) as unshared:
+        hub.owner_chat(1, 's1', 'hello')
+    assert unshared.value.code == 'not_shared'
+    hub.create(1, 's1')
+    runtime.add('s2', owner_id=2)
+    hub.create(2, 's2')
+    with pytest.raises(ShareError) as foreign:
+        hub.owner_chat(1, 's2', 'hello')
+    assert foreign.value.code == 'not_shared'
+    with pytest.raises(ShareError):
+        hub.owner_pointer(1, 's2', 0, 0)
+
+
+def test_chat_and_pointers_are_rate_limited_per_sender(hub, clocks):
+    monotonic, _wall = clocks
+    share = hub.create(1, 's1')
+    _view, ticket, _stream = _live_stream(hub, share['token'])
+    for index in range(5):
+        hub.guest_chat(ticket, f'message {index}')
+    with pytest.raises(ShareError) as error:
+        hub.guest_chat(ticket, 'one too many')
+    assert error.value.code == 'rate_limited'
+    monotonic.value += 1
+    hub.guest_chat(ticket, 'refilled')
+
+    for _ in range(20):
+        hub.guest_pointer(ticket, 1, 1)
+    with pytest.raises(ShareError):
+        hub.guest_pointer(ticket, 1, 1)
+
+    for index in range(5):
+        hub.owner_chat(1, 's1', f'owner {index}')
+    with pytest.raises(ShareError) as owner_error:
+        hub.owner_chat(1, 's1', 'too fast')
+    assert owner_error.value.code == 'rate_limited'
+
+
+def test_pointers_are_bounded_by_the_terminal_grid(hub, runtime):
+    share = hub.create(1, 's1')
+    hub.resize('s1', 100, 30)
+    alice, alice_ticket, alice_stream = _live_stream(hub, share['token'], 'Alice')
+    _bob, _bob_ticket, bob_stream = _live_stream(hub, share['token'], 'Bob')
+    activity = []
+    hub.set_activity_listener(lambda owner, session, kind, payload: activity.append((kind, payload)))
+
+    pointer = hub.guest_pointer(alice_ticket, 99, 29)
+    assert pointer == {
+        'name': 'Alice', 'role': 'guest', 'sender': alice['viewer_id'], 'col': 99, 'row': 29,
+    }
+    assert _events(bob_stream, 'pointer')[0][0]['col'] == 99
+    assert _events(alice_stream, 'pointer')[0] == []
+    assert activity == [('pointer', pointer)]
+
+    hub.owner_pointer(1, 's1', 0, 0, name='owner')
+    assert _events(alice_stream, 'pointer')[0][0]['role'] == 'owner'
+    assert len(activity) == 1, 'the owner is not echoed their own pointer'
+
+    for col, row in ((100, 0), (0, 30), (-1, 0), (True, 0), ('1', 1), (1.0, 1)):
+        with pytest.raises(ShareError) as error:
+            hub.guest_pointer(alice_ticket, col, row)
+        assert error.value.code == 'invalid_request'
+
+
+def test_chat_history_disappears_with_the_last_link(hub):
+    first = hub.create(1, 's1')
+    second = hub.create(1, 's1')
+    hub.owner_chat(1, 's1', 'remember me?')
+    hub.revoke(1, first['id'])
+    assert len(hub.chat_history(1, 's1')) == 1
+    hub.revoke(1, second['id'])
+    assert hub.chat_history(1, 's1') == []
+    hub.create(1, 's1')
+    assert hub.chat_history(1, 's1') == []
+
+
+def test_chat_kill_switch(hub, monkeypatch):
+    share = hub.create(1, 's1')
+    view, ticket, _stream = _live_stream(hub, share['token'])
+    monkeypatch.setattr(config, 'TERMINAL_SHARE_CHAT_ENABLED', False)
+    for call in (
+        lambda: hub.guest_chat(ticket, 'hi'),
+        lambda: hub.guest_pointer(ticket, 0, 0),
+        lambda: hub.owner_chat(1, 's1', 'hi'),
+        lambda: hub.owner_pointer(1, 's1', 0, 0),
+    ):
+        with pytest.raises(ShareError) as error:
+            call()
+        assert error.value.code == 'chat_disabled'
+    assert hub.describe(ticket)['chat_enabled'] is False
+
+
+def test_activity_listener_failures_never_break_chat(hub):
+    def broken(*_args):
+        raise RuntimeError('socket gone')
+
+    hub.set_activity_listener(broken)
+    share = hub.create(1, 's1')
+    _view, ticket, _stream = _live_stream(hub, share['token'])
+    hub.guest_chat(ticket, 'still delivered')
+    assert hub.chat_history(1, 's1')[0]['text'] == 'still delivered'
 
 
 @pytest.fixture

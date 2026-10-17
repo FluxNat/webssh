@@ -85,6 +85,7 @@ def test_exposition_reports_capacity_without_identifiers(client, metrics_on):
     assert _sample(text, 'webssh_ssh_sessions') >= 1
     assert _sample(text, 'webssh_terminal_share_links') == 1
     assert _sample(text, 'webssh_terminal_share_viewers', state='joined') == 1
+    assert _sample(text, 'webssh_terminal_share_chat_messages_total') >= 0
     assert _sample(text, 'webssh_socket_connections_limit') == config.MAX_SOCKET_CONNECTIONS
     assert _sample(text, 'webssh_maintenance_mode') == 0
     assert _sample(text, 'webssh_threads') >= 1

@@ -62,7 +62,14 @@ def _limits():
             config.TERMINAL_SHARE_MAX_VIEWERS_PER_LINK,
             config.TERMINAL_SHARE_MAX_VIEWERS,
         ),
+        'chat': config.TERMINAL_SHARE_CHAT_ENABLED,
     }
+
+
+def _session_id(value):
+    if not isinstance(value, str) or not 0 < len(value) <= 128:
+        raise ShareError('invalid_request')
+    return value
 
 
 # ----------------------------------------------------------------------
@@ -203,6 +210,55 @@ def remove_viewer(share_id, viewer_id):
         viewer=viewer_id,
     )
     return jsonify({'success': True})
+
+
+@terminal_share_blueprint.get('/api/terminal-shares/chat')
+@login_required
+def owner_chat_history():
+    try:
+        session_id = _session_id(request.args.get('session_id'))
+    except ShareError as error:
+        return _error(error)
+    return jsonify({
+        'success': True,
+        'messages': share_hub.chat_history(current_user.id, session_id),
+    })
+
+
+@terminal_share_blueprint.post('/api/terminal-shares/chat')
+@login_required
+def owner_chat():
+    try:
+        body = _json_body({'session_id', 'text'}, required=('session_id', 'text'))
+        message = share_hub.owner_chat(
+            current_user.id,
+            _session_id(body['session_id']),
+            body['text'],
+            name=current_user.username,
+        )
+    except ShareError as error:
+        return _error(error)
+    return jsonify({'success': True, 'message': message})
+
+
+@terminal_share_blueprint.post('/api/terminal-shares/pointer')
+@login_required
+def owner_pointer():
+    try:
+        body = _json_body(
+            {'session_id', 'col', 'row'},
+            required=('session_id', 'col', 'row'),
+        )
+        pointer = share_hub.owner_pointer(
+            current_user.id,
+            _session_id(body['session_id']),
+            body['col'],
+            body['row'],
+            name=current_user.username,
+        )
+    except ShareError as error:
+        return _error(error)
+    return jsonify({'success': True, 'pointer': pointer})
 
 
 # ----------------------------------------------------------------------
@@ -379,6 +435,26 @@ def viewer_leave():
     return jsonify({'success': True})
 
 
+@terminal_share_blueprint.post('/api/share-view/chat')
+def viewer_chat():
+    try:
+        body = _json_body({'ticket', 'text'}, required=('ticket', 'text'))
+        message = share_hub.guest_chat(body['ticket'], body['text'])
+    except ShareError as error:
+        return _error(error)
+    return jsonify({'success': True, 'message': message})
+
+
+@terminal_share_blueprint.post('/api/share-view/pointer')
+def viewer_pointer():
+    try:
+        body = _json_body({'ticket', 'col', 'row'}, required=('ticket', 'col', 'row'))
+        pointer = share_hub.guest_pointer(body['ticket'], body['col'], body['row'])
+    except ShareError as error:
+        return _error(error)
+    return jsonify({'success': True, 'pointer': pointer})
+
+
 def _notify_owner(owner_id, session_id, event):
     from . import socketio
 
@@ -389,9 +465,22 @@ def _notify_owner(owner_id, session_id, event):
     }, room=f'user_{owner_id}')
 
 
+def _notify_owner_activity(owner_id, session_id, kind, payload):
+    from . import socketio
+
+    socketio.emit(f'terminal_share_{kind}', {
+        'session_id': session_id,
+        kind: payload,
+    }, room=f'user_{owner_id}')
+
+
 def init_terminal_share(app, csrf):
     app.register_blueprint(terminal_share_blueprint)
     # Bearer-authenticated viewer routes; Flask-WTF matches view functions.
-    for view in (viewer_join, viewer_stream, viewer_input, viewer_leave):
+    for view in (
+        viewer_join, viewer_stream, viewer_input, viewer_leave,
+        viewer_chat, viewer_pointer,
+    ):
         csrf.exempt(view)
     share_hub.set_listener(_notify_owner)
+    share_hub.set_activity_listener(_notify_owner_activity)

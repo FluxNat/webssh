@@ -57,7 +57,9 @@ a hosted control plane or runtime CDN dependencies.
 - **Terminal share links**: invite anyone to watch, or optionally type into, a
   live session with an expiring link. Guests need no account and never see the
   host, account, password, or keys; owners can require approval, withdraw
-  typing, remove guests, and stop sharing at any time.
+  typing, remove guests, and stop sharing at any time. Invite by QR code or a
+  ready-to-send message, and talk it through with session chat and shared
+  pointers.
 - Session-aware Files, Commands, Diagnostics, and Notes contexts.
 - **Active Session Monitoring** for supported Linux resource and runtime data.
 - **Expanded Diagnostics** for resource history, processes, systemd services,

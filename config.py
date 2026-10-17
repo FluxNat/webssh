@@ -773,6 +773,14 @@ TERMINAL_SHARE_VIEWER_GRACE_SECONDS = _bounded_int_env(
 TERMINAL_SHARE_HEARTBEAT_SECONDS = _bounded_int_env(
     'TERMINAL_SHARE_HEARTBEAT_SECONDS', 15, 2, 60,
 )
+# Session chat and shared pointers between an owner and admitted guests.
+# Messages live in memory only and disappear with the session's last link.
+TERMINAL_SHARE_CHAT_ENABLED = (
+    os.environ.get('TERMINAL_SHARE_CHAT_ENABLED', 'true').lower() == 'true'
+)
+TERMINAL_SHARE_CHAT_HISTORY = _bounded_int_env(
+    'TERMINAL_SHARE_CHAT_HISTORY', 50, 0, 500,
+)
 
 ALLOW_CORS_WILDCARD = (
     os.environ.get('ALLOW_CORS_WILDCARD', 'false').lower() == 'true'

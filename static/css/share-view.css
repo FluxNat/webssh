@@ -19,6 +19,17 @@
     --sv-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
     --sv-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     --sv-font: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --cv-accent: var(--sv-accent);
+    --cv-owner: #d2a8ff;
+    --cv-on-accent: #05140d;
+    --cv-surface: rgb(0 0 0 / 25%);
+    --cv-raised: rgb(255 255 255 / 5%);
+    --cv-border: var(--sv-border);
+    --cv-text: var(--sv-text);
+    --cv-text-2: var(--sv-text-2);
+    --cv-text-3: var(--sv-text-3);
+    --cv-danger: var(--sv-danger);
+    --cv-font: var(--sv-font);
     color-scheme: dark;
 }
 
@@ -644,6 +655,157 @@ body[data-state="ended"] .sv-skeleton {
     40% { opacity: 1; transform: translateY(-5px); }
 }
 
+/* Collaboration: chat panel, unread badge, pointer mode */
+.sv-workspace {
+    display: flex;
+    flex: 1 1 auto;
+    gap: 14px;
+    min-width: 0;
+    min-height: 0;
+}
+
+.sv-divider {
+    width: 1px;
+    height: 20px;
+    margin: 0 4px;
+    background: var(--sv-border-strong);
+}
+
+.sv-collab-btn {
+    position: relative;
+}
+
+.sv-collab-btn[aria-pressed="true"],
+.sv-collab-btn[aria-expanded="true"] {
+    background: rgb(126 226 184 / 14%);
+    color: var(--sv-accent);
+}
+
+.sv-badge {
+    position: absolute;
+    top: 2px;
+    right: 1px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--sv-danger);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    animation: sv-pop 320ms var(--sv-spring) both;
+}
+
+.sv-chat {
+    display: flex;
+    flex: 0 0 min(340px, 34vw);
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+    background: var(--sv-surface-solid);
+    box-shadow: 0 24px 60px rgb(0 0 0 / 35%);
+    animation: sv-chat-in 320ms var(--sv-ease) both;
+}
+
+@keyframes sv-chat-in {
+    from { opacity: 0; transform: translateX(16px); }
+}
+
+.sv-chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 10px 10px 16px;
+    border-bottom: 1px solid var(--sv-border);
+}
+
+.sv-chat-header h2 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.sv-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 0;
+    color: var(--sv-accent);
+    font-size: 12px;
+    animation: sv-fade-in 240ms ease both;
+}
+
+.sv-hint .material-icons {
+    font-size: 16px;
+}
+
+body.sv-pointing .sv-terminal,
+body.sv-pointing .sv-terminal * {
+    cursor: crosshair !important;
+}
+
+body.sv-pointing .sv-frame {
+    border-color: rgb(126 226 184 / 45%);
+}
+
+.sv-peek {
+    position: fixed;
+    right: max(20px, env(safe-area-inset-right));
+    bottom: max(20px, env(safe-area-inset-bottom));
+    z-index: 6;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    max-width: min(360px, calc(100vw - 40px));
+    padding: 12px 14px;
+    border: 1px solid var(--sv-border-strong);
+    border-radius: 14px;
+    background: rgb(17 21 28 / 94%);
+    box-shadow: 0 18px 48px rgb(0 0 0 / 45%);
+    color: var(--sv-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    backdrop-filter: blur(12px);
+    animation: sv-peek-in 360ms var(--sv-spring) both;
+}
+
+@keyframes sv-peek-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.96); }
+}
+
+.sv-peek > .material-icons {
+    color: var(--sv-accent);
+}
+
+.sv-peek-copy {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.sv-peek-copy strong {
+    font-size: 12px;
+    color: var(--sv-text-2);
+}
+
+.sv-peek-copy span {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 13.5px;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow-wrap: anywhere;
+}
+
+@keyframes sv-pop {
+    from { opacity: 0; transform: scale(0.6); }
+}
+
 /* Small screens */
 @media (max-width: 760px) {
     .sv-bar {
@@ -674,6 +836,26 @@ body[data-state="ended"] .sv-skeleton {
         padding: 10px;
     }
 
+    .sv-divider {
+        display: none;
+    }
+
+    .sv-chat {
+        position: fixed;
+        right: 8px;
+        bottom: max(8px, env(safe-area-inset-bottom));
+        left: 8px;
+        z-index: 8;
+        height: min(62dvh, 520px);
+        animation-name: sv-sheet-in;
+    }
+
+    .sv-peek {
+        right: 12px;
+        left: 12px;
+        max-width: none;
+    }
+
     .sv-frame-chrome {
         display: none;
     }
@@ -681,6 +863,10 @@ body[data-state="ended"] .sv-skeleton {
     .sv-skeleton {
         inset: 18px;
     }
+}
+
+@keyframes sv-sheet-in {
+    from { opacity: 0; transform: translateY(24px); }
 }
 
 @media (prefers-reduced-motion: reduce) {

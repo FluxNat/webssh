@@ -57,6 +57,19 @@
         }
     }
 
+    /** Compose a ready-to-paste invitation for ``share``. */
+    function inviteText(share, { owner, url, remainingSeconds }, t) {
+        const intro = t('share.inviteIntro')
+            .replace('{owner}', owner || 'WebSSH')
+            .replace('{title}', share.title);
+        const access = share.mode === 'control'
+            ? t('share.inviteAccessControl')
+            : t('share.inviteAccessView');
+        const expiry = t('share.inviteExpiry')
+            .replace('{time}', formatRemaining(remainingSeconds));
+        return `${intro}\n${url}\n${access} · ${expiry}`;
+    }
+
     function viewerCount(shares) {
         return (shares || []).reduce(
             (total, share) => total + (share.viewers || []).filter(viewer => viewer.status === 'active').length,
@@ -89,7 +102,10 @@
             highlight: null,
             ticker: null,
             fetchedAt: Date.now(),
+            openQr: new Set(),
         };
+        const collab = win.WebSSHShareCollab;
+        const QR = win.WebSSHQRCode;
 
         const appRoot = () => win.APP_ROOT || doc.querySelector('meta[name="app-root"]')?.content || '';
         const csrf = () => doc.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -163,9 +179,12 @@
                     const label = tab.querySelector('.tab-label');
                     label?.after(badge);
                 }
-                badge.title = t('share.sharedBadge');
+                // Writes only on change: the tab observer watches this subtree.
+                if (badge.title !== t('share.sharedBadge')) badge.title = t('share.sharedBadge');
                 badge.classList.toggle('has-viewers', count > 0);
-                badge.querySelector('.tab-share-badge-count').textContent = count > 0 ? String(count) : '';
+                const countNode = badge.querySelector('.tab-share-badge-count');
+                const countText = count > 0 ? String(count) : '';
+                if (countNode.textContent !== countText) countNode.textContent = countText;
             }
             if (els.count) {
                 els.count.textContent = String(total);
@@ -173,6 +192,7 @@
             }
             els.button?.classList.toggle('is-sharing', state.sharesBySession.size > 0
                 && Array.from(state.sharesBySession.values()).some(shares => shares.length > 0));
+            syncCollab();
         }
 
         function storeShares(sessionId, shares) {
@@ -303,6 +323,7 @@
             copy.addEventListener('click', () => copyLink(input.value, copy));
             urlRow.append(input, copy);
             card.appendChild(urlRow);
+            card.appendChild(renderLinkActions(share, input.value));
 
             const controls = element('div', 'share-link-controls');
             if (state.limits?.allow_control !== false) {
@@ -333,6 +354,75 @@
             }
             card.appendChild(viewers);
             return card;
+        }
+
+        function actionButton(icon, label, onClick) {
+            const button = element('button', 'share-action');
+            button.type = 'button';
+            const glyph = element('span', 'material-icons', icon);
+            glyph.setAttribute('aria-hidden', 'true');
+            button.append(glyph, element('span', '', label));
+            button.addEventListener('click', onClick);
+            return button;
+        }
+
+        function ownerName() {
+            return doc.querySelector('.account-name')?.textContent.trim() || '';
+        }
+
+        function renderLinkActions(share, url) {
+            const wrapper = element('div', 'share-link-extras');
+            const actions = element('div', 'share-link-actions');
+            const qrPanel = element('div', 'share-qr');
+            qrPanel.id = `shareQr-${share.id}`;
+            const qrButton = actionButton('qr_code_2', t('share.qrShow'), () => {
+                const opening = qrPanel.hidden;
+                if (opening && !qrPanel.firstChild) renderQr(qrPanel, url);
+                qrPanel.hidden = !opening;
+                qrButton.setAttribute('aria-expanded', String(opening));
+                if (opening) state.openQr.add(share.id);
+                else state.openQr.delete(share.id);
+            });
+            qrButton.setAttribute('aria-controls', qrPanel.id);
+            const invite = () => inviteText(share, {
+                owner: ownerName(),
+                url,
+                remainingSeconds: remainingSeconds(share),
+            }, t);
+            const inviteButton = actionButton('forward_to_inbox', t('share.copyInvite'), async () => {
+                try {
+                    await win.navigator.clipboard.writeText(invite());
+                    notify(t('share.inviteCopied'), 'success');
+                    inviteButton.classList.add('is-copied');
+                    win.setTimeout(() => inviteButton.classList.remove('is-copied'), 1400);
+                } catch {
+                    notify(t('share.error'), 'error');
+                }
+            });
+            actions.append(qrButton, inviteButton);
+            if (typeof win.navigator?.share === 'function') {
+                actions.appendChild(actionButton('ios_share', t('share.nativeShare'), () => {
+                    win.navigator.share({ title: share.title, text: invite(), url }).catch(() => {});
+                }));
+            }
+            const keepOpen = state.openQr.has(share.id);
+            qrPanel.hidden = !keepOpen;
+            qrButton.setAttribute('aria-expanded', String(keepOpen));
+            if (keepOpen) renderQr(qrPanel, url);
+            wrapper.append(actions, qrPanel);
+            return wrapper;
+        }
+
+        function renderQr(panel, url) {
+            panel.replaceChildren();
+            if (!QR) return;
+            try {
+                const figure = element('div', 'share-qr-code');
+                figure.appendChild(QR.toSvgElement(doc, url, { label: t('share.qrShow') }));
+                panel.append(figure, element('p', 'share-qr-hint', t('share.qrHint')));
+            } catch {
+                panel.appendChild(element('p', 'share-qr-hint', t('share.error')));
+            }
         }
 
         function renderList() {
@@ -524,6 +614,240 @@
         }
 
         // -----------------------------------------------------------------
+        // Session chat and pointers
+        // -----------------------------------------------------------------
+        const chat = {
+            root: $('shareCollab'),
+            toggle: $('shareCollabToggle'),
+            badge: $('shareCollabBadge'),
+            panel: $('shareCollabPanel'),
+            session: $('shareCollabSession'),
+            point: $('shareCollabPoint'),
+            close: $('shareCollabClose'),
+            hint: $('shareCollabPointerHint'),
+            list: $('shareCollabList'),
+            empty: $('shareCollabEmpty'),
+            form: $('shareCollabForm'),
+            input: $('shareCollabInput'),
+            logs: new Map(),
+            unread: new Map(),
+            loaded: new Set(),
+            sessionId: null,
+            open: false,
+            pointing: false,
+        };
+
+        function terminalManager() {
+            /* global TerminalManager */
+            return win.TerminalManager
+                || (typeof TerminalManager !== 'undefined' ? TerminalManager : null);
+        }
+
+        function chatLogFor(sessionId) {
+            if (!chat.logs.has(sessionId)) chat.logs.set(sessionId, collab.createChatLog());
+            return chat.logs.get(sessionId);
+        }
+
+        function chatAvailable(sessionId) {
+            return Boolean(
+                collab
+                && chat.root
+                && sessionId
+                && state.limits?.chat !== false
+                && (state.sharesBySession.get(sessionId) || []).length,
+            );
+        }
+
+        function syncCollab() {
+            if (!chat.root) return;
+            const sessionId = activeSessionId();
+            const available = chatAvailable(sessionId);
+            chat.root.hidden = !available;
+            if (!available) {
+                setCollabOpen(false);
+                setPointing(false);
+                chat.sessionId = null;
+                return;
+            }
+            if (chat.sessionId !== sessionId) {
+                chat.sessionId = sessionId;
+                chat.session.textContent = sessionLabel(sessionId);
+                setPointing(false);
+                renderChat();
+                if (chat.open) loadHistory(sessionId);
+            }
+            const unread = chat.unread.get(sessionId) || 0;
+            chat.badge.textContent = unread > 9 ? '9+' : String(unread);
+            chat.badge.hidden = unread === 0;
+        }
+
+        function renderChat() {
+            if (!chat.sessionId) return;
+            const messages = chatLogFor(chat.sessionId).list();
+            chat.list.replaceChildren(...messages.map(message => collab.renderMessage(doc, message, {
+                self: message.role === 'owner',
+                labels: { you: t('share.chatYou') },
+                locale: win.i18n?.getLanguage?.(),
+            })));
+            chat.empty.hidden = messages.length > 0;
+            chat.list.scrollTop = chat.list.scrollHeight;
+        }
+
+        async function loadHistory(sessionId) {
+            try {
+                const payload = await request(
+                    'GET',
+                    `/api/terminal-shares/chat?session_id=${encodeURIComponent(sessionId)}`,
+                );
+                const log = chatLogFor(sessionId);
+                const pending = log.list();
+                log.replace(payload.messages);
+                pending.forEach(message => log.add(message));
+                chat.loaded.add(sessionId);
+                if (chat.sessionId === sessionId) renderChat();
+            } catch {
+                // Live events still arrive; history is a convenience.
+            }
+        }
+
+        function setCollabOpen(open) {
+            if (!chat.root) return;
+            chat.open = Boolean(open) && !chat.root.hidden;
+            chat.panel.hidden = !chat.open;
+            chat.toggle.setAttribute('aria-expanded', String(chat.open));
+            chat.root.classList.toggle('is-open', chat.open);
+            if (!chat.open) {
+                setPointing(false);
+                return;
+            }
+            chat.unread.set(chat.sessionId, 0);
+            syncCollab();
+            renderChat();
+            if (!chat.loaded.has(chat.sessionId)) loadHistory(chat.sessionId);
+            win.setTimeout(() => chat.input.focus(), 30);
+        }
+
+        function receiveChat(payload) {
+            const sessionId = payload?.session_id;
+            const message = payload?.chat;
+            if (!sessionId || !message || !collab) return;
+            if (!chatLogFor(sessionId).add(message)) return;
+            if (chat.open && chat.sessionId === sessionId) {
+                renderChat();
+                return;
+            }
+            if (message.role === 'owner') return;
+            chat.unread.set(sessionId, (chat.unread.get(sessionId) || 0) + 1);
+            syncCollab();
+            notify(
+                t('share.chatFrom').replace('{name}', message.name).replace('{message}', message.text),
+                'info',
+                {
+                    duration: 5000,
+                    action: {
+                        label: t('share.chatReply'),
+                        onClick: () => setCollabOpen(true),
+                    },
+                },
+            );
+        }
+
+        async function sendChat() {
+            const text = chat.input.value.trim().slice(0, 500);
+            if (!text || !chat.sessionId) return;
+            try {
+                const payload = await request('POST', '/api/terminal-shares/chat', {
+                    session_id: chat.sessionId,
+                    text,
+                });
+                chat.input.value = '';
+                chatLogFor(chat.sessionId).add(payload.message);
+                renderChat();
+            } catch {
+                chat.form.classList.remove('is-error');
+                void chat.form.offsetWidth;
+                chat.form.classList.add('is-error');
+                chat.input.title = t('share.chatFailed');
+                win.setTimeout(() => chat.form.classList.remove('is-error'), 1200);
+            }
+        }
+
+        function visibleTerminals(sessionId) {
+            const manager = terminalManager();
+            return (manager?.sessionTerminals?.[sessionId] || [])
+                .filter(key => manager.isTerminalKeyVisible?.(key))
+                .map(key => manager.terminals[key])
+                .filter(term => term?.element);
+        }
+
+        function placePointer(sessionId, pointer, self = false) {
+            for (const term of visibleTerminals(sessionId)) {
+                const screen = term.element.querySelector('.xterm-screen');
+                const rect = screen?.getBoundingClientRect();
+                const box = collab.cellBox(rect, collab.terminalGrid(term), pointer.col, pointer.row);
+                if (!box) continue;
+                let layer = term.element.querySelector(':scope > .cv-pointer-layer');
+                if (!layer) {
+                    layer = element('div', 'cv-pointer-layer');
+                    term.element.appendChild(layer);
+                }
+                const origin = term.element.getBoundingClientRect();
+                collab.showPointer(doc, layer, {
+                    ...box,
+                    left: box.left + rect.left - origin.left,
+                    top: box.top + rect.top - origin.top,
+                }, {
+                    name: self ? t('share.chatYou') : pointer.name,
+                    role: pointer.role,
+                    self,
+                });
+            }
+        }
+
+        function setPointing(on) {
+            if (!chat.root) return;
+            chat.pointing = Boolean(on) && Boolean(chat.sessionId);
+            chat.point.setAttribute('aria-pressed', String(chat.pointing));
+            chat.hint.hidden = !chat.pointing;
+            doc.body.classList.toggle('share-pointing', chat.pointing);
+        }
+
+        doc.addEventListener('pointerdown', event => {
+            if (!chat.pointing || !chat.sessionId) return;
+            const xterm = event.target?.closest?.('.xterm');
+            const term = xterm && visibleTerminals(chat.sessionId).find(item => item.element === xterm);
+            if (!term) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const rect = term.element.querySelector('.xterm-screen')?.getBoundingClientRect();
+            const cell = collab.cellFromPoint(rect, collab.terminalGrid(term), event.clientX, event.clientY);
+            if (!cell) return;
+            placePointer(chat.sessionId, { ...cell, role: 'owner' }, true);
+            request('POST', '/api/terminal-shares/pointer', {
+                session_id: chat.sessionId,
+                ...cell,
+            }).catch(() => {});
+        }, true);
+
+        doc.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && chat.pointing) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                setPointing(false);
+            }
+        }, true);
+
+        if (chat.root && collab) {
+            chat.toggle.addEventListener('click', () => setCollabOpen(!chat.open));
+            chat.close.addEventListener('click', () => setCollabOpen(false));
+            chat.point.addEventListener('click', () => setPointing(!chat.pointing));
+            chat.form.addEventListener('submit', event => {
+                event.preventDefault();
+                sendChat();
+            });
+        }
+
+        // -----------------------------------------------------------------
         // Wiring
         // -----------------------------------------------------------------
         els.button?.addEventListener('click', () => open());
@@ -546,6 +870,12 @@
             socket.on('ssh_disconnected', data => {
                 if (data?.session_id) storeShares(data.session_id, []);
             });
+            socket.on('terminal_share_chat', receiveChat);
+            socket.on('terminal_share_pointer', payload => {
+                if (payload?.session_id && payload.pointer && collab) {
+                    placePointer(payload.session_id, payload.pointer);
+                }
+            });
         }
         win.addEventListener('languageChanged', () => {
             renderBadges();
@@ -567,8 +897,14 @@
                     pending = false;
                     syncIdle();
                     if (state.sharesBySession.size) renderBadges();
+                    else syncCollab();
                 });
-            }).observe(tabs, { childList: true });
+            }).observe(tabs, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['class'],
+            });
         }
 
         return {
@@ -576,6 +912,7 @@
             close,
             refresh,
             handleUpdate,
+            openChat: () => setCollabOpen(true),
             state,
         };
     }
@@ -586,6 +923,7 @@
         errorMessage,
         formatRemaining,
         initial,
+        inviteText,
         shareUrl,
         viewerCount,
     };

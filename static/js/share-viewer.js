@@ -202,7 +202,23 @@
             rejoin: $('svRejoin'),
             frame: $('svFrame'),
             terminal: $('svTerminal'),
+            pointerLayer: $('svPointerLayer'),
+            pointButton: $('svPoint'),
+            pointerHint: $('svPointerHint'),
+            chatToggle: $('svChatToggle'),
+            chatBadge: $('svChatBadge'),
+            chat: $('svChat'),
+            chatClose: $('svChatClose'),
+            chatList: $('svChatList'),
+            chatEmpty: $('svChatEmpty'),
+            chatForm: $('svChatForm'),
+            chatInput: $('svChatInput'),
+            peek: $('svChatPeek'),
+            peekName: $('svChatPeekName'),
+            peekText: $('svChatPeekText'),
         };
+        const collab = win.WebSSHShareCollab;
+        const chatLog = collab.createChatLog();
 
         const state = {
             token: readToken(win.location.hash),
@@ -221,6 +237,12 @@
             autoFit: true,
             fontSize: 14,
             rejoinAttempted: false,
+            viewerId: null,
+            chatEnabled: false,
+            admitted: false,
+            chatOpen: false,
+            unread: 0,
+            pointing: false,
         };
 
         const term = new win.Terminal({
@@ -289,6 +311,12 @@
 
         function applyViewer(viewer) {
             if (!viewer) return;
+            state.viewerId = viewer.viewer_id || state.viewerId;
+            state.chatEnabled = viewer.chat_enabled === true;
+            if (viewer.status === 'active' && Array.isArray(viewer.chat)) {
+                chatLog.replace(viewer.chat);
+                renderChat();
+            }
             els.title.textContent = viewer.title || 'Shared terminal';
             doc.title = `${viewer.title || 'Shared terminal'} · WebSSH`;
             if (viewer.owner) {
@@ -390,6 +418,156 @@
         }
 
         // ---------------------------------------------------------------
+        // Chat and pointers
+        // ---------------------------------------------------------------
+        const chatLabels = () => ({
+            you: t('share.viewer.chatYou'),
+            owner: t('share.viewer.chatOwner'),
+        });
+
+        function syncCollab() {
+            const available = state.chatEnabled && state.admitted && !state.finished;
+            show(els.chatToggle, available);
+            show(els.pointButton, available);
+            if (!available) {
+                openChat(false);
+                setPointing(false);
+            }
+        }
+
+        function renderChat() {
+            const messages = chatLog.list();
+            els.chatList.replaceChildren(...messages.map(message => collab.renderMessage(doc, message, {
+                self: message.sender === state.viewerId,
+                labels: chatLabels(),
+                locale: i18n?.getLanguage?.(),
+            })));
+            show(els.chatEmpty, messages.length === 0);
+            els.chatList.scrollTop = els.chatList.scrollHeight;
+        }
+
+        function setUnread(count) {
+            state.unread = Math.max(0, count);
+            els.chatBadge.textContent = state.unread > 9 ? '9+' : String(state.unread);
+            show(els.chatBadge, state.unread > 0);
+        }
+
+        function openChat(open) {
+            state.chatOpen = Boolean(open);
+            show(els.chat, state.chatOpen);
+            els.chatToggle.setAttribute('aria-expanded', String(state.chatOpen));
+            els.body.classList.toggle('sv-chat-open', state.chatOpen);
+            if (state.chatOpen) {
+                setUnread(0);
+                show(els.peek, false);
+                els.chatList.scrollTop = els.chatList.scrollHeight;
+                win.setTimeout(() => els.chatInput.focus(), 30);
+            }
+            scheduleFit();
+        }
+
+        let peekTimer = null;
+        function peek(message) {
+            els.peekName.textContent = message.role === 'owner'
+                ? `${message.name} · ${t('share.viewer.chatOwner')}`
+                : message.name;
+            els.peekText.textContent = message.text;
+            show(els.peek, true);
+            win.clearTimeout(peekTimer);
+            peekTimer = win.setTimeout(() => show(els.peek, false), 4500);
+        }
+
+        function receiveChat(message) {
+            if (!chatLog.add(message)) return;
+            renderChat();
+            if (!state.chatOpen && message.sender !== state.viewerId) {
+                setUnread(state.unread + 1);
+                peek(message);
+            }
+        }
+
+        function flagComposeError() {
+            els.chatForm.classList.remove('is-error');
+            void els.chatForm.offsetWidth;
+            els.chatForm.classList.add('is-error');
+            els.chatInput.title = t('share.viewer.chatFailed');
+            win.setTimeout(() => els.chatForm.classList.remove('is-error'), 1200);
+        }
+
+        async function sendChat(text) {
+            if (!state.ticket || !text) return;
+            try {
+                const result = await postJson('/api/share-view/chat', { ticket: state.ticket, text });
+                if (!result.ok) {
+                    if (result.status === 410) finish(result.payload.code || 'session_closed');
+                    else flagComposeError();
+                    return;
+                }
+                els.chatInput.value = '';
+                els.chatInput.title = '';
+                receiveChat(result.payload.message);
+            } catch {
+                flagComposeError();
+            }
+        }
+
+        function setPointing(on) {
+            state.pointing = Boolean(on) && !state.finished;
+            els.pointButton.setAttribute('aria-pressed', String(state.pointing));
+            els.body.classList.toggle('sv-pointing', state.pointing);
+            show(els.pointerHint, state.pointing);
+        }
+
+        function screenRect() {
+            return els.terminal.querySelector('.xterm-screen')?.getBoundingClientRect() || null;
+        }
+
+        function placePointer(pointer, self = false) {
+            const rect = screenRect();
+            const box = collab.cellBox(rect, collab.terminalGrid(term), pointer.col, pointer.row);
+            if (!rect || !box) return;
+            const layer = els.pointerLayer.getBoundingClientRect();
+            collab.showPointer(doc, els.pointerLayer, {
+                ...box,
+                left: box.left + rect.left - layer.left,
+                top: box.top + rect.top - layer.top,
+            }, {
+                name: self ? t('share.viewer.chatYou') : pointer.name,
+                role: pointer.role,
+                self,
+            });
+        }
+
+        els.terminal.addEventListener('pointerdown', event => {
+            if (!state.pointing) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const cell = collab.cellFromPoint(
+                screenRect(), collab.terminalGrid(term), event.clientX, event.clientY,
+            );
+            if (!cell || !state.ticket) return;
+            placePointer({ ...cell, role: 'guest' }, true);
+            postJson('/api/share-view/pointer', { ticket: state.ticket, ...cell }).catch(() => {});
+        }, true);
+
+        win.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && state.pointing) {
+                event.preventDefault();
+                event.stopPropagation();
+                setPointing(false);
+            }
+        }, true);
+
+        els.pointButton.addEventListener('click', () => setPointing(!state.pointing));
+        els.chatToggle.addEventListener('click', () => openChat(!state.chatOpen));
+        els.chatClose.addEventListener('click', () => openChat(false));
+        els.peek.addEventListener('click', () => openChat(true));
+        els.chatForm.addEventListener('submit', event => {
+            event.preventDefault();
+            sendChat(els.chatInput.value.trim().slice(0, 500));
+        });
+
+        // ---------------------------------------------------------------
         // Seat storage
         // ---------------------------------------------------------------
         function loadSeat() {
@@ -465,6 +643,8 @@
         function showWaiting() {
             setState('waiting');
             show(els.waiting, true);
+            state.admitted = false;
+            syncCollab();
         }
 
         function scheduleReconnect() {
@@ -567,7 +747,17 @@
                 if (payload.data) term.write(payload.data);
                 setMode(payload.mode);
                 setViewers(payload.viewers);
+                if (Array.isArray(payload.chat)) {
+                    chatLog.replace(payload.chat);
+                    renderChat();
+                }
                 goLive();
+                break;
+            case 'chat':
+                receiveChat(payload);
+                break;
+            case 'pointer':
+                placePointer(payload);
                 break;
             case 'output':
                 term.write(payload.data);
@@ -601,6 +791,10 @@
             state.retry = 0;
             setState('live');
             setLive('live');
+            if (!state.admitted) {
+                state.admitted = true;
+                syncCollab();
+            }
         }
 
         const input = createInputQueue(async chunk => {
@@ -650,6 +844,9 @@
             term.options.disableStdin = true;
             show(els.typingNotice, false);
             show(els.expires, false);
+            show(els.peek, false);
+            state.admitted = false;
+            syncCollab();
         }
 
         $('svLeave').addEventListener('click', () => {
@@ -667,6 +864,9 @@
             state.retry = 0;
             show(els.ended, false);
             term.reset();
+            chatLog.replace([]);
+            renderChat();
+            setUnread(0);
             join({ name: state.name });
         });
 

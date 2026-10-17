@@ -24,6 +24,7 @@
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/session-workspace.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/webssh-2.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/terminal-appearance.css') }}">
+    <link rel="stylesheet" href="{{ static_asset_url(filename='css/share-collab.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/terminal-share.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/ui-refresh.css') }}">
 </head>
@@ -1322,6 +1323,36 @@
     </div>
     {% endif %}
 
+    {% if terminal_share_enabled %}
+    <div class="share-collab" id="shareCollab" hidden>
+        <section class="share-collab-panel" id="shareCollabPanel" aria-labelledby="shareCollabTitle" hidden>
+            <div class="share-collab-header">
+                <div class="share-collab-heading">
+                    <h2 id="shareCollabTitle" data-i18n="share.chatTitle">Session chat</h2>
+                    <p id="shareCollabSession"></p>
+                </div>
+                <button class="share-collab-icon" id="shareCollabPoint" type="button" aria-pressed="false" title="Point at the terminal" aria-label="Point at the terminal" data-i18n-title="share.pointerToggle" data-i18n-aria-label="share.pointerToggle"><span class="material-icons" aria-hidden="true">ads_click</span></button>
+                <button class="share-collab-icon" id="shareCollabClose" type="button" title="Close chat" aria-label="Close chat" data-i18n-title="share.chatClose" data-i18n-aria-label="share.chatClose"><span class="material-icons" aria-hidden="true">close</span></button>
+            </div>
+            <p class="share-collab-hint" id="shareCollabPointerHint" hidden>
+                <span class="material-icons" aria-hidden="true">ads_click</span>
+                <span data-i18n="share.pointerHint">Click the terminal to point. Press Esc to stop.</span>
+            </p>
+            <ol class="cv-messages" id="shareCollabList" aria-live="polite"></ol>
+            <p class="cv-empty" id="shareCollabEmpty" data-i18n="share.chatEmpty">Chat with everyone watching this session. Messages disappear when sharing ends.</p>
+            <form class="cv-compose" id="shareCollabForm" autocomplete="off">
+                <input id="shareCollabInput" type="text" maxlength="500" placeholder="Message your guests…" data-i18n-placeholder="share.chatPlaceholder" aria-labelledby="shareCollabTitle">
+                <button type="submit" title="Send" aria-label="Send" data-i18n-title="share.chatSend" data-i18n-aria-label="share.chatSend"><span class="material-icons" aria-hidden="true">send</span></button>
+            </form>
+        </section>
+        <button class="share-collab-toggle" id="shareCollabToggle" type="button" aria-expanded="false" aria-controls="shareCollabPanel">
+            <span class="material-icons" aria-hidden="true">forum</span>
+            <span data-i18n="share.chatOpen">Chat</span>
+            <span class="share-collab-badge" id="shareCollabBadge" hidden></span>
+        </button>
+    </div>
+    {% endif %}
+
     <div class="modal modal-small" id="shortcutsModal" role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle" aria-hidden="true">
         <div class="modal-content">
             <div class="modal-header">
@@ -1584,6 +1615,8 @@
     <script src="{{ static_asset_url(filename='js/ssh-gateway-dialog.js') }}"></script>
     <script src="{{ static_asset_url(filename='js/app.js') }}"></script>
     {% if terminal_share_enabled %}
+    <script src="{{ static_asset_url(filename='js/qr-code.js') }}"></script>
+    <script src="{{ static_asset_url(filename='js/share-collab.js') }}"></script>
     <script src="{{ static_asset_url(filename='js/terminal-share.js') }}"></script>
     {% endif %}
     <script src="{{ static_asset_url(filename='js/terminal-file-bridge.js') }}"></script>

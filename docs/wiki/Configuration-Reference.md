@@ -213,6 +213,8 @@ and jump-host key references remain ownership checked.
 | `TERMINAL_SHARE_VIEWER_QUEUE_BYTES` | `1048576` | Undelivered output held per guest before a resynchronisation |
 | `TERMINAL_SHARE_VIEWER_GRACE_SECONDS` | `45` | Seat kept for a disconnected guest |
 | `TERMINAL_SHARE_HEARTBEAT_SECONDS` | `15` | Keep-alive interval on guest streams |
+| `TERMINAL_SHARE_CHAT_ENABLED` | `true` | Session chat and shared pointers for owners and admitted guests |
+| `TERMINAL_SHARE_CHAT_HISTORY` | `50` | Recent messages kept per shared session for late joiners; `0` keeps none |
 | `TERMINAL_SHARE_JOIN_RATELIMIT` | `30 per minute` | Join attempts per client IP |
 | `TERMINAL_SHARE_CREATE_RATELIMIT` | `20 per minute` | Link creation per account |
 
