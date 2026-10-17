@@ -536,7 +536,7 @@ const ProfileManager = {
             event.stopPropagation();
             window.openConnectionModalForPane?.(paneIndex);
         });
-        actions.prepend(newConnection);
+        actions.appendChild(newConnection);
 
         if (profiles.length && !canReturn) {
             const manage = document.createElement('button');
