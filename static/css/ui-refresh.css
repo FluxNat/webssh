@@ -116,11 +116,6 @@ html {
     transition: opacity var(--ui-dur) ease, transform var(--ui-dur) var(--ui-ease-out);
 }
 
-/* The wordmark is light; the light theme keeps its dark backing. */
-body[data-theme="paper"] .app-brand-logo {
-    background: #0b1220;
-}
-
 .app-brand:hover .app-brand-logo {
     transform: translateY(-1px);
 }
@@ -450,19 +445,42 @@ body[data-theme="paper"] {
     color-scheme: light;
 }
 
-/* The wordmark carries generous padding inside its artwork; draw it larger
-   and let the empty margin overhang so the header keeps its rhythm. Compact
-   layouts keep their own sizing. */
+/* The PixShell wordmark is drawn edge to edge, so the header box follows
+   its aspect ratio. Compact layouts keep their own sizing. */
 @media (min-width: 768px) and (min-height: 521px), (min-width: 768px) and (pointer: fine) {
     .header .app-brand-logo {
-        width: 150px;
-        height: 45px;
-        margin: -7px -39px -7px -7px;
+        width: 100px;
+        height: 32px;
         padding: 0;
+        border-width: 0;
     }
 
     .header .app-brand {
         gap: 22px;
+    }
+}
+
+/* Sign-in pages scale the wordmark by width at the same breakpoints as the
+   shell; the artwork has no inner margin, so each step is narrower. */
+.auth-product-logo {
+    width: min(250px, 80%);
+}
+
+@media (max-height: 820px) and (min-width: 600px) {
+    .auth-product-logo {
+        width: min(160px, 80%);
+    }
+}
+
+@media (max-width: 959px) {
+    .auth-product-logo {
+        width: min(110px, 100%);
+    }
+}
+
+@media (max-width: 599px) {
+    .auth-product-logo {
+        width: min(96px, 100%);
     }
 }
 
