@@ -9,7 +9,8 @@ from contextlib import contextmanager
 from functools import wraps
 from . import (socketio, ssh_manager, profile_manager, key_manager,
                sftp_handler, jump_host_manager, post_connect_manager,
-               session_insights, runtime_inventory, smb_share_manager)
+               session_insights, runtime_inventory, smb_share_manager,
+               saved_credentials)
 from .decorators import socket_login_required
 from .auth import (
     check_socket_rate_limit,
@@ -1284,6 +1285,57 @@ def handle_ssh_connect(data, current_user=None):
                 emit_error(access_error)
                 return
 
+        # Saved connections may use, or ask to remember, an encrypted password.
+        # Both are bound to the saved connection's exact destination.
+        remember_profile = None
+        saved_profile_id = data.get('profile_id')
+        use_saved_password = data.get('use_saved_password') is True
+        remember_password = data.get('remember_password') is True
+        if (
+            auth_type == 'password'
+            and isinstance(saved_profile_id, str)
+            and saved_profile_id
+            and (use_saved_password or remember_password)
+        ):
+            saved_profile = profile_manager.get_profile(
+                current_user.id,
+                saved_profile_id,
+            )
+            if saved_profile is None:
+                emit_error('Saved connection not found')
+                return
+            if not password and use_saved_password:
+                password = saved_credentials.resolve_password(
+                    current_user.id,
+                    saved_profile,
+                    host,
+                    port,
+                    username,
+                )
+                if not password:
+                    error_sent = True
+                    emit('ssh_error', {
+                        'error': (
+                            'Saved password unavailable. '
+                            'Enter the password to connect.'
+                        ),
+                        'code': 'saved_password_unavailable',
+                        'profile_id': saved_profile_id,
+                        'client_request_id': client_request_id,
+                    })
+                    return
+            elif (
+                password
+                and remember_password
+                and saved_credentials.matches_destination(
+                    saved_profile,
+                    host,
+                    port,
+                    username,
+                )
+            ):
+                remember_profile = saved_profile
+
         if auth_type == 'password' and not password and ':' not in username:
             emit_error('Password required')
             return
@@ -1562,6 +1614,18 @@ def handle_ssh_connect(data, current_user=None):
                     True,
                     request.remote_addr,
                 )
+                if remember_profile is not None and local_password:
+                    # Only a password the server just accepted is remembered.
+                    _stored, password_error = saved_credentials.store_password(
+                        current_user.id,
+                        remember_profile,
+                        local_password,
+                    )
+                    emit('profile_password_saved', {
+                        'profile_id': remember_profile.get('id'),
+                        'success': password_error is None,
+                        'error': password_error,
+                    })
             except StorageCorruptionError as error:
                 if not cancellation.is_set():
                     emit('ssh_error', _storage_error_payload(
@@ -1924,16 +1988,49 @@ def handle_ssh_disconnect(data, current_user=None):
         emit('ssh_error', {'error': 'Disconnect failed'})
 
 
-def _public_profile(current_user, stored_profile):
+def _public_profile(current_user, stored_profile, saved_password_ids=None):
     """Return a response copy with authorization derived from live policy."""
     profile = dict(stored_profile)
     profile.pop('tailscale_authorized', None)
+    profile.pop('has_saved_password', None)
     if profile.get('auth_type') == 'tailscale':
         profile['tailscale_authorized'] = profile_is_authorized_for_launch(
             current_user,
             profile,
         )
+    if profile.get('auth_type') == 'password':
+        if saved_password_ids is None:
+            saved_password_ids = saved_credentials.saved_profile_ids(
+                current_user.id,
+                [profile],
+            )
+        if profile.get('id') in saved_password_ids:
+            profile['has_saved_password'] = True
     return profile
+
+
+def _apply_profile_password_choice(current_user, profile, data):
+    """Store, keep, or forget a saved connection's password after a save.
+
+    Returns an error string when a requested password could not be stored.
+    """
+    profile_id = profile.get('id')
+    remember = data.get('remember_password')
+    if profile.get('auth_type') != 'password' or remember is False:
+        saved_credentials.delete_password(current_user.id, profile_id)
+        return None
+    password = data.get('password')
+    if remember is True and isinstance(password, str) and password:
+        _stored, error = saved_credentials.store_password(
+            current_user.id,
+            profile,
+            password,
+        )
+        return error
+    if not saved_credentials.has_saved_password(current_user.id, profile):
+        # The destination changed, so the old password must not linger.
+        saved_credentials.delete_password(current_user.id, profile_id)
+    return None
 
 
 @socketio.on('list_profiles')
@@ -1941,9 +2038,14 @@ def _public_profile(current_user, stored_profile):
 def handle_list_profiles(current_user=None):
     """Return list of saved connection profiles for this user."""
     try:
+        stored_profiles = profile_manager.load_profiles(current_user.id)
+        saved_password_ids = saved_credentials.saved_profile_ids(
+            current_user.id,
+            stored_profiles,
+        )
         profiles = [
-            _public_profile(current_user, stored_profile)
-            for stored_profile in profile_manager.load_profiles(current_user.id)
+            _public_profile(current_user, stored_profile, saved_password_ids)
+            for stored_profile in stored_profiles
         ]
         emit('profiles_list', {'profiles': profiles})
     except ConnectionStorageLimitError as error:
@@ -1964,9 +2066,22 @@ def handle_save_profile(data, current_user=None):
             return limited
         data = dict(data) if isinstance(data, dict) else {}
         data.pop('tailscale_authorized', None)
+        password_choice = {
+            'remember_password': data.pop('remember_password', None),
+            'password': data.pop('password', None),
+        }
         auth_type = data.get('auth_type')
         host = data.get('host')
         username = data.get('username')
+        if password_choice['remember_password'] is True and auth_type == 'password':
+            password_error = saved_credentials.validate_password(
+                password_choice['password']
+            )
+            if password_error and not (
+                data.get('id') and not password_choice['password']
+            ):
+                emit('error', {'error': password_error})
+                return {'success': False, 'error': password_error}
 
         if auth_type == 'tailscale':
             access_error = validate_tailscale_ssh_access(
@@ -1985,8 +2100,15 @@ def handle_save_profile(data, current_user=None):
             emit('error', {'error': error})
             return {'success': False, 'error': error}
         else:
+            password_error = _apply_profile_password_choice(
+                current_user,
+                profile,
+                password_choice,
+            )
             response_profile = _public_profile(current_user, profile)
             payload = {'success': True, 'profile': response_profile}
+            if password_error:
+                payload['password_error'] = password_error
             emit('profile_saved', payload)
             return payload
 
@@ -2014,6 +2136,7 @@ def handle_delete_profile(data, current_user=None):
         success, error = profile_manager.delete_profile(current_user.id, profile_id)
         if error:
             return _command_set_error(error)
+        saved_credentials.delete_password(current_user.id, profile_id)
         payload = {'success': True, 'profile_id': profile_id}
         emit('profile_deleted', payload)
         return payload

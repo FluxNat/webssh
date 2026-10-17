@@ -1,0 +1,1001 @@
+/*
+ * PixShell brand layer.
+ *
+ * Loaded after every other stylesheet. The default theme ("glass", shown as
+ * PixShell) takes its palette from the PixShell logo: lime pixel tiles on a
+ * deep green casing. The Settings Center styles below only use theme tokens,
+ * so every other theme keeps its own colors with the same modern geometry.
+ *
+ * Avoid transform, filter and backdrop-filter on containers here: any of them
+ * would become the containing block for fixed descendants such as floating
+ * row menus and mobile sheets.
+ */
+
+/* ------------------------------------------------------------------ */
+/* Utilities                                                           */
+/* ------------------------------------------------------------------ */
+/* Defined here so screen-reader-only labels stay hidden on every page, not
+   only where the workspace stylesheet happens to be loaded. */
+.sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+/* ------------------------------------------------------------------ */
+/* Brand palette                                                       */
+/* ------------------------------------------------------------------ */
+:root {
+    --px-lime: #a7fc14;
+    --px-lime-bright: #c8ff3d;
+    --px-lime-deep: #8eef02;
+    --px-casing: #045201;
+    --px-ink: #031101;
+    --px-radius: 12px;
+    --px-radius-lg: 16px;
+    --px-radius-xl: 20px;
+}
+
+body[data-theme="glass"] {
+    --bg-primary: #050a04;
+    --bg-secondary: #0a1208;
+    --bg-tertiary: #0f1a0c;
+    --bg-hover: #172512;
+    --bg-modal: rgba(8, 14, 7, 0.97);
+    --bg-gradient: linear-gradient(160deg, #040803 0%, #08110a 55%, #050c04 100%);
+    --bg-active: rgba(167, 252, 20, 0.12);
+
+    --text-primary: #eef7e6;
+    --text-secondary: #b6c6a9;
+    --text-muted: #7e9270;
+
+    --border-color: rgba(167, 252, 20, 0.1);
+    --border-hover: rgba(167, 252, 20, 0.24);
+
+    --accent-primary: #a7fc14;
+    --accent-primary-glow: rgba(167, 252, 20, 0.28);
+    --accent-secondary: #5fae2c;
+    --accent-tertiary: #c8ff3d;
+
+    --success-color: #4fd17a;
+    --warning-color: #f2c14e;
+    --error-color: #ff6262;
+    --info-color: #7cc8ff;
+
+    --btn-primary-gradient-end: #8eef02;
+    --btn-primary-text: #031101;
+    --btn-primary-shadow: rgba(167, 252, 20, 0.22);
+    --btn-primary-shadow-hover: rgba(167, 252, 20, 0.36);
+    --accent-on-text: #031101;
+
+    --term-background: #060c05;
+    --term-foreground: #e4f2d8;
+    --term-green: #a7fc14;
+    --term-bright-green: #c8ff3d;
+    --term-cyan: #6fd6c3;
+    --term-blue: #74b4f0;
+
+    --theme-background-opacity: 0.045;
+}
+
+/* ------------------------------------------------------------------ */
+/* Shared controls                                                     */
+/* ------------------------------------------------------------------ */
+body[data-theme="glass"] .btn-primary {
+    border-color: color-mix(in srgb, var(--px-lime-bright) 70%, transparent);
+    background: linear-gradient(180deg, var(--px-lime-bright) 0%, var(--px-lime) 48%, var(--px-lime-deep) 100%);
+    color: var(--px-ink);
+    text-shadow: none;
+}
+
+body[data-theme="glass"] .btn-primary:hover:not(:disabled) {
+    background: linear-gradient(180deg, #d6ff66 0%, var(--px-lime-bright) 50%, var(--px-lime) 100%);
+}
+
+body[data-theme="glass"] .btn-primary .material-icons {
+    color: inherit;
+}
+
+body[data-theme="glass"] ::selection {
+    background: rgba(167, 252, 20, 0.3);
+    color: #ffffff;
+}
+
+/* Sign-in, registration and password pages share the access-dock backdrop,
+   which otherwise carries a fixed navy tint. */
+body[data-theme="glass"]:has(.auth-access-dock) {
+    background-color: #040803;
+    background-image:
+        radial-gradient(circle at 50% 64%, rgb(167 252 20 / 9%), transparent 46%),
+        linear-gradient(180deg, rgb(8 16 7 / 74%), rgb(3 7 3 / 95%)),
+        var(--theme-background-image);
+}
+
+body[data-theme="glass"] .auth-context-panel::after {
+    background: rgb(4 10 3 / 78%);
+}
+
+body[data-theme="glass"] .auth-product-pillars li {
+    background: rgb(4 10 3 / 68%);
+}
+
+body[data-theme="glass"] .auth-path-list li {
+    background: rgb(4 10 3 / 72%);
+}
+
+/* Brand mark keeps its own glow on dark headers. */
+body[data-theme="glass"] .app-brand-logo {
+    filter: drop-shadow(0 0 10px rgba(167, 252, 20, 0.18));
+}
+
+/* ------------------------------------------------------------------ */
+/* Credential switches (Quick Connect and saved connections)           */
+/* ------------------------------------------------------------------ */
+.quick-connect-save {
+    display: grid;
+    gap: 8px;
+    margin-top: 2px;
+}
+
+.quick-connect-save .form-group {
+    margin: 0;
+}
+
+.credential-switch,
+.form-group label.credential-switch {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 0;
+    letter-spacing: normal;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--px-radius);
+    background: color-mix(in srgb, var(--bg-tertiary) 55%, transparent);
+    cursor: pointer;
+    transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.credential-switch:hover {
+    border-color: var(--border-hover);
+}
+
+.credential-switch:has(input:checked) {
+    border-color: color-mix(in srgb, var(--accent-primary) 38%, transparent);
+    background: color-mix(in srgb, var(--accent-primary) 7%, var(--bg-tertiary));
+}
+
+.credential-switch.hidden,
+.form-group label.credential-switch.hidden {
+    display: none;
+}
+
+.credential-switch input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.credential-switch-track {
+    position: relative;
+    display: block;
+    flex: 0 0 auto;
+    width: 36px;
+    height: 20px;
+    margin-top: 1px;
+    border: 1px solid var(--border-hover);
+    border-radius: 999px;
+    background: var(--bg-hover);
+    transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.credential-switch-track::after {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    content: '';
+    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 160ms ease;
+}
+
+.credential-switch input:checked + .credential-switch-track {
+    border-color: var(--accent-primary);
+    background: var(--accent-primary);
+}
+
+.credential-switch input:checked + .credential-switch-track::after {
+    background: var(--accent-on-text, #031101);
+    transform: translateX(16px);
+}
+
+.credential-switch input:focus-visible + .credential-switch-track {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+.credential-switch-copy {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+}
+
+.credential-switch-copy strong {
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.credential-switch-copy small {
+    color: var(--text-muted);
+    font-size: 11.5px;
+    line-height: 1.45;
+}
+
+.saved-password-group {
+    display: grid;
+    gap: 10px;
+}
+
+.saved-password-group.hidden,
+.saved-password-field.hidden {
+    display: none;
+}
+
+.saved-password-field {
+    display: grid;
+    gap: 6px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Settings Center: frame                                              */
+/* ------------------------------------------------------------------ */
+body:has(.admin-main) {
+    background:
+        radial-gradient(1200px 520px at 12% -8%, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 62%),
+        radial-gradient(900px 480px at 100% 110%, color-mix(in srgb, var(--accent-primary) 6%, transparent), transparent 60%),
+        var(--bg-primary);
+}
+
+body:has(.admin-main) .header {
+    position: relative;
+    border-bottom: 1px solid transparent;
+    background: color-mix(in srgb, var(--bg-secondary) 88%, transparent);
+    box-shadow: 0 1px 0 color-mix(in srgb, var(--accent-primary) 10%, transparent);
+}
+
+body:has(.admin-main) .header::after {
+    position: absolute;
+    right: 0;
+    bottom: -1px;
+    left: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent-primary) 55%, transparent) 30%, transparent 75%);
+    content: '';
+    pointer-events: none;
+}
+
+body:has(.admin-main) .header-content {
+    min-height: 64px;
+    padding: 0 24px;
+}
+
+.settings-brand {
+    display: inline-flex;
+    align-items: center;
+}
+
+.settings-brand .app-brand-logo {
+    width: 124px;
+    height: 38px;
+}
+
+.settings-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 8px 14px;
+    border-radius: 999px;
+}
+
+.admin-main {
+    background-image:
+        radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--accent-primary) 9%, transparent) 1px, transparent 0);
+    background-size: 22px 22px;
+    background-attachment: local;
+}
+
+/* ------------------------------------------------------------------ */
+/* Settings Center: navigation                                         */
+/* ------------------------------------------------------------------ */
+.admin-navigation {
+    border-right: 1px solid var(--border-color);
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--bg-secondary) 96%, transparent), color-mix(in srgb, var(--bg-primary) 94%, transparent));
+}
+
+.admin-navigation-title {
+    gap: 12px;
+    margin: 0 4px 16px;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--px-radius-lg);
+    background: color-mix(in srgb, var(--bg-tertiary) 70%, transparent);
+    font-size: 15px;
+    font-weight: 750;
+    letter-spacing: -0.01em;
+}
+
+.admin-navigation-title .material-icons {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: linear-gradient(145deg, var(--accent-primary), color-mix(in srgb, var(--accent-primary) 70%, black));
+    color: var(--accent-on-text, #031101);
+    font-size: 19px;
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--accent-primary) 24%, transparent);
+}
+
+.settings-center-navigation.admin-tabs {
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.admin-nav-group {
+    margin: 20px 10px 8px;
+    color: color-mix(in srgb, var(--text-muted) 90%, transparent);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+}
+
+.admin-nav-group::before {
+    flex: 0 0 auto;
+    width: 6px;
+    height: 6px;
+    margin-right: 2px;
+    border-radius: 2px;
+    background: var(--accent-primary);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--accent-primary) 60%, transparent);
+    content: '';
+}
+
+.admin-nav-group {
+    justify-content: flex-start;
+}
+
+.admin-nav-group small {
+    margin-left: auto;
+    padding: 2px 7px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    color: var(--text-muted);
+    font-size: 9.5px;
+    letter-spacing: 0.06em;
+}
+
+.settings-center-navigation .admin-tab {
+    position: relative;
+    gap: 11px;
+    min-height: 40px;
+    padding: 5px 10px 5px 6px;
+    border-radius: var(--px-radius);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.settings-center-navigation .admin-tab .material-icons {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--bg-hover) 70%, transparent);
+    color: var(--text-muted);
+    font-size: 17px;
+    transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.settings-center-navigation .admin-tab:hover {
+    background: color-mix(in srgb, var(--bg-hover) 70%, transparent);
+    color: var(--text-primary);
+}
+
+.settings-center-navigation .admin-tab:hover .material-icons {
+    color: var(--accent-primary);
+    transform: none;
+}
+
+.settings-center-navigation .admin-tab.active {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--accent-primary) 16%, transparent), color-mix(in srgb, var(--accent-primary) 4%, transparent));
+    color: var(--text-primary);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 22%, transparent);
+}
+
+.settings-center-navigation .admin-tab.active::before {
+    position: absolute;
+    top: 9px;
+    bottom: 9px;
+    left: -14px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--accent-primary);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary) 70%, transparent);
+    content: '';
+}
+
+.settings-center-navigation .admin-tab.active .material-icons {
+    border-color: color-mix(in srgb, var(--accent-primary) 50%, transparent);
+    background: var(--accent-primary);
+    color: var(--accent-on-text, #031101);
+}
+
+/* ------------------------------------------------------------------ */
+/* Settings Center: content and page headers                           */
+/* ------------------------------------------------------------------ */
+.admin-content {
+    padding: 30px 34px 64px;
+}
+
+.admin-panel:not(.hidden) {
+    animation: px-panel-in 320ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.admin-page-header {
+    align-items: flex-end;
+    gap: 20px;
+    margin-bottom: 22px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.admin-page-header h2 {
+    margin: 0 0 6px;
+    color: var(--text-primary);
+    font-size: 28px;
+    font-weight: 760;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+}
+
+.admin-page-header p {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.admin-page-actions {
+    gap: 10px;
+}
+
+.admin-content .btn {
+    min-height: 38px;
+    padding: 8px 15px;
+    border-radius: 10px;
+    font-size: 13px;
+}
+
+.admin-content .btn-secondary {
+    border-color: var(--border-color);
+    background: color-mix(in srgb, var(--bg-tertiary) 80%, transparent);
+    color: var(--text-secondary);
+}
+
+.admin-content .btn-secondary:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--accent-primary) 40%, transparent);
+    background: color-mix(in srgb, var(--accent-primary) 8%, var(--bg-tertiary));
+    color: var(--text-primary);
+}
+
+.admin-content .btn-primary {
+    box-shadow:
+        0 1px 0 rgb(255 255 255 / 30%) inset,
+        0 8px 22px color-mix(in srgb, var(--accent-primary) 26%, transparent);
+}
+
+.admin-content .form-control,
+.admin-content select.form-control {
+    min-height: 40px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--bg-primary) 86%, var(--bg-secondary));
+}
+
+.admin-content .form-control:focus,
+.admin-content .form-control:focus-visible {
+    border-color: color-mix(in srgb, var(--accent-primary) 60%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 18%, transparent);
+    outline: none !important;
+}
+
+/* ------------------------------------------------------------------ */
+/* Settings Center: surfaces                                           */
+/* ------------------------------------------------------------------ */
+.admin-content :is(
+    .admin-settings-surface,
+    .admin-setting-row,
+    .admin-table-wrap,
+    .admin-user-toolbar,
+    .security-assurance-overview,
+    .operations-metric,
+    .admin-card,
+    .operations-disclosure
+),
+.settings-context-card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--px-radius-lg);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 2.6%), rgb(255 255 255 / 0.6%)),
+        color-mix(in srgb, var(--bg-secondary) 92%, transparent);
+    box-shadow:
+        0 1px 0 rgb(255 255 255 / 3%) inset,
+        0 18px 40px rgb(0 0 0 / 22%);
+}
+
+.admin-content .admin-setting-row {
+    padding: 22px;
+}
+
+.admin-settings-intro h3,
+.admin-setting-row h2 {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.admin-settings-row + .admin-settings-row {
+    border-top-color: var(--border-color);
+}
+
+.settings-security-method-icon,
+.operations-metric > .material-icons {
+    border: 1px solid color-mix(in srgb, var(--accent-primary) 24%, transparent);
+    border-radius: 11px;
+    background: color-mix(in srgb, var(--accent-primary) 10%, var(--bg-tertiary));
+    color: var(--accent-primary);
+}
+
+.security-policy-badge {
+    border-radius: 999px;
+}
+
+.security-policy-badge.active {
+    border-color: color-mix(in srgb, var(--accent-primary) 45%, transparent);
+    background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+    color: var(--accent-primary);
+}
+
+/* ------------------------------------------------------------------ */
+/* Settings Center: users toolbar and table                            */
+/* ------------------------------------------------------------------ */
+.admin-user-toolbar {
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 12px;
+}
+
+.admin-user-toolbar .admin-search-field {
+    max-width: 560px;
+}
+
+.admin-user-filter-field {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 10px;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+}
+
+.admin-user-filter-field .form-control {
+    width: 190px;
+}
+
+.admin-filter-count {
+    margin: 0 4px 0 auto;
+    padding: 4px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bg-tertiary) 70%, transparent);
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-filter-count:empty {
+    display: none;
+}
+
+.admin-content .admin-table-wrap {
+    overflow-x: auto;
+}
+
+.admin-table {
+    font-size: 13.5px;
+}
+
+.admin-content .admin-table th {
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--border-color);
+    background: color-mix(in srgb, var(--bg-primary) 40%, transparent);
+    color: var(--text-muted);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+}
+
+.admin-content .admin-table td {
+    padding: 13px 16px;
+    border-bottom-color: color-mix(in srgb, var(--border-color) 80%, transparent);
+    color: var(--text-secondary);
+    vertical-align: middle;
+}
+
+.admin-content .admin-table tbody tr {
+    transition: background-color 140ms ease;
+}
+
+.admin-content .admin-table tbody tr:hover {
+    background: color-mix(in srgb, var(--accent-primary) 4.5%, transparent);
+}
+
+.admin-id-cell {
+    color: var(--text-muted) !important;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-user-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+}
+
+.admin-user-avatar {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid color-mix(in srgb, var(--accent-primary) 35%, transparent);
+    border-radius: 10px;
+    background: linear-gradient(145deg, color-mix(in srgb, var(--accent-primary) 22%, var(--bg-tertiary)), var(--bg-tertiary));
+    color: var(--accent-primary);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.admin-user-name {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.admin-user-name .admin-muted {
+    font-weight: 500;
+}
+
+.admin-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-color: var(--border-hover);
+    background: color-mix(in srgb, var(--bg-hover) 60%, transparent);
+    color: var(--text-secondary);
+    font-size: 11.5px;
+    letter-spacing: 0.01em;
+}
+
+.admin-badge.admin {
+    border-color: color-mix(in srgb, var(--accent-primary) 45%, transparent);
+    background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+    color: var(--accent-primary);
+}
+
+.admin-status-badge::before {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    content: '';
+}
+
+.admin-badge.active {
+    border-color: color-mix(in srgb, var(--success-color) 35%, transparent);
+    background: color-mix(in srgb, var(--success-color) 10%, transparent);
+    color: var(--success-color);
+}
+
+.admin-badge.active::before {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--success-color) 22%, transparent);
+}
+
+.admin-badge.locked {
+    border-color: color-mix(in srgb, var(--error-color) 40%, transparent);
+    background: color-mix(in srgb, var(--error-color) 10%, transparent);
+    color: var(--error-color);
+}
+
+/* Row menus */
+.admin-action-menu > summary.btn {
+    width: 36px;
+    min-height: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 10px;
+}
+
+.admin-action-menu[open] > summary {
+    border-color: color-mix(in srgb, var(--accent-primary) 60%, transparent);
+    background: color-mix(in srgb, var(--accent-primary) 12%, var(--bg-tertiary));
+    color: var(--accent-primary);
+}
+
+.admin-action-menu .admin-actions {
+    width: 200px;
+    padding: 6px;
+    border: 1px solid var(--border-hover);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--bg-modal) 96%, transparent);
+    box-shadow:
+        0 1px 0 rgb(255 255 255 / 4%) inset,
+        0 24px 60px rgb(0 0 0 / 50%),
+        0 0 0 1px rgb(0 0 0 / 30%);
+}
+
+/* Opened on wide screens: fixed so the scrolling table cannot clip it. */
+.admin-action-menu .admin-actions.is-floating {
+    position: fixed;
+    z-index: 1200;
+    right: auto;
+    animation: px-menu-in 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.admin-action-menu .admin-actions .btn {
+    min-height: 36px;
+    padding: 8px 12px;
+    border-radius: 9px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.admin-action-menu .admin-actions .btn:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--accent-primary) 10%, var(--bg-hover));
+    color: var(--text-primary);
+}
+
+.admin-action-menu .admin-actions .btn-danger {
+    margin-top: 4px;
+    border-top: 1px solid var(--border-color);
+    border-radius: 0 0 9px 9px;
+    color: var(--error-color);
+}
+
+.admin-action-menu .admin-actions .btn-danger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--error-color) 12%, transparent);
+    color: var(--error-color);
+}
+
+.admin-action-menu .admin-actions .btn:disabled {
+    opacity: 0.4;
+}
+
+/* ------------------------------------------------------------------ */
+/* Settings Center: context rail                                       */
+/* ------------------------------------------------------------------ */
+.settings-context-rail {
+    gap: 16px;
+}
+
+.settings-context-card {
+    padding: 18px;
+}
+
+.settings-account-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.settings-account-card::before {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 74px;
+    background:
+        radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--accent-primary) 22%, transparent) 1px, transparent 0) 0 0 / 10px 10px,
+        linear-gradient(120deg, color-mix(in srgb, var(--accent-primary) 18%, transparent), transparent 70%);
+    content: '';
+    pointer-events: none;
+    mask-image: linear-gradient(180deg, black, transparent);
+}
+
+.settings-account-card > * {
+    position: relative;
+}
+
+.settings-context-eyebrow {
+    color: var(--text-muted);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+}
+
+.settings-context-avatar {
+    width: 46px;
+    height: 46px;
+    border: 2px solid var(--accent-primary);
+    border-radius: 14px;
+    background: linear-gradient(145deg, color-mix(in srgb, var(--accent-primary) 30%, var(--bg-tertiary)), var(--bg-tertiary));
+    color: var(--accent-primary);
+    font-size: 18px;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-primary) 10%, transparent), 0 10px 24px rgb(0 0 0 / 30%);
+}
+
+.settings-context-account strong {
+    font-size: 16px;
+    letter-spacing: -0.01em;
+}
+
+.settings-context-facts > div {
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--bg-tertiary) 55%, transparent);
+}
+
+.settings-context-facts dd {
+    font-weight: 600;
+}
+
+.settings-quick-link {
+    position: relative;
+    gap: 12px;
+    min-height: 44px;
+    padding: 6px 30px 6px 6px;
+    border-radius: 11px;
+    font-weight: 600;
+}
+
+.settings-quick-link .material-icons {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid color-mix(in srgb, var(--accent-primary) 22%, transparent);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--accent-primary) 9%, var(--bg-tertiary));
+    color: var(--accent-primary);
+    font-size: 17px;
+}
+
+.settings-quick-link::after {
+    position: absolute;
+    right: 8px;
+    color: var(--text-muted);
+    content: 'chevron_right';
+    font-family: 'Material Icons';
+    font-size: 18px;
+    transition: color 140ms ease, right 160ms ease;
+}
+
+.settings-quick-link:hover {
+    background: color-mix(in srgb, var(--accent-primary) 7%, transparent);
+}
+
+.settings-quick-link:hover::after {
+    right: 5px;
+    color: var(--accent-primary);
+}
+
+.settings-context-note {
+    border-color: color-mix(in srgb, var(--info-color) 22%, var(--border-color));
+}
+
+.settings-context-note .material-icons {
+    color: var(--info-color);
+}
+
+/* ------------------------------------------------------------------ */
+/* Responsive                                                          */
+/* ------------------------------------------------------------------ */
+@media (min-width: 901px) {
+    .admin-main {
+        grid-template-columns: 264px minmax(0, 1fr);
+    }
+}
+
+@media (min-width: 601px) {
+    .admin-navigation {
+        top: 0;
+        min-height: calc(100dvh - 64px);
+        padding: 22px 14px 32px;
+    }
+}
+
+@media (max-width: 900px) {
+    .admin-content {
+        padding: 22px 16px 56px;
+    }
+
+    .admin-page-header h2 {
+        font-size: 23px;
+    }
+
+    .settings-center-navigation .admin-tab.active::before {
+        display: none;
+    }
+}
+
+@media (max-width: 600px) {
+    .admin-navigation {
+        border-right: 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .admin-navigation-title {
+        margin: 0 0 10px;
+        padding: 8px 10px;
+        font-size: 14px;
+    }
+
+    .admin-content {
+        padding: 18px 12px 40px;
+    }
+
+    .admin-user-toolbar {
+        align-items: stretch;
+    }
+
+    /* Responsive table cells are grids; keep pills at their own width. */
+    .admin-responsive-table td > .admin-badge,
+    .admin-responsive-table td > .admin-user-cell {
+        justify-self: start;
+    }
+
+    .admin-user-filter-field,
+    .admin-user-filter-field .form-control {
+        width: 100%;
+    }
+
+    .admin-content .admin-table td {
+        padding: 10px 12px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .admin-panel:not(.hidden),
+    .admin-action-menu .admin-actions.is-floating {
+        animation: none;
+    }
+}
+
+@keyframes px-panel-in {
+    from {
+        opacity: 0;
+    }
+}
+
+@keyframes px-menu-in {
+    from {
+        opacity: 0;
+        translate: 0 -4px;
+    }
+}

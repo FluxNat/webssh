@@ -366,7 +366,15 @@ def test_profile_management_is_independent_from_connect_submit():
         re.DOTALL,
     )
     assert profile_modal
-    assert 'type="password"' not in profile_modal.group('body')
+    # Remembering a password is opt-in: the only password field belongs to
+    # the "Remember password" switch, never to the plain connection details.
+    password_inputs = re.findall(
+        r'<input[^>]*type="password"[^>]*>',
+        profile_modal.group('body'),
+    )
+    assert len(password_inputs) == 1
+    assert 'id="profileEditorPassword"' in password_inputs[0]
+    assert 'id="profileEditorRememberPassword"' in profile_modal.group('body')
     assert "window.socket.emit('save_profile'" in profile_source
     assert "window.socket.emit('ssh_connect'" not in profile_source
     assert 'renderEditorCommandPreview()' in profile_source

@@ -989,7 +989,7 @@ test('captures a contained multi-session workspace and the current theme menu', 
     await page.locator('#accountSettingsBtn').click();
     await expect(page).toHaveURL(/\/settings#preferences$/);
     await expect(page.locator('#settingsThemeSelect option')).toHaveCount(10);
-    await expect(page.locator('#settingsThemeSelect')).toContainText('Glass Ops');
+    await expect(page.locator('#settingsThemeSelect')).toContainText('PixShell');
     await expect(page.locator('#settingsThemeSelect')).toContainText('Obsidian');
     const themeBounds = await page.locator('.settings-center-content').boundingBox();
     expect(themeBounds).not.toBeNull();

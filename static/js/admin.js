@@ -629,11 +629,12 @@
                 ? `<span class="admin-badge admin">${escapeHtml(t('admin.roleAdmin', 'Admin'))}</span>`
                 : `<span class="admin-badge">${escapeHtml(t('admin.roleUser', 'User'))}</span>`;
             const status = u.is_locked
-                ? `<span class="admin-badge locked">${escapeHtml(t('admin.statusLocked', 'Locked'))}</span>`
-                : `<span class="admin-badge">${escapeHtml(t('admin.statusActive', 'Active'))}</span>`;
+                ? `<span class="admin-badge locked admin-status-badge">${escapeHtml(t('admin.statusLocked', 'Locked'))}</span>`
+                : `<span class="admin-badge active admin-status-badge">${escapeHtml(t('admin.statusActive', 'Active'))}</span>`;
+            const initial = escapeHtml(String(u.username || '?').charAt(0).toUpperCase());
             tr.innerHTML =
-                `<td>${u.id}</td>` +
-                `<td>${escapeHtml(u.username)}${u.ldap_managed ? ' <span class="admin-muted">(LDAP)</span>' : ''}${u.github_managed ? ' <span class="admin-muted">(GitHub)</span>' : ''}${u.username === CURRENT_USER ? ' <span class="admin-muted">(' + escapeHtml(t('admin.you', 'you')) + ')</span>' : ''}</td>` +
+                `<td class="admin-id-cell">${u.id}</td>` +
+                `<td><span class="admin-user-cell"><span class="admin-user-avatar" aria-hidden="true">${initial}</span><span class="admin-user-name">${escapeHtml(u.username)}${u.ldap_managed ? ' <span class="admin-muted">(LDAP)</span>' : ''}${u.github_managed ? ' <span class="admin-muted">(GitHub)</span>' : ''}${u.username === CURRENT_USER ? ' <span class="admin-muted">(' + escapeHtml(t('admin.you', 'you')) + ')</span>' : ''}</span></span></td>` +
                 `<td>${role}</td>` +
                 `<td>${status}</td>` +
                 `<td>${escapeHtml(fmtDate(u.created_at))}</td>` +
@@ -950,7 +951,74 @@
         }
     }
 
+    const ACTION_MENU_GAP = 6;
+    const ACTION_MENU_EDGE = 8;
+    const compactActionMenus = window.matchMedia('(max-width: 600px)');
+
+    function closeActionMenus(except = null) {
+        document.querySelectorAll('.admin-action-menu[open]').forEach(menu => {
+            if (menu !== except) { menu.open = false; }
+        });
+    }
+
+    // The users table scrolls horizontally, which clips an absolutely
+    // positioned menu. On wide screens the open menu floats in the viewport,
+    // anchored to its button and flipped upwards near the bottom edge.
+    function placeActionMenu(menu) {
+        const panel = menu.querySelector('.admin-actions');
+        const summary = menu.querySelector('summary');
+        if (!panel || !summary) { return; }
+        panel.classList.remove('is-floating');
+        panel.style.removeProperty('left');
+        panel.style.removeProperty('top');
+        if (!menu.open || compactActionMenus.matches) { return; }
+        panel.classList.add('is-floating');
+        const anchor = summary.getBoundingClientRect();
+        const width = panel.offsetWidth;
+        const height = panel.offsetHeight;
+        const left = Math.min(
+            Math.max(ACTION_MENU_EDGE, anchor.right - width),
+            window.innerWidth - width - ACTION_MENU_EDGE,
+        );
+        let top = anchor.bottom + ACTION_MENU_GAP;
+        if (top + height > window.innerHeight - ACTION_MENU_EDGE
+                && anchor.top - height - ACTION_MENU_GAP >= ACTION_MENU_EDGE) {
+            top = anchor.top - height - ACTION_MENU_GAP;
+        }
+        panel.style.left = `${Math.round(left)}px`;
+        panel.style.top = `${Math.round(top)}px`;
+    }
+
+    function initActionMenus() {
+        const body = document.getElementById('adminUsersBody');
+        if (!body) { return; }
+        // "toggle" does not bubble, so listen during capture.
+        body.addEventListener('toggle', event => {
+            const menu = event.target;
+            if (!menu.classList?.contains('admin-action-menu')) { return; }
+            if (menu.open) { closeActionMenus(menu); }
+            placeActionMenu(menu);
+        }, true);
+        document.addEventListener('click', event => {
+            if (!event.target.closest?.('.admin-action-menu')) { closeActionMenus(); }
+        });
+        document.addEventListener('keydown', event => {
+            if (event.key !== 'Escape') { return; }
+            const open = document.querySelector('.admin-action-menu[open]');
+            if (!open) { return; }
+            open.open = false;
+            open.querySelector('summary')?.focus();
+        });
+        // A floating menu would drift away from its row while scrolling.
+        window.addEventListener('scroll', event => {
+            if (compactActionMenus.matches || event.target?.closest?.('.admin-actions')) { return; }
+            closeActionMenus();
+        }, true);
+        window.addEventListener('resize', () => closeActionMenus());
+    }
+
     function initUsers() {
+        initActionMenus();
         document.getElementById('adminRefreshUsers')?.addEventListener('click', loadUsers);
         document.getElementById('adminUsersBody')?.addEventListener('click', (e) => {
             const summary = e.target.closest('.admin-action-menu > summary');

@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/admin.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/webssh-2.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/ui-refresh.css') }}">
+    <link rel="stylesheet" href="{{ static_asset_url(filename='css/pixshell.css') }}">
 </head>
 <body data-sync-terminal-directory="{{ 'true' if sync_terminal_directory else 'false' }}" data-theme="{{ theme|default('glass') }}" data-ldap-managed="{{ 'true' if ldap_managed else 'false' }}" data-recovery-mode="{{ 'true' if recovery_mode else 'false' }}" data-account-mfa-enabled="{{ 'true' if account_mfa_enabled else 'false' }}" data-recovery-enabled="{{ 'true' if recovery_codes_enabled else 'false' }}" data-confirm-session-close="{{ 'true' if confirm_session_close else 'false' }}" data-disconnect-session-action="{{ disconnect_session_action }}" data-authentication-session-duration-minutes="{{ authentication_session_duration_minutes }}">
     <header class="header">
@@ -86,7 +87,7 @@
                     <div><label for="settingsThemeSelect"><strong data-i18n="account.theme">Theme</strong></label><p class="admin-muted" data-i18n="settings.themeHint">Choose the visual theme used across workspaces and settings.</p></div>
                     <select id="settingsThemeSelect" class="form-control settings-preference-control">
                         <optgroup label="Professional Themes" data-i18n-label="settings.professionalThemes">
-                            <option value="glass">Glass Ops</option><option value="solar">Solar Drift</option><option value="paper">Paper Ops</option><option value="noir">Noir Terminal</option><option value="arctic-ice">Arctic Ice</option><option value="rose-gold">Rose Gold</option><option value="obsidian">Obsidian</option>
+                            <option value="glass">PixShell</option><option value="solar">Solar Drift</option><option value="paper">Paper Ops</option><option value="noir">Noir Terminal</option><option value="arctic-ice">Arctic Ice</option><option value="rose-gold">Rose Gold</option><option value="obsidian">Obsidian</option>
                         </optgroup>
                         <optgroup label="Fun Themes" data-i18n-label="settings.funThemes">
                             <option value="retro">Retro Future</option><option value="cyberpunk-neon">Cyberpunk Neon</option><option value="emerald-matrix">Emerald Matrix</option>

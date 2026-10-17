@@ -33,6 +33,8 @@ function setup() {
         closeProfileManagementModal() {}, closeAuthBannerPrompt() {},
         stopConnectTimer() {}, setConnectLoading() {}, clearPendingPane() {},
         showNotification() {}, rememberTransientId(set, id) {set.add(id);},
+        selectedConnectionProfile: () => null, isSameDestination: () => false,
+        translateText: (_key, fallback) => fallback,
         APP_ROOT: '',
     };
     vm.runInNewContext(`let currentConnectRequestId = null, connectionModalRequestId = null, pendingPaneIndex = null, connectSeconds = 0, connectTimer = null;

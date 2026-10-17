@@ -30,6 +30,31 @@ test('readiness distinguishes saved credentials, missing keys and live sources',
     }).state, 'password-needed');
 });
 
+test('a remembered password launches directly and lets the server resolve it', () => {
+    const profile = {
+        id: 'saved-password',
+        host: 'host',
+        port: 22,
+        username: 'user',
+        auth_type: 'password',
+        has_saved_password: true,
+    };
+    assert.equal(determineLaunchMode(profile, {}), 'connect');
+    assert.equal(getProfileReadiness(profile, {}).state, 'saved');
+    const data = buildDirectConnectionData(profile, {});
+    assert.equal(data.profile_id, 'saved-password');
+    assert.equal(data.use_saved_password, true);
+    assert.equal('password' in data, false);
+
+    assert.equal(determineLaunchMode({...profile, has_saved_password: false}, {}), 'password');
+    assert.equal(determineLaunchMode({...profile, jump_host_id: 'jump'}, {
+        jumpHosts: [{id: 'jump', auth_type: 'password'}],
+    }), 'jump-host-password');
+    const keyProfile = {...profile, auth_type: 'key', key_id: 'key'};
+    const keyData = buildDirectConnectionData(keyProfile, {keys: [{id: 'key', usable: true}]});
+    assert.equal('use_saved_password' in keyData, false);
+});
+
 test('detects only saved settings that belong in the advanced connection section', () => {
     assert.equal(usesAdvancedConnectionSettings({}), false);
     assert.equal(usesAdvancedConnectionSettings({startup_mode: 'none'}), false);
