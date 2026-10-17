@@ -7,7 +7,7 @@ import json
 from html.parser import HTMLParser
 from pathlib import Path
 import shutil
-from urllib.parse import unquote, urlsplit
+from urllib.parse import parse_qs, unquote, urlsplit
 from xml.etree import ElementTree
 
 import pytest
@@ -69,7 +69,7 @@ def test_product_landing_page_uses_current_connection_terminology():
         assert obsolete_label not in text
 
 
-@pytest.mark.parametrize('page_name', ['index.html', 'features.html', 'self-hosting.html', 'security.html', 'impressum.html', 'privacy.html', 'code-graph/index.html'])
+@pytest.mark.parametrize('page_name', ['index.html', 'features.html', 'demo.html', 'self-hosting.html', 'security.html', 'impressum.html', 'privacy.html', 'code-graph/index.html'])
 def test_packaged_pages_have_reachable_legal_links_and_local_assets(built_site, page_name):
     path = built_site / page_name
     page = Page(path.read_text(encoding='utf-8'))
@@ -81,11 +81,11 @@ def test_packaged_pages_have_reachable_legal_links_and_local_assets(built_site, 
             resource = attrs.get('href')
         if resource:
             assert not resource.startswith(('http:', 'https:', '//', 'data:')), resource
-            assert (path.parent / resource).is_file(), resource
+            assert (path.parent / urlsplit(resource).path).is_file(), resource
         if tag == 'a':
             link = attrs.get('href', '')
             if link and not link.startswith(('https:', 'mailto:', '#')):
-                target = path.parent / link.split('#')[0]
+                target = path.parent / urlsplit(link).path
                 assert target.exists(), link
     assert any(attrs.get('name') == 'referrer' and attrs.get('content') == 'no-referrer'
                for tag, attrs in page.tags if tag == 'meta')
@@ -252,3 +252,68 @@ def test_metadata_build_rejects_drifted_page_contracts(tmp_path, replacement):
     page.write_text(page.read_text(encoding='utf-8').replace(*replacement), encoding='utf-8')
     with pytest.raises(ValueError, match='metadata|policy'):
         packager().add_search_metadata(output)
+
+
+
+def test_demo_is_local_opt_in_and_has_a_text_alternative(built_site):
+    html = (built_site / 'demo.html').read_text(encoding='utf-8')
+    page = Page(html)
+    videos = [attrs for tag, attrs in page.tags if tag == 'video']
+    assert len(videos) == 1
+    video = videos[0]
+    assert video['preload'] == 'none'
+    assert 'controls' in video and 'playsinline' in video
+    assert 'autoplay' not in video and 'loop' not in video
+    assert (built_site / video['poster']).is_file()
+    assert any(tag == 'source' and attrs.get('type') == 'video/mp4'
+               and (built_site / urlsplit(attrs['src']).path).is_file() for tag, attrs in page.tags)
+    assert any(tag == 'track' and attrs.get('srclang') == 'en'
+               and (built_site / urlsplit(attrs['src']).path).read_text(encoding='utf-8').startswith('WEBVTT')
+               for tag, attrs in page.tags)
+    assert "media-src 'self'" in packager().SearchMetadata(html).policies[0]
+    assert '#transcript' in page.links()
+    assert 'example data' in html and 'Unsaved' in html
+
+
+def test_demo_video_metadata_matches_the_published_media(built_site):
+    html = (built_site / 'demo.html').read_text(encoding='utf-8')
+    assets = packager().RuntimeAssets()
+    assets.feed(html)
+    nodes = json.loads(assets.inline_scripts[0])['@graph']
+    video = next(node for node in nodes if node['@type'] == 'VideoObject')
+    webpage = next(node for node in nodes if node['@type'] == 'WebPage')
+    assert webpage['mainEntity'] == {'@id': video['@id']}
+    assert video['duration'] == 'PT1M'
+    assert video['inLanguage'] == 'en'
+    assert video['uploadDate'].startswith('2026-10-16T')
+    assert 'interactionStatistic' not in video
+    for url in [video['contentUrl'], *video['thumbnailUrl']]:
+        assert url.startswith(packager().SITE_URL)
+        assert (built_site / urlsplit(url).path.lstrip('/')).is_file()
+    meta = {attrs.get('property'): attrs.get('content')
+            for tag, attrs in Page(html).tags if tag == 'meta'}
+    assert meta['og:image'] == video['thumbnailUrl'][0]
+
+
+def test_demo_links_bypass_previously_cached_page_and_media(built_site):
+    media = (built_site / 'assets/webssh-demo.mp4').read_bytes()
+    captions = (built_site / 'assets/webssh-demo.en.vtt').read_text(encoding='utf-8').encode('utf-8')
+    revision = hashlib.sha256(media + captions).hexdigest()[:12]
+    for text in [(ROOT / 'README.md').read_text(encoding='utf-8'),
+                 *((built_site / name).read_text(encoding='utf-8') for name in packager().PUBLIC_PAGES)]:
+        links = [urlsplit(link) for link in Page(text).links() if link]
+        demo_links = [link for link in links if link.path.endswith('demo.html')]
+        assert demo_links
+        assert all(parse_qs(link.query) == {'v': [revision]} for link in demo_links)
+    html = (built_site / 'demo.html').read_text(encoding='utf-8')
+    page = Page(html)
+    sources = [attrs['src'] for tag, attrs in page.tags if tag in {'source', 'track'}]
+    downloads = [link for link in page.links() if link and urlsplit(link).path.endswith('.mp4')]
+    assert sources and downloads
+    for url in sources + downloads:
+        assert parse_qs(urlsplit(url).query) == {'v': [revision]}
+    metadata = packager().RuntimeAssets()
+    metadata.feed(html)
+    video = next(node for node in json.loads(metadata.inline_scripts[0])['@graph']
+                 if node['@type'] == 'VideoObject')
+    assert video['contentUrl'] == packager().SITE_URL + sources[0]

@@ -8,6 +8,7 @@
 
 <p align="center">
   <a href="https://getwebssh.com/">Product site</a> ·
+  <a href="https://getwebssh.com/demo.html?v=4a5bdb14506d">Watch the demo</a> ·
   <a href="https://github.com/bifrost0x/webssh/wiki">Documentation</a> ·
   <a href="ROADMAP.md">Roadmap</a> ·
   <a href="https://github.com/bifrost0x/webssh/pkgs/container/webssh">Container image</a> ·
@@ -26,12 +27,22 @@
 ## Product tour
 
 <p align="center">
-  <img src="assets/webssh-demo.gif" alt="WebSSH tour showing a focused terminal, split sessions, the SFTP workspace, and account security" width="1100">
+  <a href="https://getwebssh.com/demo.html?v=4a5bdb14506d">
+    <img src="site/assets/webssh-demo-poster.jpg" alt="Watch the 60-second WebSSH demo: terminals, split panes, SFTP file editing, command sets, and notes" width="1100">
+  </a>
 </p>
 
 WebSSH keeps terminal work, files, commands, diagnostics, and notes in one
 responsive browser workspace. It is self-hosted, multi-user, and built without
 a hosted control plane or runtime CDN dependencies.
+
+<details>
+  <summary>Preview the animated product tour</summary>
+
+  <p align="center">
+    <img src="assets/webssh-demo.gif" alt="WebSSH tour showing a focused terminal, split sessions, the SFTP workspace, and account security" width="1100">
+  </p>
+</details>
 
 ## Why WebSSH
 
