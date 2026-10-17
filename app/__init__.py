@@ -550,7 +550,7 @@ def create_app(
             '/admin/api/backups/restore/status',
         }:
             return jsonify({
-                'error': 'WebSSH is in restore maintenance mode',
+                'error': 'PixShell is in restore maintenance mode',
                 'code': 'maintenance',
             }), 503
         # Static files are public and user-independent. Avoid opening the
@@ -1193,7 +1193,7 @@ def create_app(
         settings = get_user_settings(current_user.id)
         auth_session = current_authentication_session()
         method_labels = {
-            'password': 'WebSSH password',
+            'password': 'PixShell password',
             'ldap': 'LDAP directory',
             'oidc': 'Identity provider (OIDC)',
             'github': 'GitHub',

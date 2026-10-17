@@ -1,4 +1,4 @@
-"""Verified backup and restore operations for the WebSSH data directory."""
+"""Verified backup and restore operations for the PixShell data directory."""
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -197,7 +197,7 @@ def evaluate_backup_compatibility(manifest):
     if data_schema_version > _CURRENT_DATA_SCHEMA_VERSION:
         return BackupCompatibility(
             compatible=False,
-            reason='backup data schema is newer than this WebSSH version',
+            reason='backup data schema is newer than this PixShell version',
             **common,
         )
 
@@ -507,12 +507,12 @@ def _validate_webssh_database(path: Path) -> None:
             )
         }
         if 'users' not in tables:
-            raise BackupIntegrityError('backup database is not a WebSSH database')
+            raise BackupIntegrityError('backup database is not a PixShell database')
         user_columns = {
             row[1] for row in connection.execute('PRAGMA table_info(users)')
         }
         if not {'id', 'username', 'password_hash'} <= user_columns:
-            raise BackupIntegrityError('backup database is not a WebSSH database')
+            raise BackupIntegrityError('backup database is not a PixShell database')
     except BackupIntegrityError:
         raise
     except (OSError, sqlite3.DatabaseError) as exc:

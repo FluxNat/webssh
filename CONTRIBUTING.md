@@ -1,4 +1,4 @@
-# Contributing to WebSSH
+# Contributing to PixShell
 
 Thanks for your interest in contributing! This project is open to contributions of all kinds - bug reports, feature requests, documentation improvements, and code.
 

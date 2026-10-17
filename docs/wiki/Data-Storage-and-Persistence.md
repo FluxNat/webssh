@@ -1,6 +1,6 @@
 # Data Storage and Persistence
 
-All durable WebSSH state belongs under `DATA_DIR`. Mount that directory on persistent storage and back it up as one coordinated unit.
+All durable PixShell state belongs under `DATA_DIR`. Mount that directory on persistent storage and back it up as one coordinated unit.
 
 Container deployments require an absolute `DATA_DIR`. The entrypoint derives
 the logs, SSH-key storage, and generated `secret_key` from this single
@@ -44,7 +44,7 @@ Exact auxiliary files can evolve. Do not selectively copy only the database and 
 - OIDC identities and one-use login state;
 - LDAP identity links and authorization metadata.
 
-SQLite is part of the one-process architecture. Do not run multiple independent WebSSH workers or containers against the same database and data directory.
+SQLite is part of the one-process architecture. Do not run multiple independent PixShell workers or containers against the same database and data directory.
 
 ## Per-user files
 
@@ -54,7 +54,7 @@ Profiles, commands, command sets, jump hosts, application settings, notes, encry
 
 JSON-backed state follows a full load-modify-save cycle while holding the shared storage lock. Writes use an atomic temporary-file replacement and filesystem synchronization. Corrupt JSON is not silently replaced with an empty default because doing so could turn a recoverable incident into permanent data loss.
 
-Do not edit these files while WebSSH is running. Use the UI or supported APIs.
+Do not edit these files while PixShell is running. Use the UI or supported APIs.
 For an oversized legacy profile or jump-host store, stop every process and use
 the `connection-store` Flask CLI so recovery remains inside the configured hard
 byte and record ceilings; avoid hand-editing JSON.
@@ -73,15 +73,15 @@ Copying user files without `app.db` and the matching `SECRET_KEY` is not a valid
 
 ## Deleted accounts
 
-User deletion first moves the user's directory to a quarantine area under `deleted_users`. If the database transaction fails, WebSSH attempts to restore the directory. Quarantine is an integrity mechanism, not an indefinite retention or backup strategy; apply an explicit policy to this sensitive residual data.
+User deletion first moves the user's directory to a quarantine area under `deleted_users`. If the database transaction fails, PixShell attempts to restore the directory. Quarantine is an integrity mechanism, not an indefinite retention or backup strategy; apply an explicit policy to this sensitive residual data.
 
 ## Permissions
 
-Run the container or process under a dedicated identity and restrict `DATA_DIR` to it. Secret files should be read-only wherever possible. Avoid network filesystems with weak locking or atomic-rename semantics unless their behavior has been tested with SQLite and WebSSH's write pattern.
+Run the container or process under a dedicated identity and restrict `DATA_DIR` to it. Secret files should be read-only wherever possible. Avoid network filesystems with weak locking or atomic-rename semantics unless their behavior has been tested with SQLite and PixShell's write pattern.
 
 ## Backup rule
 
-Use WebSSH's native backup workflow for a live instance. For an offline filesystem backup, stop every WebSSH process first and capture the complete directory consistently. See [Backup, Restore, and Secret Rotation](Backup-Restore-and-Secret-Rotation).
+Use PixShell's native backup workflow for a live instance. For an offline filesystem backup, stop every PixShell process first and capture the complete directory consistently. See [Backup, Restore, and Secret Rotation](Backup-Restore-and-Secret-Rotation).
 
 Online restore has a second persistence boundary: its private rollback journal
 and emergency archive must use a durable absolute `BACKUP_TEMP_DIR` outside

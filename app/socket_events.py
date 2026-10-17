@@ -736,7 +736,7 @@ def _close_transport_after_rejected_connect(handler):
 
 def _reject_socket_protocol_mismatch(auth, user):
     received_revision = _socket_wire_revision(auth)
-    message = 'WebSSH was updated. Reload this page to continue.'
+    message = 'PixShell was updated. Reload this page to continue.'
     mismatch_payload = {
         'status': 'reload_required',
         'code': SOCKET_PROTOCOL_MISMATCH_EVENT,

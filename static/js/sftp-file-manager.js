@@ -1097,7 +1097,7 @@ class SFTPFileManager extends window.FileDirectoryRequests {
                     <h2 id="fmModalTitle">
                         <span class="fm-workspace-title-icon"><span class="material-icons" aria-hidden="true">folder_open</span></span>
                         <span class="fm-workspace-title-copy">
-                            <span class="fm-workspace-brand">WebSSH</span>
+                            <span class="fm-workspace-brand">PixShell</span>
                             <span data-i18n="fm.title">File Manager</span>
                         </span>
                     </h2>

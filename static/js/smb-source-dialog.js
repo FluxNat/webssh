@@ -519,7 +519,7 @@
                 this.setStatus(
                     this.t(
                         'smb.error.disconnected',
-                        'Connection to WebSSH was lost. Reconnect and try again.',
+                        'Connection to PixShell was lost. Reconnect and try again.',
                     ),
                     'error',
                 );

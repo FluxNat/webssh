@@ -56,9 +56,9 @@ def test_security_center_requires_login_and_exposes_management_controls(
     assert b'non-discoverable passkey' in authenticated.data
     assert b'id="securityAssuranceOverview"' in authenticated.data
     assert b'id="securityCurrentMethod"' in authenticated.data
-    assert b'WebSSH password' in authenticated.data
+    assert b'PixShell password' in authenticated.data
     assert b'How security changes are confirmed' in authenticated.data
-    assert b'WebSSH password from this sign-in' in authenticated.data
+    assert b'PixShell password from this sign-in' in authenticated.data
     assert b'id="securityCurrentAssurance"' not in authenticated.data
     assert b'BASIC' not in authenticated.data
 

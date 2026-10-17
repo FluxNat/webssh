@@ -11,7 +11,7 @@ Source and license checked: 2026-10-16
 
 Changes: the first 60 seconds were excerpted, the level was adjusted,
 and a 1.5-second fade-in and 4-second fade-out were applied.
-The excerpt accompanies the WebSSH product walkthrough.
+The excerpt accompanies the PixShell product walkthrough.
 
 The music retains its CC BY 4.0 license; it is not covered by the
 repository's MIT software license. Keep this attribution and license

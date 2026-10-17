@@ -6,7 +6,7 @@ const { describeSSHError } = require('../../static/js/ssh-error-ui.js');
 
 test('host-key changes get a fail-closed explanation and same-origin trust action', () => {
     const values = {
-        'sshErrors.hostKeyChanged': 'Der Server zeigt einen anderen SSH-Host-Schlüssel. WebSSH hat die Verbindung blockiert.',
+        'sshErrors.hostKeyChanged': 'Der Server zeigt einen anderen SSH-Host-Schlüssel. PixShell hat die Verbindung blockiert.',
         'sshErrors.reviewTrust': 'SSH-Host-Vertrauen prüfen',
     };
     const result = describeSSHError(

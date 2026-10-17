@@ -237,7 +237,7 @@ test('mobile Settings uses one categorized selector and the user filters report 
     await expect(page.locator('#settingsMobileSection optgroup[label="Mein Konto"]')).toHaveCount(1);
     await expect(page.locator('#settingsMobileSection option[value="security-overview"]')).toHaveText('Sicherheitsübersicht');
     await expect(page.locator('#settingsThemeSelect optgroup[label="Professionelle Designs"]')).toHaveCount(1);
-    await expect(page).toHaveTitle('Einstellungen · Web SSH Terminal');
+    await expect(page).toHaveTitle('Einstellungen · PixShell');
     await page.locator('#settingsLanguageSelect').selectOption('en');
 });
 

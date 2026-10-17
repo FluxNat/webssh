@@ -2,7 +2,7 @@
 
 Passkeys and authenticator apps are optional account factors. Recovery Codes
 provide second-factor recovery after a valid primary login. LDAP-managed users
-may enroll these local WebSSH factors after recent directory verification; the
+may enroll these local PixShell factors after recent directory verification; the
 LDAP password remains exclusively directory-managed and is never stored.
 
 ## Capability and activation
@@ -21,7 +21,7 @@ Passkeys are disabled by default. Configure the exact browser-visible origin:
 ```bash
 WEBAUTHN_ENABLED=true
 WEBAUTHN_RP_ID=ssh.example.com
-WEBAUTHN_RP_NAME=WebSSH
+WEBAUTHN_RP_NAME=PixShell
 WEBAUTHN_ORIGIN=https://ssh.example.com
 MAX_WEBAUTHN_JSON_SIZE=65536
 ```
@@ -53,12 +53,12 @@ Passkeys can be used in two distinct ways:
 
 Merely enrolling a Passkey does not make the account password path require a
 second factor. After adding and testing a Passkey, choose **Require Passkey MFA
-for password sign-in** in **Security**. WebSSH requires recent action-bound
+for password sign-in** in **Security**. PixShell requires recent action-bound
 Step-up, enables account MFA atomically, and returns a new ten-code Recovery set
 once. Store those codes before leaving the page.
 
 When account MFA is enabled, an enrolled Passkey is one eligible second factor;
-WebSSH does not require the same specific Passkey on every login. Direct Passkey
+PixShell does not require the same specific Passkey on every login. Direct Passkey
 login remains available and already provides phishing-resistant assurance.
 
 The Admin authentication-feature switches are deployment and availability
@@ -85,18 +85,18 @@ out the account.
 
 ## Legacy passkeys
 
-Older WebSSH releases could create non-discoverable credentials. They cannot be
+Older PixShell releases could create non-discoverable credentials. They cannot be
 used by the current username-less flow.
 
 Complete primary login and another available factor, or use Recovery after
 primary verification, open **Security**, and choose **Replace legacy passkey**.
-After recent primary authentication, WebSSH permits the same authenticator to
+After recent primary authentication, PixShell permits the same authenticator to
 create a discoverable replacement. Test the new credential before deleting the
 old record.
 
 ## Authenticator apps (TOTP)
 
-Set the deployment ceiling and restart/recreate WebSSH:
+Set the deployment ceiling and restart/recreate PixShell:
 
 ```bash
 TOTP_ENABLED=true
@@ -115,7 +115,7 @@ toggle makes enrollment available but does not enroll or force users.
 
 Each enrolled authenticator can be removed separately after action-bound
 Step-up. Removing the final TOTP authenticator keeps account MFA enabled when
-an active Passkey remains. WebSSH blocks removal of the last durable Passkey or
+an active Passkey remains. PixShell blocks removal of the last durable Passkey or
 TOTP factor while MFA is enabled; add and test a replacement first, or use the
 separate explicit MFA-disable action. Explicit disable removes all stored TOTP
 authenticators, while enrolled Passkeys remain available for direct sign-in.
@@ -130,7 +130,7 @@ RECOVERY_CODES_ENABLED=false
 
 `MAX_RECOVERY_JSON_SIZE` defaults to 4096 bytes.
 
-WebSSH generates ten codes by default and supports a bounded set of 1-20. The
+PixShell generates ten codes by default and supports a bounded set of 1-20. The
 plaintext codes are returned once. Only domain-separated SHA-256 hashes are
 stored, and verification performs fixed expensive work to reduce obvious timing
 differences.
@@ -140,13 +140,13 @@ differences.
 1. Open **Security** while signed in.
 2. Generate a recovery set.
 3. Save it in an encrypted password manager or another offline secure location.
-4. Confirm the storage can be accessed without the WebSSH instance.
+4. Confirm the storage can be accessed without the PixShell instance.
 
 Generating a new set replaces the previous set. Each code is consumed once.
 
 ## Recover the second factor
 
-First complete the account's local-password or LDAP primary login. When WebSSH
+First complete the account's local-password or LDAP primary login. When PixShell
 asks for MFA, select Recovery and enter one unused code. OIDC basic assurance
 can likewise lead to the local factor selection when the linked account enabled
 MFA.
@@ -166,14 +166,14 @@ through a trusted channel. The administrator cannot retrieve old codes.
 An administrator can also perform an explicit MFA reset. This deletes the
 target's Passkeys, TOTP authenticators/enrollments, WebAuthn challenges, and
 Recovery Codes, disables MFA, increments the account authentication generation,
-and revokes that target's WebSSH/SSH sessions. The response never returns factor
+and revokes that target's PixShell/SSH sessions. The response never returns factor
 secrets. Use this only as a deliberate account-recovery action.
 
 ## Avoid lockout
 
 - Keep at least one local break-glass administrator with two tested factors.
 - Test passkey sign-in after enrollment and origin changes.
-- Keep recovery codes separate from the WebSSH host and data volume.
+- Keep recovery codes separate from the PixShell host and data volume.
 - Do not remove the last working factor until its replacement is tested.
 - After a suspected code disclosure, generate a new set immediately.
 

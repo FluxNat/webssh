@@ -4,13 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="app-root" content="{{ url_prefix }}">
-    <title data-i18n="auth.registerPageTitle">Create account · WebSSH</title>
+    <link rel="icon" type="image/svg+xml" href="{{ static_asset_url(filename='images/pixshell-icon.svg') }}">
+    <title data-i18n="auth.registerPageTitle">Create account · PixShell</title>
     <link rel="stylesheet" href="{{ static_asset_url(filename='vendor/material-icons/material-icons.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/auth.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/webssh-2.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/ui-refresh.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/pixshell.css') }}">
+    <script src="{{ static_asset_url(filename='js/pixshell-motion.js') }}" defer></script>
 </head>
 <body data-theme="glass" data-use-theme-preference data-defer-theme-background>
     <script src="{{ static_asset_url(filename='js/theme-preference.js') }}"></script>
@@ -37,15 +39,15 @@
             <section class="auth-access-dock">
                 <div class="auth-context-panel">
                     <div class="auth-brand-lockup">
-                        <a class="auth-product-brand" href="{{ url_for('login') }}" aria-label="WebSSH sign in" data-i18n-aria-label="auth.websshSignIn">
+                        <a class="auth-product-brand" href="{{ url_for('login') }}" aria-label="PixShell sign in" data-i18n-aria-label="auth.websshSignIn">
                             <img class="auth-product-logo" src="{{ static_asset_url(filename='images/pixshell-logo.svg') }}" alt="PixShell">
                         </a>
                         <p class="auth-context-footer" data-i18n="brand.tagline">Your shell. Your rules.</p>
                     </div>
                     <div class="auth-context-copy">
-                        <span class="auth-brand-eyebrow" data-i18n="auth.welcomeToWebssh">Welcome to WebSSH</span>
+                        <span class="auth-brand-eyebrow" data-i18n="auth.welcomeToWebssh">Welcome to PixShell</span>
                         <h1 data-i18n="auth.serverControlCenter">The control center for your servers.</h1>
-                        <ul class="auth-product-pillars" aria-label="WebSSH product areas" data-i18n-aria-label="auth.productAreas">
+                        <ul class="auth-product-pillars" aria-label="PixShell product areas" data-i18n-aria-label="auth.productAreas">
                             <li data-product-area="ssh-workspaces">
                                 <span class="material-icons" aria-hidden="true">terminal</span>
                                 <strong data-i18n="navigation.sshWorkspaces">SSH Workspaces</strong>
@@ -70,7 +72,7 @@
         <div class="auth-card">
             <div class="auth-header">
                 <span class="auth-form-eyebrow" data-i18n="auth.registration">Registration</span>
-                <h1 data-i18n="auth.registerPrompt">Create a local WebSSH account</h1>
+                <h1 data-i18n="auth.registerPrompt">Create a local PixShell account</h1>
                 <p data-i18n="auth.registrationHint">Choose credentials for this instance. You can add stronger factors after sign-in.</p>
             </div>
 

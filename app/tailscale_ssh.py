@@ -171,7 +171,7 @@ def target_uses_tailscale_route(address):
 
 
 def user_can_use_tailscale_ssh(user):
-    """Return whether a WebSSH user may use the node's Tailscale identity."""
+    """Return whether a PixShell user may use the node's Tailscale identity."""
     if not config.TAILSCALE_SSH_ENABLED or not user:
         return False
     return bool(

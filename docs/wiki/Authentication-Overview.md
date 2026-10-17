@@ -1,7 +1,7 @@
 # Authentication Overview
 
-WebSSH supports local credentials plus optional external identity methods. All
-methods resolve to an existing WebSSH `User`; identity providers do not grant
+PixShell supports local credentials plus optional external identity methods. All
+methods resolve to an existing PixShell `User`; identity providers do not grant
 unbounded access to application state.
 
 Authentication assurance is derived conservatively from the completed method
@@ -12,7 +12,7 @@ upgrade a session silently.
 
 | Method | Default | Identity binding | Suitable for |
 |---|---:|---|---|
-| Local password | Enabled | WebSSH username | Bootstrap, break-glass, ordinary local accounts |
+| Local password | Enabled | PixShell username | Bootstrap, break-glass, ordinary local accounts |
 | Passkey/WebAuthn | Disabled | Credential owned by a local account | Phishing-resistant local sign-in |
 | Authenticator app (TOTP) | Disabled | Encrypted secret owned by a local account | Optional second factor after password, LDAP, or basic OIDC |
 | Recovery code | Enabled | One-time code owned by a local account | Second-factor recovery after valid primary login |
@@ -22,7 +22,7 @@ upgrade a session silently.
 
 ## Common controls
 
-![WebSSH authentication assurance flow from primary identity through optional MFA and Recovery to administrator step-up](https://github.com/bifrost0x/webssh/blob/main/docs/media/diagrams/authentication-assurance.png?raw=true)
+![PixShell authentication assurance flow from primary identity through optional MFA and Recovery to administrator step-up](https://github.com/bifrost0x/webssh/blob/main/docs/media/diagrams/authentication-assurance.png?raw=true)
 
 Primary authentication, account MFA, Recovery, and administrator Step-up are
 separate contracts. Recovery never substitutes for the primary credential, and
@@ -42,7 +42,7 @@ sensitive action and target.
 
 ## Browser sign-in duration
 
-A normal WebSSH browser sign-in expires after 30 minutes by default, even while
+A normal PixShell browser sign-in expires after 30 minutes by default, even while
 an SSH session is active. This authentication lifetime is separate from the SSH
 idle timeout. Each user can select 30 minutes, 1 hour, 2 hours, 4 hours, or 8
 hours under **Settings → Preferences → Sign-in session**. The selected duration
@@ -84,13 +84,13 @@ delete, logout, or administrator MFA reset remains a revoking operation.
 
 MFA is never forced globally. Users without an enrolled and enabled factor keep
 their current login. Once a user enables MFA, password or LDAP performs the
-primary step and WebSSH offers only factors actually available to that account:
+primary step and PixShell offers only factors actually available to that account:
 Passkey, TOTP, and Recovery when enabled. A signed OIDC login can satisfy MFA
 only when its exact `acr` or `amr` value matches operator configuration.
 
 ## Local passwords
 
-WebSSH passwords are bcrypt hashes with generated salts. They are separate from
+PixShell passwords are bcrypt hashes with generated salts. They are separate from
 SSH target passwords. Target passwords are used for connection establishment
 and are not written into profiles, the database, or audit logs.
 
@@ -111,7 +111,7 @@ See [Passkeys and Recovery Codes](Passkeys-and-Recovery-Codes).
 ## Recovery codes
 
 Recovery codes are one-time second-factor recovery for accounts that enabled
-MFA. WebSSH stores only domain-separated hashes and performs fixed expensive
+MFA. PixShell stores only domain-separated hashes and performs fixed expensive
 verification work. A new set invalidates the old set. The primary password or
 LDAP verification must succeed before a code can be submitted.
 
@@ -130,20 +130,20 @@ admission filters, not identity keys.
 
 Assurance is conservative: absent, malformed, or unmapped signed claims remain
 `BASIC`. Provider push can be used only through the provider's own policy and a
-documented signed claim; WebSSH does not operate a mobile push service.
+documented signed claim; PixShell does not operate a mobile push service.
 
 See [OpenID Connect](OpenID-Connect).
 
 ## LDAP and Active Directory
 
 LDAP uses mandatory certificate-verified StartTLS or LDAPS. A service account
-searches for exactly one entry, then WebSSH binds with the submitted user
+searches for exactly one entry, then PixShell binds with the submitted user
 password. The password is not stored.
 
 An administrator links the directory's stable ID to an existing non-admin
 account. The primary credential becomes exclusively LDAP-managed and is
 periodically revalidated fail-closed. After a recent directory login the user
-may enroll local Passkey or TOTP second factors; WebSSH never stores the LDAP
+may enroll local Passkey or TOTP second factors; PixShell never stores the LDAP
 password.
 
 See [LDAP and Active Directory](LDAP-and-Active-Directory).
@@ -152,7 +152,7 @@ See [LDAP and Active Directory](LDAP-and-Active-Directory).
 
 GitHub is configured at runtime in the Admin Panel and does not require a
 Compose overlay, environment variables, or an additional secret mount. The
-authorization-code flow uses PKCE and server-side one-use state. WebSSH keeps
+authorization-code flow uses PKCE and server-side one-use state. PixShell keeps
 only the immutable numeric GitHub user ID and display metadata; temporary user
 access tokens are discarded after identity and optional organization checks.
 
@@ -174,7 +174,7 @@ Recovery, and LDAP flows have different failure and recovery semantics.
 Sensitive Admin mutations require a fresh, action-bound authorization. Local
 administrators without MFA confirm their password. MFA-enabled administrators
 use Passkey or TOTP. Recent sufficient OIDC assurance may be reused; otherwise
-WebSSH opens provider reauthentication with `prompt=login`, `max_age=0`, and
+PixShell opens provider reauthentication with `prompt=login`, `max_age=0`, and
 configured `acr_values`.
 
 The opaque grant lasts at most five minutes, works once, and is bound to the
@@ -184,7 +184,7 @@ required assurance. A token for locking user 7 cannot promote user 7, lock user
 
 ## Session revocation
 
-Account revocation is broader than clearing a cookie. WebSSH attempts to cancel
+Account revocation is broader than clearing a cookie. PixShell attempts to cancel
 transfers, disconnect Socket.IO sessions, close SSH sessions, close pooled
 connections, and remove persisted session metadata.
 
@@ -195,7 +195,7 @@ sessions; users can finish within the normal configured lifetime.
 
 ## Recommended rollout order
 
-1. Deploy WebSSH with a local administrator.
+1. Deploy PixShell with a local administrator.
 2. Test local login and store break-glass Recovery Codes offline.
 3. Put the instance behind its final HTTPS origin.
 4. Allow and activate Passkeys/TOTP, then let a pilot user enroll voluntarily.

@@ -135,6 +135,125 @@ body[data-theme="glass"] .app-brand-logo {
 }
 
 /* ------------------------------------------------------------------ */
+/* Buttons                                                             */
+/* ------------------------------------------------------------------ */
+/* One button system: the base geometry (inline-flex, 36px, 10px radius)
+   lives in webssh-2.css so existing modifiers keep overriding it. This
+   layer adds motion and states. The base pins `transform: none !important`
+   on .btn, so motion uses the independent translate/scale properties. */
+.btn {
+    transition:
+        background-color 160ms ease,
+        border-color 160ms ease,
+        color 160ms ease,
+        box-shadow 220ms ease,
+        opacity 160ms ease,
+        translate 180ms cubic-bezier(0.22, 1, 0.36, 1),
+        scale 120ms ease;
+}
+
+/* The base inline-flex display (in webssh-2.css) would otherwise beat the hidden attribute. */
+.btn[hidden] {
+    display: none !important;
+}
+
+/* Menus list their actions left-aligned. */
+.admin-action-menu .admin-actions .btn,
+.command-set-action-menu-items .btn,
+.profile-action-menu-items .btn,
+.command-row .cmd-copy {
+    justify-content: flex-start;
+}
+
+.btn.material-icons {
+    width: 36px;
+    min-width: 36px;
+    padding: 0;
+    font-size: 19px;
+}
+
+.btn-sm {
+    min-height: 30px;
+    padding: 5px 11px;
+    border-radius: 8px;
+    font-size: 12px;
+}
+
+.btn:not(:disabled):active {
+    scale: 0.97;
+}
+
+.btn-primary:hover:not(:disabled),
+.btn-danger:hover:not(:disabled) {
+    translate: 0 -1px;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--accent-primary) 40%, var(--border-hover));
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.5;
+    box-shadow: none;
+}
+
+:where(.btn, button, [role="tab"], a):focus-visible {
+    outline: 2px solid var(--accent-primary) !important;
+    outline-offset: 2px;
+}
+
+/* Ripple layer added by pixshell-motion.js; it clips itself to the button
+   so buttons never need overflow: hidden. Its targets must be positioned. */
+.tab-row-icon-btn,
+.split-btn {
+    position: relative;
+}
+
+.px-ripple-host {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+.px-ripple {
+    position: absolute;
+    top: var(--px-ripple-y);
+    left: var(--px-ripple-x);
+    width: var(--px-ripple-size);
+    height: var(--px-ripple-size);
+    border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, currentColor 22%, transparent) 0%, transparent 62%);
+    animation: px-ripple 560ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes px-ripple {
+    from {
+        opacity: 1;
+        scale: 0.1;
+    }
+
+    to {
+        opacity: 0;
+        scale: 1;
+    }
+}
+
+/* Dialog backdrops fade while the dialog itself rises (ui-refresh.css). */
+.modal.show:not(.primary-workspace-view, #sftpFileManager) {
+    animation: px-backdrop-in 260ms ease backwards;
+}
+
+@keyframes px-backdrop-in {
+    from {
+        opacity: 0;
+    }
+}
+
+/* ------------------------------------------------------------------ */
 /* Credential switches (Quick Connect and saved connections)           */
 /* ------------------------------------------------------------------ */
 .quick-connect-save {

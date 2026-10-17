@@ -1,7 +1,7 @@
 # OpenID Connect
 
-WebSSH provides optional OIDC authorization-code authentication with PKCE. It
-is disabled by default and never auto-provisions a WebSSH account.
+PixShell provides optional OIDC authorization-code authentication with PKCE. It
+is disabled by default and never auto-provisions a PixShell account.
 
 ## Identity model
 
@@ -9,7 +9,7 @@ A signed-in user or administrator links an exact provider identity to an
 existing local account:
 
 ```text
-(normalized issuer, subject) -> WebSSH user
+(normalized issuer, subject) -> PixShell user
 ```
 
 Email addresses and usernames are not identity keys. Optional subject and email
@@ -22,7 +22,7 @@ accounts.
 
 - OIDC discovery and authorization-code flow.
 - Exact HTTPS issuer.
-- Registered WebSSH client ID.
+- Registered PixShell client ID.
 - Client secret stored in a private read-only file.
 - Exact callback URL ending in `/oidc/callback`.
 - Claims containing a stable `sub` and the expected issuer.
@@ -77,7 +77,7 @@ OIDC from the browser.
 
 ## Assurance and MFA claims
 
-`acr` and `amr` values are provider-specific. WebSSH never guesses their
+`acr` and `amr` values are provider-specific. PixShell never guesses their
 meaning. It normalizes only bounded signed token claims and compares them to the
 exact operator-configured sets above:
 
@@ -87,12 +87,12 @@ exact operator-configured sets above:
 
 Configure values only from the documentation and observed signed tokens of this
 exact provider/app policy. A basic OIDC login cannot bypass MFA already enabled
-on the linked WebSSH account; WebSSH continues with an available local Passkey,
+on the linked PixShell account; PixShell continues with an available local Passkey,
 TOTP, or Recovery second factor.
 
 ### Push on a mobile device
 
-WebSSH does not send push notifications. Push works when the OIDC provider's
+PixShell does not send push notifications. Push works when the OIDC provider's
 authentication policy invokes its own mobile app and returns a signed `acr` or
 `amr` value that the operator mapped. This commonly requires provider-side MFA
 or Conditional Access policy, app registration, and an allowed callback. Test
@@ -100,7 +100,7 @@ both a successful push and a password-only login before trusting the mapping.
 
 ## OIDC administrator Step-up
 
-For a sensitive Admin action, WebSSH can open provider reauthentication with
+For a sensitive Admin action, PixShell can open provider reauthentication with
 `prompt=login`, `max_age=0`, and `OIDC_STEP_UP_ACR_VALUES`. The callback must:
 
 - belong to the currently authenticated administrator;
@@ -109,13 +109,13 @@ For a sensitive Admin action, WebSSH can open provider reauthentication with
 - meet the requested exact signed assurance;
 - consume the one-use state successfully.
 
-Only then does WebSSH create a one-use five-minute grant bound to the exact
+Only then does PixShell create a one-use five-minute grant bound to the exact
 Admin action and target. The popup returns no grant in its URL; the opener polls
 once and sends the grant directly in the protected request.
 
 ## Protocol protections
 
-WebSSH creates a random state, nonce, PKCE verifier, and browser-session binding
+PixShell creates a random state, nonce, PKCE verifier, and browser-session binding
 for each login. The state record is stored server-side, consumed once, and
 deleted before the identity is accepted. The callback validates state binding,
 expiry, token claims, nonce, issuer, subject policy, domain policy, account link,
@@ -129,13 +129,13 @@ or secret details.
 The recommended path does not require copying a provider subject:
 
 1. Enable and activate OIDC.
-2. Sign in to the target WebSSH account with an existing sign-in method.
+2. Sign in to the target PixShell account with an existing sign-in method.
 3. Open **Settings → Security methods → Identity provider**.
-4. Choose **Connect identity provider** and complete the action-bound WebSSH
+4. Choose **Connect identity provider** and complete the action-bound PixShell
    confirmation.
 5. Sign in to the configured provider.
 
-The callback is bound to the same browser session and local account. WebSSH
+The callback is bound to the same browser session and local account. PixShell
 stores only the provider-verified issuer and subject after the state, nonce,
 PKCE, allowlist, and domain checks succeed. It never searches for a matching
 username or email address. Repeating the flow can attach another identity from
@@ -143,7 +143,7 @@ the same provider to the account.
 
 ### Administrator fallback
 
-1. Enable OIDC and restart WebSSH.
+1. Enable OIDC and restart PixShell.
 2. Sign in as a local administrator.
 3. Create or select the target local account.
 4. In the Admin Panel, choose the OIDC link action.

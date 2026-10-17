@@ -68,7 +68,7 @@ configuration before recreating containers; keep data and recovery volumes intac
 - Logs show no migration, maintenance, or permission error.
 
 Browser tabs opened before an upgrade may still run an incompatible Socket.IO
-client. WebSSH rejects the mismatch before restoring or registering runtime
+client. PixShell rejects the mismatch before restoring or registering runtime
 sessions. Clients that support the wire-revision check reload once and then
 show a persistent manual reload action instead of retrying in a loop. A tab
 from an older release cannot interpret the structured refusal and may show
@@ -94,7 +94,7 @@ backup compatibility result before forcing any change.
 Use restore only when persistent state is damaged or an intentional state
 rollback is required. Restore is destructive and invalidates all browser
 sessions. Prefer a backup produced by the same or an older compatible schema.
-Backups from a newer schema are rejected by an older WebSSH release.
+Backups from a newer schema are rejected by an older PixShell release.
 
 See [Backup, Restore and Secret Rotation](Backup-Restore-and-Secret-Rotation).
 
@@ -111,10 +111,10 @@ the documented bounds and preserve at least four HTTP threads.
 No. Redis can preserve rate-limit counters across restarts. It does not
 externalize live SSH sessions or runtime coordination.
 
-### Is WebSSH end-to-end encrypted?
+### Is PixShell end-to-end encrypted?
 
-No. HTTPS protects browser-to-WebSSH traffic and SSH protects
-WebSSH-to-target traffic. The WebSSH process necessarily sees terminal and file
+No. HTTPS protects browser-to-PixShell traffic and SSH protects
+PixShell-to-target traffic. The PixShell process necessarily sees terminal and file
 data between those links.
 
 ### Are SSH passwords stored?
@@ -126,7 +126,7 @@ process memory.
 
 ### Why did tmux fall back to a normal shell?
 
-tmux must be installed and usable on the remote host. If unavailable, WebSSH
+tmux must be installed and usable on the remote host. If unavailable, PixShell
 opens a regular shell.
 
 ### Why does `/ready` fail while `/health` succeeds?
@@ -153,7 +153,7 @@ password and CA secret volume is intentionally excluded.
 
 ### Why was a changed SSH host key rejected?
 
-WebSSH stores first-use trust persistently. A changed key can indicate a server
+PixShell stores first-use trust persistently. A changed key can indicate a server
 rebuild, DNS/IP reassignment, or interception. Verify the new fingerprint out of
 band, remove the old trust record deliberately, and reconnect.
 

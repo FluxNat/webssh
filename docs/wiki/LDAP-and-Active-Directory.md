@@ -17,7 +17,7 @@ Opt in with `docker-compose.ldap.yml`.
 - Searches are subtree-scoped, limited to two results, and must resolve to
   exactly one entry.
 - With the safe default `LDAP_AUTO_PROVISION=false`, an administrator links a
-  stable directory identity to an existing WebSSH account. Explicit opt-in can
+  stable directory identity to an existing PixShell account. Explicit opt-in can
   create a non-admin account only after successful directory authentication;
   username-only trust is never sufficient.
 - Linked LDAP users cannot be administrators and cannot fall back to a local
@@ -35,13 +35,13 @@ Collect these values from the directory administrator:
 2. `ldap://host:389` with mandatory StartTLS or `ldaps://host:636`.
 3. The user search base DN.
 4. A read-only bind DN and password.
-5. A PEM CA bundle containing the issuer chain needed by WebSSH.
+5. A PEM CA bundle containing the issuer chain needed by PixShell.
 6. A user filter containing exactly one literal `{username}` placeholder.
 7. A stable unique-ID attribute: usually `entryUUID` for OpenLDAP or
    `objectGUID` for Active Directory.
 8. The directory's real disabled or locked account rule.
 
-DNS and system time must work inside the WebSSH container. Do not use an IP
+DNS and system time must work inside the PixShell container. Do not use an IP
 address when the certificate contains only a DNS name.
 
 For example, use `ldap://ldap.example.com:389` with mandatory StartTLS or
@@ -50,7 +50,7 @@ For example, use `ldap://ldap.example.com:389` with mandatory StartTLS or
 ## Configure the Compose overlay
 
 Edit `docker-compose.ldap.yml` and fill every empty directory value. Use the
-base and LDAP files from the same WebSSH release or commit.
+base and LDAP files from the same PixShell release or commit.
 
 ### Active Directory example
 
@@ -74,7 +74,7 @@ vary and must be validated by the AD administrator.
 
 `LDAP_BACKUP_URL` is optional and must identify another server for the same
 logical directory. It is tried only after the primary endpoint is unavailable.
-WebSSH connects to each URL directly, so every endpoint DNS name must match its
+PixShell connects to each URL directly, so every endpoint DNS name must match its
 own TLS certificate and be trusted by `LDAP_CA_FILE`; a round-robin alias is not
 needed. Invalid user credentials are not retried against the backup endpoint.
 
@@ -116,7 +116,7 @@ attribute is not available.
 | `LDAP_SESSION_REVALIDATION_SECONDS` | `300` | 60-3600 seconds |
 | `LDAP_LOGIN_RATE_LIMIT` | `5 per minute` | Per-IP login and diagnostic limit |
 
-When LDAP is disabled, WebSSH does not read the secret files.
+When LDAP is disabled, PixShell does not read the secret files.
 
 `LDAP_ENABLED=true` is only the deployment ceiling. After the container starts
 with a valid directory configuration, sign in with the local break-glass
@@ -126,7 +126,7 @@ cannot create a provider at runtime.
 
 ## Populate the secret volume
 
-The overlay creates `webssh_auth_secrets`. WebSSH mounts it read-only at
+The overlay creates `webssh_auth_secrets`. PixShell mounts it read-only at
 `/run/webssh-auth`. The helper service is the only Compose service with write
 access; it has no network, runs read-only apart from the volume, drops all
 capabilities, and uses `no-new-privileges`.
@@ -188,7 +188,7 @@ the Flask app from starting.
      config
    ```
 
-4. Start or recreate WebSSH:
+4. Start or recreate PixShell:
 
    ```bash
    docker compose \
@@ -230,16 +230,16 @@ With `LDAP_AUTO_PROVISION=false` (recommended for controlled rollouts):
 2. Open **Admin → Settings → LDAP directory**.
 3. Run **Check connection**. The browser receives only readiness category,
    transport, and provider ID, never secrets.
-4. Create the target standard WebSSH account if it does not exist.
+4. Create the target standard PixShell account if it does not exist.
 5. On the Users tab, select **Link LDAP**.
 6. Complete the administrator Step-up prompt, then enter the directory username
-   and exact target WebSSH username.
+   and exact target PixShell username.
 7. Sign out and test **Sign in with LDAP**.
 
 Start with one non-admin pilot.
 
 For larger directories, `LDAP_AUTO_PROVISION=true` creates a non-admin,
-LDAP-managed WebSSH account only after the first successful directory password
+LDAP-managed PixShell account only after the first successful directory password
 bind. Automatic provisioning never claims an existing local username, never
 creates an administrator, rejects invalid or overlong names without silently
 truncating them, and does not automatically delete stored data when a directory
@@ -251,15 +251,15 @@ the stable ID still matches.
 
 Linking destroys the account's dormant local password and removes an
 incompatible OIDC mapping. Existing local MFA factors remain owned by the same
-WebSSH account and can protect LDAP primary login. The link operation revokes
+PixShell account and can protect LDAP primary login. The link operation revokes
 the target account's active access so the new identity boundary applies on its
 next login.
 
 ## LDAP with optional MFA
 
-LDAP proves the primary credential only. If the WebSSH account has not enabled
+LDAP proves the primary credential only. If the PixShell account has not enabled
 MFA, successful directory verification completes login as before. If the user
-has enabled MFA, WebSSH creates a short-lived pending transaction and offers
+has enabled MFA, PixShell creates a short-lived pending transaction and offers
 the account's active Passkey, TOTP, and Recovery methods. The LDAP password is
 discarded after the bind and is never stored for the second step.
 
@@ -269,7 +269,7 @@ second factor, but only after LDAP primary verification succeeds.
 
 ## Session revalidation
 
-Every linked account is revalidated at the configured interval. WebSSH revokes
+Every linked account is revalidated at the configured interval. PixShell revokes
 browser, Socket.IO, SSH, transfer, and pooled-connection access when:
 
 - LDAP is disabled;
@@ -284,7 +284,7 @@ An LDAP outage therefore signs users out by design.
 
 ## Disable LDAP
 
-Omit only `docker-compose.ldap.yml` when recreating WebSSH. For a homelab
+Omit only `docker-compose.ldap.yml` when recreating PixShell. For a homelab
 deployment, use the base file:
 
 ```bash
@@ -305,7 +305,7 @@ docker compose \
 This removes LDAP environment and mounts without dropping the production
 security profile. The named secret volume remains detached, new LDAP logins
 stop, and linked users do not regain old passwords. Container recreation closes
-open WebSSH and SSH sessions, so schedule this change as maintenance.
+open PixShell and SSH sessions, so schedule this change as maintenance.
 
 ## Return one user to local authentication
 
@@ -325,7 +325,7 @@ docker compose \
   run --rm ldap-tools remove
 ```
 
-Do not delete the normal WebSSH data volume. LDAP mappings live in SQLite and
+Do not delete the normal PixShell data volume. LDAP mappings live in SQLite and
 are covered by native backup/restore. The bind password and CA remain in the
 separate volume and are intentionally excluded.
 
@@ -334,7 +334,7 @@ separate volume and are intentionally excluded.
 ### Application refuses to start
 
 Run the standalone `status` helper, then read the exact configuration error in
-the WebSSH logs.
+the PixShell logs.
 
 ### Certificate failure
 
@@ -343,7 +343,7 @@ encoding. DER and PKCS#12 files are not CA bundles for this setting.
 
 ### Zero or multiple search results
 
-Test the search base and filter with the directory administrator. WebSSH never
+Test the search base and filter with the directory administrator. PixShell never
 selects one entry from an ambiguous result.
 
 ### AD user is found but bind fails
@@ -372,7 +372,7 @@ docker compose \
   up --build
 ```
 
-It exposes WebSSH on `http://localhost:5050` and uses test-only passwords.
+It exposes PixShell on `http://localhost:5050` and uses test-only passwords.
 Never deploy it as production infrastructure.
 
 The lab does not replace AD-specific acceptance testing for `objectGUID`,

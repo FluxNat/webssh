@@ -1,6 +1,6 @@
 # Profiles, Jump Hosts and Commands
 
-Saved connection data is private to each WebSSH account. Profiles intentionally
+Saved connection data is private to each PixShell account. Profiles intentionally
 exclude SSH and jump-host passwords.
 
 ## Saved profiles
@@ -58,7 +58,7 @@ Saved profiles and jump hosts have per-field, record-count, and serialized-byte
 budgets. The defaults permit 500 profiles, 100 jump hosts, 2 MiB per store, and
 4 MiB combined. Mutations share a per-user rate limit. The normal UI
 quarantines a legacy store above those limits so a large payload cannot be
-expanded through Socket.IO. Stop every WebSSH process, then use the bounded
+expanded through Socket.IO. Stop every PixShell process, then use the bounded
 recovery CLI to discover non-secret record summaries and opaque selectors, then
 delete exact records:
 
@@ -75,7 +75,7 @@ commands or unknown fields, and retains jump-host reference protection. The
 opaque selector binds one record's current ordinal and content, so repeated or
 truncated display IDs cannot delete the wrong record; list again after every
 successful deletion. No mutation may grow an oversized store. Stored key
-references must belong to the same WebSSH account.
+references must belong to the same PixShell account.
 
 For bastion-only DNS names that cannot resolve locally, configure an exact
 `PROXY_JUMP_REMOTE_DNS_ALLOWLIST`. Do not use wildcards.
@@ -99,7 +99,7 @@ Command sets combine ordered steps. A step can reference a library command or
 contain free text. Sets can be duplicated, reordered, assigned to profiles, and
 launched for an active session.
 
-![WebSSH command-set workflow from saved connections through ordered steps and profile assignment](https://github.com/bifrost0x/webssh/blob/main/assets/command-sets.gif?raw=true)
+![PixShell command-set workflow from saved connections through ordered steps and profile assignment](https://github.com/bifrost0x/webssh/blob/main/assets/command-sets.gif?raw=true)
 
 Profiles use an explicit startup mode:
 
@@ -117,10 +117,10 @@ command**. Library steps use the referenced command's current parameters by
 default; an explicit override may replace them, including with an intentionally
 empty value.
 
-**Run commands with sudo** is opt-in for new command sets. WebSSH prefixes each
+**Run commands with sudo** is opt-in for new command sets. PixShell prefixes each
 non-empty resolved command line unless it already starts with `sudo`; blank and
 comment-only lines remain unchanged. Existing command sets and sets created by
-legacy conversion keep their saved behavior. WebSSH does not store or answer a
+legacy conversion keep their saved behavior. PixShell does not store or answer a
 sudo password, so the remote account's normal prompt remains visible. The
 resolved command text has a maximum 4096 characters.
 
@@ -130,7 +130,7 @@ profile references it, and a library command cannot be deleted while a set or
 profile references it. The interface identifies the references that must be
 changed first.
 
-After a new SSH connection succeeds, WebSSH resolves the latest referenced
+After a new SSH connection succeeds, PixShell resolves the latest referenced
 definitions on the server. Command-set steps are joined with `&&` only between
 steps. Line breaks and shell control flow inside a free-text step remain
 unchanged. Reattaching to an existing persistent tmux session does not run them
@@ -150,13 +150,13 @@ single-line command to the terminal but does not press Enter, leaving the final
 review and execution to the operator.
 
 The optional **Insert with sudo** control prefixes the inserted command without
-changing the stored library entry. WebSSH does not store or answer a sudo
+changing the stored library entry. PixShell does not store or answer a sudo
 password; an interactive prompt remains in the terminal. Multiline entries are
 not inserted through this active-session shortcut.
 
 ## Post-connect behavior
 
-When a profile is assigned a post-connect action, WebSSH waits for the SSH
+When a profile is assigned a post-connect action, PixShell waits for the SSH
 channel to become usable and then submits the selected command text or ordered
 set. Use this only for commands that are safe to repeat after reconnect.
 

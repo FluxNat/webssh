@@ -1,4 +1,4 @@
-"""Structural contracts for the WebSSH application shell."""
+"""Structural contracts for the PixShell application shell."""
 
 from pathlib import Path
 import re
@@ -264,7 +264,7 @@ def test_authentication_pages_use_the_shared_professional_auth_shell():
     assert 'class="auth-context-copy"' in login
     assert 'The control center for your servers.' in login
     assert 'Confirm that it is really you.' in login
-    assert 'This password belongs only to your local WebSSH account.' in change_password
+    assert 'This password belongs only to your local PixShell account.' in change_password
 
 
 def test_authentication_pages_center_the_tagline_with_the_product_logo():

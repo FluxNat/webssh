@@ -12,7 +12,7 @@ and a healthcheck.
 - An operating-system build environment capable of installing the locked
   binary dependencies for the selected Python version.
 - Node.js only when updating or testing frontend assets. Node is not required
-  to serve WebSSH at runtime.
+  to serve PixShell at runtime.
 
 ## Clone and create a virtual environment
 
@@ -99,12 +99,12 @@ directories. Set an absolute service-owned directory for a managed deployment:
 export DATA_DIR=/var/lib/webssh
 ```
 
-Back up this directory with WebSSH's native backup tooling rather than copying
+Back up this directory with PixShell's native backup tooling rather than copying
 live files independently. See [Data Storage and Persistence](Data-Storage-and-Persistence).
 
 ## Frontend assets
 
-WebSSH has no frontend build pipeline for normal runtime. Browser dependencies
+PixShell has no frontend build pipeline for normal runtime. Browser dependencies
 are pinned in `package.json`, copied to `static/vendor/`, committed, and served
 locally. To intentionally refresh them:
 

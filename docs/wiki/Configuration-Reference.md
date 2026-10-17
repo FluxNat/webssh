@@ -1,6 +1,6 @@
 # Configuration Reference
 
-WebSSH reads configuration from environment variables. A local `.env` file is loaded with `override=False`, so variables supplied by the operating system, container runtime, or secret manager take precedence.
+PixShell reads configuration from environment variables. A local `.env` file is loaded with `override=False`, so variables supplied by the operating system, container runtime, or secret manager take precedence.
 
 Start from the repository's `.env.example`. The tables below describe the operational contract; check that file when upgrading because new options may be added.
 
@@ -60,7 +60,7 @@ Prefer `flask create-admin` for controlled deployments. Public registration is i
 | `BACKGROUND_WORKERS` | Calculated baseline | Bounded executor; minimum is cleanup jobs plus global SSH-session and background-job quotas |
 | `RUNTIME_SHUTDOWN_GRACE_SECONDS` | `5` | Graceful shutdown window; supported range `1` to `30` seconds |
 
-Production requires exactly one Gunicorn worker with `gthread`. Live SSH channels and part of the coordination state are process-local. Increasing worker count does not scale WebSSH safely.
+Production requires exactly one Gunicorn worker with `gthread`. Live SSH channels and part of the coordination state are process-local. Increasing worker count does not scale PixShell safely.
 
 Keep at least four HTTP threads free:
 
@@ -124,7 +124,7 @@ is still checked against the current key files, without caching decrypted keys.
 The key limits reject only storage growth. A pre-existing store above the byte
 limit remains readable and can be renamed, deleted, or replaced with smaller
 keys. Live terminal output is acknowledged by each browser. If one browser
-keeps an acknowledgement budget blocked for the configured timeout, WebSSH
+keeps an acknowledgement budget blocked for the configured timeout, PixShell
 applies SSH backpressure and then disconnects only that browser; the underlying
 SSH or persistent tmux session remains available for reconnect.
 
@@ -165,7 +165,7 @@ additional Socket.IO connections.
 | `CONNECTION_STORE_RECOVERY_MAX_BYTES` | `16777216` (16 MiB) |
 | `CONNECTION_STORE_RECOVERY_MAX_RECORDS` | `10000` |
 
-Bulk uploads and downloads are streamed over HTTP; Socket.IO carries control events and bounded editor content rather than entire files. Align proxy request-body and timeout limits with WebSSH when increasing an application limit.
+Bulk uploads and downloads are streamed over HTTP; Socket.IO carries control events and bounded editor content rather than entire files. Align proxy request-body and timeout limits with PixShell when increasing an application limit.
 
 SFTP directory responses are paged. Declared protocol packet and opaque handle
 size, raw entry count (including `.` and `..`), filename, longname, aggregate
@@ -182,7 +182,7 @@ reflected.
 | `CONNECTION_CONFIG_MAX_BYTES` | `4194304` (4 MiB combined) |
 
 Legacy stores above a normal limit are quarantined from the browser UI. After
-stopping every WebSSH process, `flask --app start connection-store list` and
+stopping every PixShell process, `flask --app start connection-store list` and
 `connection-store delete` provide a non-secret, bounded recovery path up to
 the separate recovery ceilings shown above. Growth is rejected, and profile
 and jump-host key references remain ownership checked.
@@ -218,7 +218,7 @@ and jump-host key references remain ownership checked.
 | `TERMINAL_SHARE_JOIN_RATELIMIT` | `30 per minute` | Join attempts per client IP |
 | `TERMINAL_SHARE_CREATE_RATELIMIT` | `20 per minute` | Link creation per account |
 
-Every guest stream holds one Gunicorn thread while it is open. WebSSH lowers
+Every guest stream holds one Gunicorn thread while it is open. PixShell lowers
 `TERMINAL_SHARE_MAX_VIEWERS` automatically when the thread pool cannot hold it:
 
 ```text
@@ -256,7 +256,7 @@ every live terminal.
 |---|---|
 | `WEBAUTHN_ENABLED` | Enables Passkey registration and login |
 | `WEBAUTHN_RP_ID` | Public domain only; defaults to `localhost` |
-| `WEBAUTHN_RP_NAME` | Display name; defaults to `WebSSH` |
+| `WEBAUTHN_RP_NAME` | Display name; defaults to `PixShell` |
 | `WEBAUTHN_ORIGIN` | Exact browser origin, including scheme and optional port |
 | `MAX_WEBAUTHN_JSON_SIZE` | Request ceiling; defaults to 64 KiB |
 

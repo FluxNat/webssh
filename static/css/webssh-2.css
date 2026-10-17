@@ -1,4 +1,4 @@
-/* WebSSH product shell and shared calm infrastructure styling. */
+/* PixShell product shell and shared calm infrastructure styling. */
 :root {
     --ws2-radius-sm: 5px;
     --ws2-radius: 8px;
@@ -532,13 +532,24 @@ textarea {
 }
 
 /* Shared controls, dialogs, and dense management surfaces */
+/* Zero specificity: any component rule that sets `display` (for example
+   `display: none` on mobile-only buttons) still wins. */
+:where(.btn) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
 .btn {
-    min-height: 34px;
-    padding: 7px 12px;
-    border-radius: var(--ws2-radius-sm);
+    min-height: 36px;
+    padding: 8px 15px;
+    border-radius: 10px;
     box-shadow: none;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 650;
+    letter-spacing: 0.005em;
+    line-height: 1.2;
     transform: none !important;
 }
 
@@ -2526,7 +2537,7 @@ body:has(.auth-shell)::after {
     }
 }
 
-/* WebSSH access dock */
+/* PixShell access dock */
 body:has(.auth-access-dock) {
     background-color: #080b11;
     background-image:

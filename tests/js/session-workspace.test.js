@@ -665,7 +665,7 @@ test('Files panel explains temporary SFTP channel shortage and automatic retry',
     assert.equal(translations.at(-1)[0], 'workspace.sftpResourceShortage');
     assert.equal(
         status.textContent,
-        'The SSH server has no free channel capacity for SFTP on ops@capacity.example. WebSSH will retry automatically in about one minute.'
+        'The SSH server has no free channel capacity for SFTP on ops@capacity.example. PixShell will retry automatically in about one minute.'
     );
 });
 

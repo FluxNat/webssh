@@ -1,6 +1,6 @@
 # Backup, Restore, and Secret Rotation
 
-WebSSH provides native administrator and CLI workflows for backing up persistent state, validating archives, restoring an installation, and rotating a container-managed `SECRET_KEY`.
+PixShell provides native administrator and CLI workflows for backing up persistent state, validating archives, restoring an installation, and rotating a container-managed `SECRET_KEY`.
 
 Backups are highly sensitive. An archive can contain user configuration, host information, the database, encrypted private keys, an admin-managed encrypted GitHub client secret, and the persisted application secret. Store it like a credential vault export.
 
@@ -12,7 +12,7 @@ Current archives use format version 2. The verifier also understands legacy form
 
 ## Online backup in the web interface
 
-![WebSSH backup and restore safety flow with administrator step-up, maintenance mode, private staging, validation, and atomic activation](https://github.com/bifrost0x/webssh/blob/main/docs/media/diagrams/backup-restore-safety.png?raw=true)
+![PixShell backup and restore safety flow with administrator step-up, maintenance mode, private staging, validation, and atomic activation](https://github.com/bifrost0x/webssh/blob/main/docs/media/diagrams/backup-restore-safety.png?raw=true)
 
 Backup and restore share the same authorization boundary but use different safe
 paths. A backup coordinates writers before collecting consistent state. A
@@ -38,11 +38,11 @@ container recreation. The repository Compose file provides the separate
 backup construction, but intentionally does not enable online restore.
 
 1. Upload the archive.
-2. Let WebSSH validate format and safety limits.
+2. Let PixShell validate format and safety limits.
 3. Review the restore target and warnings.
 4. Complete the action-bound restore-prepare Step-up and acknowledge the sensitive operation.
 5. Submit the issued session-bound confirmation token, the exact `RESTORE` phrase, and destructive-restore confirmation with a second action-bound Step-up.
-6. WebSSH enters maintenance mode and stops accepting new work.
+6. PixShell enters maintenance mode and stops accepting new work.
 7. Active sessions and transfers are closed.
 8. An emergency rollback archive is created.
 9. Persistent state is replaced and sessions are invalidated.
@@ -52,7 +52,7 @@ If an interruption occurs during replacement, the restore workflow attempts roll
 
 ## CLI backup and restore
 
-CLI operations require every WebSSH process that uses the same `DATA_DIR` to be stopped. This avoids concurrent writers outside the coordinated web workflow.
+CLI operations require every PixShell process that uses the same `DATA_DIR` to be stopped. This avoids concurrent writers outside the coordinated web workflow.
 
 Discover exact options in the installed version:
 
@@ -91,13 +91,13 @@ Reverse-proxy body-size and timeout settings must allow the same operation. Do n
 
 ## Secret-key rotation
 
-The supported rotation command re-encrypts persisted secrets when WebSSH manages `DATA_DIR/secret_key`:
+The supported rotation command re-encrypts persisted secrets when PixShell manages `DATA_DIR/secret_key`:
 
 ```bash
 flask --app start:app rotate-secret-key --help
 ```
 
-All WebSSH processes must be stopped. Take and verify a backup first. The command changes the root used for encrypted per-user SSH keys and invalidates signed session state, so a partial or interrupted manual replacement can make persisted credentials unreadable.
+All PixShell processes must be stopped. Take and verify a backup first. The command changes the root used for encrypted per-user SSH keys and invalidates signed session state, so a partial or interrupted manual replacement can make persisted credentials unreadable.
 
 If `SECRET_KEY` comes from an external environment variable or secret manager, rotating only the external value is not sufficient. Plan a controlled migration that keeps the old key available while persisted SSH keys, TOTP values, and the GitHub App client secret are re-encrypted. The built-in command is scoped to the container-managed persisted secret.
 

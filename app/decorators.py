@@ -71,7 +71,7 @@ def socket_login_required(f):
         if is_active():
             payload = {
                 'success': False,
-                'error': 'WebSSH is in restore maintenance mode',
+                'error': 'PixShell is in restore maintenance mode',
                 'code': 'maintenance',
             }
             emit('error', payload)

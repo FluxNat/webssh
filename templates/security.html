@@ -10,18 +10,20 @@
     <meta name="oidc-enabled" content="{{ 'true' if oidc_enabled else 'false' }}">
     <meta name="ldap-enabled" content="{{ 'true' if ldap_enabled else 'false' }}">
     <meta name="recovery-enabled" content="{{ 'true' if recovery_codes_enabled else 'false' }}">
-    <title data-i18n="settings.pageTitle">Settings · Web SSH Terminal</title>
+    <link rel="icon" type="image/svg+xml" href="{{ static_asset_url(filename='images/pixshell-icon.svg') }}">
+    <title data-i18n="settings.pageTitle">Settings · PixShell</title>
     <link rel="stylesheet" href="{{ static_asset_url(filename='vendor/material-icons/material-icons.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/admin.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/webssh-2.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/ui-refresh.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/pixshell.css') }}">
+    <script src="{{ static_asset_url(filename='js/pixshell-motion.js') }}" defer></script>
 </head>
 <body data-sync-terminal-directory="{{ 'true' if sync_terminal_directory else 'false' }}" data-theme="{{ theme|default('glass') }}" data-ldap-managed="{{ 'true' if ldap_managed else 'false' }}" data-recovery-mode="{{ 'true' if recovery_mode else 'false' }}" data-account-mfa-enabled="{{ 'true' if account_mfa_enabled else 'false' }}" data-recovery-enabled="{{ 'true' if recovery_codes_enabled else 'false' }}" data-confirm-session-close="{{ 'true' if confirm_session_close else 'false' }}" data-disconnect-session-action="{{ disconnect_session_action }}" data-authentication-session-duration-minutes="{{ authentication_session_duration_minutes }}">
     <header class="header">
         <div class="header-content">
-            <a class="settings-brand" href="{{ url_for('index') }}" aria-label="WebSSH workspaces" data-i18n-aria-label="navigation.workspaces">
+            <a class="settings-brand" href="{{ url_for('index') }}" aria-label="PixShell workspaces" data-i18n-aria-label="navigation.workspaces">
                 <img class="app-brand-logo" src="{{ static_asset_url(filename='images/pixshell-logo.svg') }}" alt="PixShell">
             </a>
             {% if recovery_mode %}
@@ -80,9 +82,9 @@
         <div class="admin-content settings-center-content">
         {% if not recovery_mode %}
         <section class="admin-panel settings-account-panel hidden" data-account-panel="preferences">
-            <div class="admin-page-header"><div><h2 data-i18n="account.preferences">Preferences</h2><p data-i18n="settings.preferencesHint">Personalize WebSSH and choose how terminal sessions behave.</p></div></div>
+            <div class="admin-page-header"><div><h2 data-i18n="account.preferences">Preferences</h2><p data-i18n="settings.preferencesHint">Personalize PixShell and choose how terminal sessions behave.</p></div></div>
             <div class="admin-settings-surface settings-preferences-surface">
-                <div class="admin-settings-intro"><h3 data-i18n="settings.appearance">Appearance</h3><p class="admin-muted" data-i18n="settings.appearanceHint">Theme and language apply to your signed-in WebSSH experience.</p></div>
+                <div class="admin-settings-intro"><h3 data-i18n="settings.appearance">Appearance</h3><p class="admin-muted" data-i18n="settings.appearanceHint">Theme and language apply to your signed-in PixShell experience.</p></div>
                 <div class="admin-settings-row">
                     <div><label for="settingsThemeSelect"><strong data-i18n="account.theme">Theme</strong></label><p class="admin-muted" data-i18n="settings.themeHint">Choose the visual theme used across workspaces and settings.</p></div>
                     <select id="settingsThemeSelect" class="form-control settings-preference-control">
@@ -100,9 +102,9 @@
                 </div>
             </div>
             <div class="admin-settings-surface settings-preferences-surface">
-                <div class="admin-settings-intro"><h3 data-i18n="settings.signInSession">Sign-in session</h3><p class="admin-muted" data-i18n="settings.signInSessionHint">Control how long a normal WebSSH sign-in remains valid.</p></div>
+                <div class="admin-settings-intro"><h3 data-i18n="settings.signInSession">Sign-in session</h3><p class="admin-muted" data-i18n="settings.signInSessionHint">Control how long a normal PixShell sign-in remains valid.</p></div>
                 <div class="admin-settings-row">
-                    <div><label for="authenticationSessionDurationSelect"><strong data-i18n="settings.signInDuration">Sign-in duration</strong></label><p class="admin-muted" data-i18n="settings.signInDurationHint">A normal WebSSH sign-in expires after this time, even while an SSH session is active. This is separate from the SSH idle timeout. Changes apply to the next sign-in; Remember me continues to use seven days.</p></div>
+                    <div><label for="authenticationSessionDurationSelect"><strong data-i18n="settings.signInDuration">Sign-in duration</strong></label><p class="admin-muted" data-i18n="settings.signInDurationHint">A normal PixShell sign-in expires after this time, even while an SSH session is active. This is separate from the SSH idle timeout. Changes apply to the next sign-in; Remember me continues to use seven days.</p></div>
                     <select id="authenticationSessionDurationSelect" class="form-control settings-preference-control">
                         <option value="30" data-i18n="settings.duration30Minutes">30 minutes (default)</option>
                         <option value="60" data-i18n="settings.duration1Hour">1 hour</option>
@@ -142,7 +144,7 @@
                 <div>
                     <span class="security-section-eyebrow" data-i18n="security.accountProtection">Account protection</span>
                     <h2 id="securityAssuranceTitle" data-i18n="security.confirmationOverviewTitle">How security changes are confirmed</h2>
-                    <p data-i18n="security.confirmationOverviewHint">WebSSH uses this signed-in browser session to protect changes to passkeys, authenticator apps, recovery codes, and passwords.</p>
+                    <p data-i18n="security.confirmationOverviewHint">PixShell uses this signed-in browser session to protect changes to passkeys, authenticator apps, recovery codes, and passwords.</p>
                 </div>
                 <div class="security-policy-controls">
                     {% if account_mfa_enabled %}
@@ -180,17 +182,17 @@
                 <div>
                     <dt data-i18n="security.changeConfirmation">For protected changes</dt>
                     {% if authentication_primary_method == 'oidc' %}
-                    <dd data-i18n="security.confirmationOidc">Your identity provider session is used. No local WebSSH password is required.</dd>
+                    <dd data-i18n="security.confirmationOidc">Your identity provider session is used. No local PixShell password is required.</dd>
                     {% elif authentication_primary_method == 'github' %}
-                    <dd data-i18n="security.confirmationGithub">Your GitHub session is used. No GitHub token is stored by WebSSH.</dd>
+                    <dd data-i18n="security.confirmationGithub">Your GitHub session is used. No GitHub token is stored by PixShell.</dd>
                     {% elif authentication_primary_method == 'ldap' %}
-                    <dd data-i18n="security.confirmationLdap">Your directory sign-in is used. No separate WebSSH password is required.</dd>
+                    <dd data-i18n="security.confirmationLdap">Your directory sign-in is used. No separate PixShell password is required.</dd>
                     {% elif authentication_primary_method == 'passkey' %}
                     <dd data-i18n="security.confirmationPasskey">Your Passkey from this sign-in</dd>
                     {% elif authentication_primary_method == 'recovery_code' %}
                     <dd data-i18n="security.confirmationRecovery">Add a replacement factor before normal access continues.</dd>
                     {% else %}
-                    <dd data-i18n="security.confirmationPassword">WebSSH password from this sign-in</dd>
+                    <dd data-i18n="security.confirmationPassword">PixShell password from this sign-in</dd>
                     {% endif %}
                 </div>
                 <div>
@@ -218,13 +220,13 @@
             </div>
             {% if github_auth_enabled or github_identity_linked %}
             <div class="admin-settings-row settings-security-method-row settings-security-method-row-github" id="github">
-                <div class="settings-security-method-summary"><span class="material-icons settings-security-method-icon" aria-hidden="true">link</span><div><strong data-i18n="security.methodGithub">GitHub</strong><p class="admin-muted" data-i18n="security.manageGithubHint">Connect or disconnect the GitHub identity used with this WebSSH account.</p><p class="settings-security-method-status" id="githubIdentityStatus" role="status" aria-live="polite" data-i18n="security.loadingLinkedAccount">Loading linked account…</p></div></div>
+                <div class="settings-security-method-summary"><span class="material-icons settings-security-method-icon" aria-hidden="true">link</span><div><strong data-i18n="security.methodGithub">GitHub</strong><p class="admin-muted" data-i18n="security.manageGithubHint">Connect or disconnect the GitHub identity used with this PixShell account.</p><p class="settings-security-method-status" id="githubIdentityStatus" role="status" aria-live="polite" data-i18n="security.loadingLinkedAccount">Loading linked account…</p></div></div>
                 <button class="btn btn-secondary settings-security-method-action" type="button" id="githubIdentityAction" aria-describedby="githubIdentityStatus"><span class="material-icons" aria-hidden="true">link</span><span class="github-identity-action-label" data-i18n="security.connectGithub">Connect GitHub</span></button>
             </div>
             {% endif %}
             {% if oidc_enabled and not ldap_managed and not github_managed and not recovery_mode %}
             <div class="admin-settings-row settings-security-method-row settings-security-method-row-oidc" id="oidc">
-                <div class="settings-security-method-summary"><span class="material-icons settings-security-method-icon" aria-hidden="true">badge</span><div><strong data-i18n="security.methodOidc">Identity provider</strong><p class="admin-muted" data-i18n="security.manageOidcHint">Link an identity by signing in with the configured provider. WebSSH stores only its verified issuer and subject.</p><p class="settings-security-method-status" id="oidcIdentityStatus" role="status" aria-live="polite" data-i18n="security.loadingLinkedAccount">Loading linked account…</p></div></div>
+                <div class="settings-security-method-summary"><span class="material-icons settings-security-method-icon" aria-hidden="true">badge</span><div><strong data-i18n="security.methodOidc">Identity provider</strong><p class="admin-muted" data-i18n="security.manageOidcHint">Link an identity by signing in with the configured provider. PixShell stores only its verified issuer and subject.</p><p class="settings-security-method-status" id="oidcIdentityStatus" role="status" aria-live="polite" data-i18n="security.loadingLinkedAccount">Loading linked account…</p></div></div>
                 <button class="btn btn-secondary settings-security-method-action" type="button" id="oidcIdentityAction" aria-describedby="oidcIdentityStatus"><span class="material-icons" aria-hidden="true">link</span><span class="oidc-identity-action-label" data-i18n="security.connectOidc">Connect identity provider</span></button>
             </div>
             {% endif %}
@@ -249,12 +251,12 @@
         {% elif authentication_primary_method == 'oidc' %}
         <section class="admin-setting-row" id="oidcManagedNotice" style="max-width:none;">
             <h2 data-i18n="security.identityManagedAccount">Identity-provider account</h2>
-            <p class="admin-muted" data-i18n="security.identityManagedHint">Your identity provider controls your primary sign-in. WebSSH never asks for a separate local password when you manage Passkeys, authenticator apps, or recovery codes.</p>
+            <p class="admin-muted" data-i18n="security.identityManagedHint">Your identity provider controls your primary sign-in. PixShell never asks for a separate local password when you manage Passkeys, authenticator apps, or recovery codes.</p>
         </section>
         {% elif authentication_primary_method == 'github' %}
         <section class="admin-setting-row" id="githubManagedNotice" style="max-width:none;">
             <h2 data-i18n="security.githubManagedTitle">GitHub sign-in</h2>
-            <p class="admin-muted" data-i18n="security.githubManagedHint">GitHub controls this primary sign-in. WebSSH discards the temporary GitHub token after identity and organization checks.</p>
+            <p class="admin-muted" data-i18n="security.githubManagedHint">GitHub controls this primary sign-in. PixShell discards the temporary GitHub token after identity and organization checks.</p>
         </section>
         {% elif ldap_managed %}
         <section class="admin-setting-row" id="ldapManagedNotice" style="max-width:none;">

@@ -38,7 +38,7 @@ if [ -z "$_sk" ]; then
     if [ "$SECRET_KEY_FILE" != "$LEGACY_SECRET_KEY_FILE" ] && [ -f "$LEGACY_SECRET_KEY_FILE" ]; then
         if [ ! -f "$SECRET_KEY_FILE" ]; then
             echo "ERROR: a legacy secret exists at $LEGACY_SECRET_KEY_FILE but DATA_DIR is $DATA_DIR." >&2
-            echo "Copy that file to $SECRET_KEY_FILE with mode 600 before starting WebSSH." >&2
+            echo "Copy that file to $SECRET_KEY_FILE with mode 600 before starting PixShell." >&2
             exit 1
         fi
         if ! cmp -s "$LEGACY_SECRET_KEY_FILE" "$SECRET_KEY_FILE"; then

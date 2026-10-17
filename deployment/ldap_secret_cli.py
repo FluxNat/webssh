@@ -82,7 +82,7 @@ def _read_stdin(limit):
 )
 @click.pass_context
 def cli(context, secret_dir):
-    """Manage LDAP files in WebSSH's dedicated secret volume."""
+    """Manage LDAP files in PixShell's dedicated secret volume."""
     context.obj = _validated_directory(secret_dir)
 
 

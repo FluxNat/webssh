@@ -27,8 +27,8 @@ def test_enrollment_is_short_lived_encrypted_and_locally_rendered(app):
         row = TOTPEnrollment.query.one()
 
         assert len(view.secret) == 32
-        assert view.provisioning_uri.startswith("otpauth://totp/WebSSH:")
-        assert "issuer=WebSSH" in view.provisioning_uri
+        assert view.provisioning_uri.startswith("otpauth://totp/PixShell:")
+        assert "issuer=PixShell" in view.provisioning_uri
         assert "<svg" in view.qr_svg
         assert view.secret.encode("ascii") not in bytes(row.encrypted_secret)
         assert row.expires_at - row.created_at == timedelta(minutes=5)

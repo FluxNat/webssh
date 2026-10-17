@@ -1,4 +1,4 @@
-# WebSSH for trusted homelab networks. Start with: docker compose up -d
+# PixShell for trusted homelab networks. Start with: docker compose up -d
 # No .env file is required. For public deployments, also use
 # docker-compose.production.yml as described in the README.
 
@@ -42,7 +42,7 @@ services:
       # Secret override; generated and persisted when omitted.
       # - SECRET_KEY=<paste output of: openssl rand -hex 32>
 
-      # Serve WebSSH from a reverse-proxy subfolder.
+      # Serve PixShell from a reverse-proxy subfolder.
       # Requires TRUSTED_PROXIES=1; see the Wiki page about subfolder deployment.
       # - APPLICATION_ROOT=/webssh
 
@@ -83,13 +83,13 @@ services:
       # Optional feature: Passkeys. Set the exact public domain and origin.
       # - WEBAUTHN_ENABLED=true
       # - WEBAUTHN_RP_ID=ssh.example.com
-      # - WEBAUTHN_RP_NAME=WebSSH
+      # - WEBAUTHN_RP_NAME=PixShell
       # - WEBAUTHN_ORIGIN=https://ssh.example.com
 
       # Optional feature: sign in through an OpenID Connect identity provider.
-      # Register WebSSH there, mount its client secret read-only, then set the
+      # Register PixShell there, mount its client secret read-only, then set the
       # issuer, client ID, secret-file path, and exact callback URL below.
-      # An administrator links provider identities to WebSSH accounts.
+      # An administrator links provider identities to PixShell accounts.
       # - OIDC_ENABLED=true
       # - OIDC_ISSUER=https://idp.example.com
       # - OIDC_CLIENT_ID=webssh

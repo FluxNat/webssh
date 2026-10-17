@@ -338,11 +338,14 @@ const ProfileManager = {
             empty.classList.add('profile-launcher-replacement');
         }
 
+        const header = document.createElement('div');
+        header.className = 'profile-launcher-header';
         const icon = document.createElement('div');
         icon.className = 'pane-empty-icon material-icons';
         icon.setAttribute('aria-hidden', 'true');
         icon.textContent = 'dns';
-        empty.appendChild(icon);
+        header.appendChild(icon);
+        empty.appendChild(header);
 
         const profiles = this.profilesLoaded ? this.profiles : [];
         const title = document.createElement('div');
@@ -352,7 +355,7 @@ const ProfileManager = {
             : profiles.length
             ? (window.i18n ? i18n.t('connection.savedProfiles') : 'Hosts')
             : (window.i18n ? i18n.t('panes.emptyPane') : 'Empty pane');
-        empty.appendChild(title);
+        header.appendChild(title);
 
         const hint = document.createElement('div');
         hint.className = 'profile-launcher-hint';
@@ -364,7 +367,11 @@ const ProfileManager = {
             : profiles.length
             ? (window.i18n ? i18n.t('connection.savedProfilesHint') : 'Choose a saved connection to connect')
             : (window.i18n ? i18n.t('panes.selectSession') : 'Select a session or open a connection');
-        empty.appendChild(hint);
+        header.appendChild(hint);
+
+        const actions = document.createElement('div');
+        actions.className = 'profile-launcher-actions';
+        header.appendChild(actions);
 
         if (canReturn) {
             const returnButton = document.createElement('button');
@@ -385,7 +392,7 @@ const ProfileManager = {
                 event.stopPropagation();
                 options.onReturn();
             });
-            empty.appendChild(returnButton);
+            actions.appendChild(returnButton);
         }
 
         if (profiles.length) {
@@ -410,6 +417,18 @@ const ProfileManager = {
                 button.type = 'button';
                 button.className = 'profile-launcher-card';
                 button.dataset.profileId = profile.id;
+
+                const avatar = document.createElement('span');
+                avatar.className = `profile-launcher-avatar auth-${profile.auth_type || 'unknown'}`;
+                avatar.setAttribute('aria-hidden', 'true');
+                const avatarIcon = document.createElement('span');
+                avatarIcon.className = 'material-icons';
+                avatarIcon.textContent = {
+                    key: 'vpn_key',
+                    password: profile.has_saved_password === true ? 'lock' : 'password',
+                    tailscale: 'hub',
+                }[profile.auth_type] || 'dns';
+                avatar.appendChild(avatarIcon);
 
                 const name = document.createElement('span');
                 name.className = 'profile-launcher-name';
@@ -446,7 +465,7 @@ const ProfileManager = {
                     'aria-label',
                     `${String(profile.name || '')}, ${ProfileLauncherUtils.formatEndpoint(profile)}, ${action.textContent}`,
                 );
-                button.append(name, endpoint, action);
+                button.append(avatar, name, endpoint, action);
                 if (favorite) button.appendChild(favorite);
                 button.addEventListener('click', event => {
                     event.stopPropagation();
@@ -492,7 +511,11 @@ const ProfileManager = {
                     sectionContainer.appendChild(sectionElement);
                 });
             };
-            search.addEventListener('input', renderSections);
+            search.addEventListener('input', () => {
+                // Cards animate in once; filtering should feel instant.
+                sectionContainer.classList.add('is-filtering');
+                renderSections();
+            });
             renderSections();
             empty.append(search, sectionContainer);
         }
@@ -500,14 +523,38 @@ const ProfileManager = {
         const newConnection = document.createElement('button');
         newConnection.type = 'button';
         newConnection.className = 'btn btn-secondary profile-launcher-new';
-        newConnection.textContent = window.i18n
+        const newConnectionIcon = document.createElement('span');
+        newConnectionIcon.className = 'material-icons';
+        newConnectionIcon.setAttribute('aria-hidden', 'true');
+        newConnectionIcon.textContent = 'add_link';
+        const newConnectionLabel = document.createElement('span');
+        newConnectionLabel.textContent = window.i18n
             ? i18n.t('connection.newConnection')
             : 'Quick Connect';
+        newConnection.append(newConnectionIcon, newConnectionLabel);
         newConnection.addEventListener('click', event => {
             event.stopPropagation();
             window.openConnectionModalForPane?.(paneIndex);
         });
-        empty.appendChild(newConnection);
+        actions.prepend(newConnection);
+
+        if (profiles.length && !canReturn) {
+            const manage = document.createElement('button');
+            manage.type = 'button';
+            manage.className = 'btn btn-secondary profile-launcher-manage';
+            const manageIcon = document.createElement('span');
+            manageIcon.className = 'material-icons';
+            manageIcon.setAttribute('aria-hidden', 'true');
+            manageIcon.textContent = 'tune';
+            const manageLabel = document.createElement('span');
+            manageLabel.textContent = this.t('connection.manageHosts', 'Manage hosts');
+            manage.append(manageIcon, manageLabel);
+            manage.addEventListener('click', event => {
+                event.stopPropagation();
+                window.openConnectionAssetManager?.('hosts');
+            });
+            actions.appendChild(manage);
+        }
         return empty;
     },
 

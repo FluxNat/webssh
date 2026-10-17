@@ -1,15 +1,15 @@
-# WebSSH Wiki
+# PixShell Wiki
 
-WebSSH is a secure, self-hosted workspace for browser-based SSH terminals and
+PixShell is a secure, self-hosted workspace for browser-based SSH terminals and
 SFTP file operations. It is designed for homelabs, server administration, and
 teams that want multi-user browser access without sending connection data to a
 hosted control plane.
 
 This Wiki is the long-form operator and user guide. For the compact project
 overview, screenshots, release badges, and source code, visit the
-[WebSSH repository](https://github.com/bifrost0x/webssh).
+[PixShell repository](https://github.com/bifrost0x/webssh).
 
-## What WebSSH provides
+## What PixShell provides
 
 - Multiple simultaneous SSH sessions with tabs and split-pane layouts.
 - A source-first SFTP workspace with independent tabs, one or two file areas,
@@ -27,7 +27,7 @@ overview, screenshots, release badges, and source code, visit the
 - A fully local browser runtime: vendored frontend dependencies and no built-in
   telemetry.
 
-The WebSSH 2.0 interface uses a responsive, focused session workspace: terminal,
+The PixShell 2.0 interface uses a responsive, focused session workspace: terminal,
 Files, Commands, Notes, and supported Linux insights stay aligned with the
 selected SSH session across desktop, tablet, and mobile layouts.
 
@@ -35,9 +35,9 @@ selected SSH session across desktop, tablet, and mobile layouts.
 
 | Goal | Start here |
 |---|---|
-| Try WebSSH on a trusted network | [Quick Start](Quick-Start) |
+| Try PixShell on a trusted network | [Quick Start](Quick-Start) |
 | Understand volumes, images, and Compose | [Docker and Docker Compose](Docker-and-Docker-Compose) |
-| Expose WebSSH through HTTPS | [Production Deployment](Production-Deployment) |
+| Expose PixShell through HTTPS | [Production Deployment](Production-Deployment) |
 | Configure every environment setting | [Configuration Reference](Configuration-Reference) |
 | Connect to SSH hosts safely | [SSH Connections and Host Keys](SSH-Connections-and-Host-Keys) |
 | Enable LDAP or Active Directory | [LDAP and Active Directory](LDAP-and-Active-Directory) |
@@ -48,15 +48,15 @@ selected SSH session across desktop, tablet, and mobile layouts.
 
 ## Deployment model at a glance
 
-![WebSSH trust boundaries from the browser through the single WebSSH process to owned SSH and SFTP targets](https://github.com/bifrost0x/webssh/blob/main/docs/media/diagrams/system-trust-boundaries.png?raw=true)
+![PixShell trust boundaries from the browser through the single PixShell process to owned SSH and SFTP targets](https://github.com/bifrost0x/webssh/blob/main/docs/media/diagrams/system-trust-boundaries.png?raw=true)
 
 The supported path keeps authentication, ownership checks, network policy,
 host-key verification, bounded runtime work, persisted state, and audit records
 inside explicit boundaries. Optional OIDC or LDAP identity never bypasses the
-local WebSSH account and resource-ownership model.
+local PixShell account and resource-ownership model.
 
-The browser connects to WebSSH over HTTP or HTTPS. WebSSH then opens the SSH
-and SFTP connections to target hosts. WebSSH therefore processes terminal
+The browser connects to PixShell over HTTP or HTTPS. PixShell then opens the SSH
+and SFTP connections to target hosts. PixShell therefore processes terminal
 input/output, file data, and connection credentials while establishing or
 maintaining sessions. It is trusted infrastructure, not an end-to-end encrypted
 relay that is blind to session contents.
@@ -81,12 +81,12 @@ the backend to loopback, requires a specific public HTTPS origin, enables secure
 cookies, closes browser registration, blocks internal SSH targets, and requires
 an explicit trusted-proxy boundary. Unsafe combinations stop startup.
 
-Read [Production Deployment](Production-Deployment) before exposing WebSSH to
+Read [Production Deployment](Production-Deployment) before exposing PixShell to
 untrusted networks.
 
 ## Security starting points
 
-- Protect WebSSH with HTTPS and a trusted reverse proxy.
+- Protect PixShell with HTTPS and a trusted reverse proxy.
 - Restrict access to the host, data volume, logs, and backups.
 - Keep a tested local break-glass administrator when enabling external identity.
 - Review host-key fingerprints after first use and treat changes as incidents.
@@ -99,7 +99,7 @@ untrusted networks.
 
 ## Documentation scope
 
-These pages track the current WebSSH project and cover public, supported
+These pages track the current PixShell project and cover public, supported
 behavior. Disabled UI placeholders are not documented as usable features.
 Where a feature is optional, its page states the feature flag, prerequisites,
 security boundary, activation procedure, and rollback path.

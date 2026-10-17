@@ -235,7 +235,7 @@ def test_english_command_set_copy_explains_execution_boundaries():
     assert match is not None
     hint = match.group(1).lower()
     assert 'remote host' in hint
-    assert 'not in webssh' in hint
+    assert 'not in pixshell' in hint
     assert 'tmux' in hint
     assert 'not run again' in hint
 

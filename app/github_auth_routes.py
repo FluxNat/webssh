@@ -252,7 +252,7 @@ def _complete_login(intent, profile, settings):
                 github_user_id=profile.user_id, reason='unlinked',
             )
             return jsonify({
-                'error': 'GitHub identity is not linked to a WebSSH account'
+                'error': 'GitHub identity is not linked to a PixShell account'
             }), 403
         try:
             user = _auto_provision(profile)

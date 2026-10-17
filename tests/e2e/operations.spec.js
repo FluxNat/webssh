@@ -126,7 +126,7 @@ test('maintenance response explains why current counts are unavailable', async (
     await expect(page.locator('#operationsStatus')).toContainText('Updated');
     await page.route('**/admin/api/operations', route => route.fulfill({
         status: 503, contentType: 'application/json',
-        body: JSON.stringify({ code: 'maintenance', error: 'WebSSH is in restore maintenance mode' }),
+        body: JSON.stringify({ code: 'maintenance', error: 'PixShell is in restore maintenance mode' }),
     }));
     await page.locator('#operationsRefresh').click();
     await expect(page.locator('#operationsNotice')).toHaveText('Maintenance mode');

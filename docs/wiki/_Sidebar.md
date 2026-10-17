@@ -1,4 +1,4 @@
-**WebSSH Wiki**
+**PixShell Wiki**
 
 - [Home](Home)
 - [Quick Start](Quick-Start)

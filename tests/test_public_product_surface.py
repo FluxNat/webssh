@@ -151,7 +151,7 @@ def test_local_quickstart_binds_only_loopback():
 
 def test_privacy_notice_distinguishes_hosting_from_self_hosted_product():
     text = (ROOT / 'site/privacy.html').read_text(encoding='utf-8')
-    for required in ('GitHub Pages', 'IP address', 'Infomaniak', 'Article 6', 'Article 21', 'supervisory authority', 'independently hosted WebSSH instances'):
+    for required in ('GitHub Pages', 'IP address', 'Infomaniak', 'Article 6', 'Article 21', 'supervisory authority', 'independently hosted PixShell instances'):
         assert required in text
     assert 'Google Analytics' not in text
 

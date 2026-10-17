@@ -7,13 +7,15 @@
     <meta name="app-root" content="{{ url_prefix }}">
     <meta name="webauthn-configured-origin" content="{{ webauthn_origin }}">
     <meta name="webauthn-rp-id" content="{{ webauthn_rp_id }}">
-    <title data-i18n="auth.loginPageTitle">Sign in · WebSSH</title>
+    <link rel="icon" type="image/svg+xml" href="{{ static_asset_url(filename='images/pixshell-icon.svg') }}">
+    <title data-i18n="auth.loginPageTitle">Sign in · PixShell</title>
     <link rel="stylesheet" href="{{ static_asset_url(filename='vendor/material-icons/material-icons.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/auth.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/webssh-2.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/ui-refresh.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/pixshell.css') }}">
+    <script src="{{ static_asset_url(filename='js/pixshell-motion.js') }}" defer></script>
 </head>
 <body data-theme="glass" data-use-theme-preference data-defer-theme-background>
     <script src="{{ static_asset_url(filename='js/theme-preference.js') }}"></script>
@@ -22,7 +24,7 @@
         <header class="auth-utility-bar">
             <div class="auth-instance-state">
                 <span class="auth-status-dot" aria-hidden="true"></span>
-                <span data-i18n="auth.instanceStatus">WebSSH instance</span>
+                <span data-i18n="auth.instanceStatus">PixShell instance</span>
                 <strong data-i18n="auth.signInAvailable">Sign-in available</strong>
             </div>
             <div class="language-selector">
@@ -71,9 +73,9 @@
                             {% endif %}
                         </ul>
                         {% else %}
-                        <span class="auth-brand-eyebrow" data-i18n="auth.welcomeToWebssh">Welcome to WebSSH</span>
+                        <span class="auth-brand-eyebrow" data-i18n="auth.welcomeToWebssh">Welcome to PixShell</span>
                         <h1 data-i18n="auth.serverControlCenter">The control center for your servers.</h1>
-                        <ul class="auth-product-pillars" aria-label="WebSSH product areas" data-i18n-aria-label="auth.productAreas">
+                        <ul class="auth-product-pillars" aria-label="PixShell product areas" data-i18n-aria-label="auth.productAreas">
                             <li data-product-area="ssh-workspaces">
                                 <span class="material-icons" aria-hidden="true">terminal</span>
                                 <strong data-i18n="navigation.sshWorkspaces">SSH Workspaces</strong>
@@ -105,7 +107,7 @@
                 {% else %}
                 <span class="auth-form-eyebrow" data-i18n="auth.login">Sign in</span>
                 <h1 data-i18n="auth.signInPrompt">Access your SSH workspace</h1>
-                <p data-i18n="auth.signInSourceHint">Use the identity source configured for this WebSSH instance.</p>
+                <p data-i18n="auth.signInSourceHint">Use the identity source configured for this PixShell instance.</p>
                 {% endif %}
             </div>
 
@@ -296,7 +298,7 @@
             <section id="oidcLoginMode" class="login-mode auth-provider-mode hidden" data-auth-mode-panel="oidc" aria-hidden="true">
                 <span class="auth-provider-mode-icon material-icons" aria-hidden="true">verified_user</span>
                 <h2 data-i18n="auth.identityProviderPrompt">Continue with your identity provider</h2>
-                <p data-i18n="auth.identityProviderPromptHint">WebSSH redirects you to the configured provider. Provider credentials are never entered here.</p>
+                <p data-i18n="auth.identityProviderPromptHint">PixShell redirects you to the configured provider. Provider credentials are never entered here.</p>
                 <a class="auth-provider-button" id="oidcLoginBtn" href="{{ url_for('oidc.oidc_login') }}"><span class="material-icons" aria-hidden="true">verified_user</span><span data-i18n="auth.signInWithIdentityProvider">Sign in with identity provider</span></a>
             </section>
             {% endif %}
@@ -304,7 +306,7 @@
             <section id="githubLoginMode" class="login-mode auth-provider-mode hidden" data-auth-mode-panel="github" aria-hidden="true">
                 <span class="auth-provider-mode-icon material-icons" aria-hidden="true">code</span>
                 <h2 data-i18n="auth.githubPrompt">Continue with GitHub</h2>
-                <p data-i18n="auth.githubPromptHint">WebSSH uses your GitHub App authorization only to verify your identity and configured organization membership.</p>
+                <p data-i18n="auth.githubPromptHint">PixShell uses your GitHub App authorization only to verify your identity and configured organization membership.</p>
                 <a class="auth-provider-button" id="githubLoginBtn" href="{{ url_for('github_auth.github_login') }}"><span class="material-icons" aria-hidden="true">code</span><span data-i18n="auth.signInWithGithub">Sign in with GitHub</span></a>
             </section>
             {% endif %}

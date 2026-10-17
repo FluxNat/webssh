@@ -379,7 +379,7 @@ def test_future_data_schema_verifies_but_is_not_restore_compatible(tmp_path):
     compatibility = backup_manager.evaluate_backup_compatibility(manifest)
 
     assert compatibility.compatible is False
-    assert compatibility.reason == 'backup data schema is newer than this WebSSH version'
+    assert compatibility.reason == 'backup data schema is newer than this PixShell version'
 
 
 def test_future_data_schema_is_rejected_before_restore_mutates_data(tmp_path):
@@ -451,7 +451,7 @@ def test_restore_rejects_non_webssh_sqlite_database_before_mutation(tmp_path):
     sentinel = restore_dir / 'keep.txt'
     sentinel.write_bytes(b'keep-current-state')
 
-    with pytest.raises(BackupIntegrityError, match='WebSSH database'):
+    with pytest.raises(BackupIntegrityError, match='PixShell database'):
         restore_backup(archive, restore_dir)
 
     assert _snapshot(restore_dir) == {'keep.txt': b'keep-current-state'}

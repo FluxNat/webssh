@@ -1459,7 +1459,7 @@
         },
         presentRestarting: () => setBackupStatus(
             'restoreGlobalStatus',
-            t('backup.restarting', 'WebSSH is restarting. Sign in again when the service is ready.')
+            t('backup.restarting', 'PixShell is restarting. Sign in again when the service is ready.')
         ),
         reload: () => window.location.reload()
     });
@@ -1588,7 +1588,7 @@
             'backup data schema is current': 'backup.compatibilityCurrent',
             'legacy archive can be migrated': 'backup.compatibilityLegacy',
             'backup data schema can be migrated': 'backup.compatibilityMigratable',
-            'backup data schema is newer than this WebSSH version': 'backup.compatibilityFuture',
+            'backup data schema is newer than this PixShell version': 'backup.compatibilityFuture',
             'no complete migration path for backup data schema': 'backup.compatibilityNoMigration'
         };
         const reasonKey = reasonKeys[summary.compatibility_reason];
@@ -1709,7 +1709,7 @@
             document.getElementById('backupRestoreBtn').disabled = true;
             setBackupStatus(
                 'restoreGlobalStatus',
-                t('backup.restoreStarted', 'Restore started. WebSSH is entering maintenance mode and will restart.')
+                t('backup.restoreStarted', 'Restore started. PixShell is entering maintenance mode and will restart.')
             );
             restoreStatusFlow.poll();
         } catch (error) {
@@ -1812,7 +1812,7 @@
         }
         if (!window.confirm(t(
             'admin.confirmGlobalHostKeyImport',
-            'Trust this verified SSH host key for every WebSSH user?'
+            'Trust this verified SSH host key for every PixShell user?'
         ))) { return; }
         if (button) button.disabled = true;
         try {

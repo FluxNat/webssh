@@ -603,7 +603,7 @@ def test_future_schema_is_verified_but_blocked_at_both_restore_gates(
     assert verified.json['summary']['data_schema_version'] == 3
     assert verified.json['summary']['current_data_schema_version'] == 2
     assert verified.json['summary']['compatibility_reason'] == (
-        'backup data schema is newer than this WebSSH version'
+        'backup data schema is newer than this PixShell version'
     )
     assert client.post(
         f'/admin/api/backups/{operation_id}/restore/prepare',

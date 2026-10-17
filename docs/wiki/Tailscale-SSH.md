@@ -1,25 +1,25 @@
 # Tailscale SSH
 
-Tailscale SSH is optional and disabled by default. Every authorized WebSSH user
-uses the WebSSH node's same Tailscale identity. This is a stronger trust
+Tailscale SSH is optional and disabled by default. Every authorized PixShell user
+uses the PixShell node's same Tailscale identity. This is a stronger trust
 boundary than ordinary per-user SSH credentials.
 
 ## Enable only when all controls exist
 
 Use Tailscale SSH only when you have:
 
-- a dedicated Tailscale tag for the WebSSH node;
+- a dedicated Tailscale tag for the PixShell node;
 - narrow tailnet ACL and SSH rules;
-- trusted WebSSH administrators or an explicit non-admin allowlist;
+- trusted PixShell administrators or an explicit non-admin allowlist;
 - a mandatory exact target-and-port allowlist;
 - exact remote operating-system username allowlists;
-- a tested local WebSSH administrator and recovery path;
+- a tested local PixShell administrator and recovery path;
 - persistent Tailscale node state.
 
-Hiding the UI is not authorization. The backend enforces WebSSH user, target,
+Hiding the UI is not authorization. The backend enforces PixShell user, target,
 remote-user, and tailnet policy.
 
-## WebSSH settings
+## PixShell settings
 
 ```bash
 TAILSCALE_SSH_ENABLED=true
@@ -30,14 +30,14 @@ TAILSCALE_SSH_INTERFACE=tailscale0
 ```
 
 Administrators are authorized by role when the feature is enabled. The user
-allowlist adds specifically trusted non-admin WebSSH accounts. The target list
+allowlist adds specifically trusted non-admin PixShell accounts. The target list
 is required when the feature is enabled. A bare hostname, IPv4 address, or IPv6
 address means port 22; use `hostname:port`, `IPv4:port`, or `[IPv6]:port` for
 another port. Production refuses to start with an empty or malformed enabled
 target list or an empty interface. Homelab emits security warnings, ignores
 individual malformed entries so valid siblings still work, and fails every
 connection closed if no valid target or interface remains. Dormant values are
-tolerated while the feature is disabled. WebSSH resolves once, accepts only an
+tolerated while the feature is disabled. PixShell resolves once, accepts only an
 address whose kernel route uses `TAILSCALE_SSH_INTERFACE` (default
 `tailscale0`), pins that address, and binds the connecting socket to the same
 interface. A route change cannot silently move the connection to another
@@ -45,12 +45,12 @@ interface. An empty remote-user list still delegates that dimension to
 tailnet SSH policy.
 
 Tailscale authentication cannot be combined with ProxyJump. The route and
-interface proof applies only to a direct connection from the WebSSH host.
+interface proof applies only to a direct connection from the PixShell host.
 
 ## Tailnet policy concept
 
 Use a dedicated source tag such as `tag:webssh` and target tag such as
-`tag:servers`. Grant only TCP/22 and only the remote users that WebSSH should
+`tag:servers`. Grant only TCP/22 and only the remote users that PixShell should
 reach.
 
 Illustrative policy:
@@ -84,7 +84,7 @@ The example is intentionally narrow.
 
 ## Persistent sidecar model
 
-A Tailscale sidecar can share its network namespace with WebSSH. Persist
+A Tailscale sidecar can share its network namespace with PixShell. Persist
 `/var/lib/tailscale` so the node identity survives updates.
 
 ```yaml
@@ -144,9 +144,9 @@ The example starts with Tailscale SSH disabled.
 
 1. Start the sidecar deployment on a trusted network with
    `TAILSCALE_SSH_ENABLED=false`.
-2. Create the first WebSSH administrator explicitly with the CLI.
+2. Create the first PixShell administrator explicitly with the CLI.
 3. Keep ordinary registration closed unless deliberately needed.
-4. Configure tailnet policy and exact WebSSH allowlists.
+4. Configure tailnet policy and exact PixShell allowlists.
 5. Enable Tailscale SSH.
 6. Recreate the service and test one narrow target/user combination.
 
@@ -189,22 +189,22 @@ valid.
 
 ### Tailscale option is absent
 
-Check the feature flag and whether the WebSSH account is an administrator or is
+Check the feature flag and whether the PixShell account is an administrator or is
 listed in `TAILSCALE_SSH_ALLOWED_WEBSSH_USERS`.
 
 ### Target is rejected
 
-Check the exact WebSSH target allowlist, DNS/Tailscale name, tailnet grants, SSH
+Check the exact PixShell target allowlist, DNS/Tailscale name, tailnet grants, SSH
 rules, and remote-user allowlist.
 
 ### Node identity changes after restart
 
 Confirm `/var/lib/tailscale` is persistent and `TS_STATE_DIR` points to it.
 
-### All WebSSH users appear as the same source
+### All PixShell users appear as the same source
 
-That is the design boundary: Tailscale sees the shared WebSSH node identity.
-Use WebSSH audit logs and strict user/target/remote-user controls, or do not
+That is the design boundary: Tailscale sees the shared PixShell node identity.
+Use PixShell audit logs and strict user/target/remote-user controls, or do not
 enable the feature for users who should have separate tailnet identities.
 
 ## Related pages

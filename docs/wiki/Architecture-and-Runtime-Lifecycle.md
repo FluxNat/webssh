@@ -1,13 +1,13 @@
 # Architecture and Runtime Lifecycle
 
-WebSSH is a Flask application with authenticated HTTP and Socket.IO interfaces, Paramiko SSH/SFTP channels, SQLite persistence, and a bounded threaded runtime.
+PixShell is a Flask application with authenticated HTTP and Socket.IO interfaces, Paramiko SSH/SFTP channels, SQLite persistence, and a bounded threaded runtime.
 
 ## Request and connection flow
 
-![WebSSH trust boundaries showing trusted proxy ingress, one process, persisted state, audit, and managed targets](https://github.com/bifrost0x/webssh/blob/main/docs/media/diagrams/system-trust-boundaries.png?raw=true)
+![PixShell trust boundaries showing trusted proxy ingress, one process, persisted state, audit, and managed targets](https://github.com/bifrost0x/webssh/blob/main/docs/media/diagrams/system-trust-boundaries.png?raw=true)
 
 Browsers do not connect directly to SSH targets through a hidden peer-to-peer
-path. WebSSH terminates the authenticated application session, checks ownership
+path. PixShell terminates the authenticated application session, checks ownership
 and policy, and then opens the server-side SSH or SFTP connection.
 
 ```text
@@ -54,7 +54,7 @@ Redis-backed rate limiting externalizes counters only. It does not externalize S
 
 ### Scaling an instance
 
-Because live SSH channels belong to one process, WebSSH scales **up**, not
+Because live SSH channels belong to one process, PixShell scales **up**, not
 out. Each admitted browser transport and each terminal-share guest stream
 holds one Gunicorn thread; everything else is short-lived HTTP. Size an
 instance with:
@@ -92,11 +92,11 @@ The default is 64 threads and 48 sockets, with at most eight sockets per user. S
 
 SSH connections belong to an authenticated user and consume quotas. Paramiko channels are created through existing helpers with timeouts and cancellation. Quick SFTP connections used by the file workspace remain alive while queued or active transfers still reference them, then disconnect when ownership can safely end.
 
-Persistent tmux metadata survives a browser disconnect, but the underlying remote tmux session lives on the SSH server. WebSSH's local connection objects do not survive a process restart.
+Persistent tmux metadata survives a browser disconnect, but the underlying remote tmux session lives on the SSH server. PixShell's local connection objects do not survive a process restart.
 
 ## Graceful shutdown
 
-On shutdown WebSSH:
+On shutdown PixShell:
 
 1. closes admission for new runtime work;
 2. signals cancellable jobs;

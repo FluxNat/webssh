@@ -96,7 +96,7 @@ def begin_totp_enrollment(user_id, session_binding, *, label="Authenticator"):
     secret = pyotp.random_base32(length=32)
     provisioning_uri = pyotp.TOTP(secret).provisioning_uri(
         name=account_name,
-        issuer_name="WebSSH",
+        issuer_name="PixShell",
     )
 
     with _totp_lock:

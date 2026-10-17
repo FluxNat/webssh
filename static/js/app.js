@@ -2,11 +2,11 @@
     'use strict';
 
     window.addEventListener('unhandledrejection', () => {
-        console.error('[WebSSH] Unhandled promise rejection');
+        console.error('[PixShell] Unhandled promise rejection');
     });
 
     window.addEventListener('error', () => {
-        console.error('[WebSSH] Uncaught browser error');
+        console.error('[PixShell] Uncaught browser error');
     });
 
     const APP_ROOT = document.querySelector('meta[name="app-root"]')?.content || '';
@@ -155,7 +155,7 @@
         showNotification({
             message: window.i18n
                 ? i18n.t('connection.reloadRequired')
-                : 'WebSSH was updated. Reload this page to continue.',
+                : 'PixShell was updated. Reload this page to continue.',
             type: 'error',
             persistent: true,
             onDismiss: () => {
@@ -196,7 +196,7 @@
         if (connectionErrorReported) return;
         connectionErrorReported = true;
         connectionErrorNotice = showNotification({
-            message: 'Cannot connect to WebSSH. Check your network and sign-in session. '
+            message: 'Cannot connect to PixShell. Check your network and sign-in session. '
                 + 'If this continues, check the proxy path, public origin and WebSocket settings.',
             type: 'error',
             persistent: true,
@@ -955,7 +955,7 @@
                     }
                     const prompt = window.i18n
                         ? i18n.t('editor.recoverableConfirm')
-                        : 'This server cannot replace the file in one safe step. WebSSH can save it with a temporary recovery backup and restore the original if replacement fails. Use this method for this SMB connection until the page is reloaded?';
+                        : 'This server cannot replace the file in one safe step. PixShell can save it with a temporary recovery backup and restore the original if replacement fails. Use this method for this SMB connection until the page is reloaded?';
                     if (window.confirm(prompt)) {
                         this.recoverableReplaceSources.add(this.currentSourceId);
                         this.saveEdit('recoverable_swap', data.save_challenge);

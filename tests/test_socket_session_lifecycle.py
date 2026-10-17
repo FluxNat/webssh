@@ -147,7 +147,7 @@ def test_socket_connect_rejects_incompatible_wire_revision_before_registration(
                 SimpleNamespace(username=username),
             )
     assert rejected.value.error_args['message'] == (
-        'WebSSH was updated. Reload this page to continue.'
+        'PixShell was updated. Reload this page to continue.'
     )
     mismatch = rejected.value.error_args['data']
     assert mismatch['status'] == 'reload_required'

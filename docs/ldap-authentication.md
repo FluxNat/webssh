@@ -2,7 +2,7 @@
 
 LDAP authentication is optional and disabled by default. The regular
 `docker-compose.yml` creates no LDAP volume, mount, or helper. Opting in uses
-the provided `docker-compose.ldap.yml` overlay with the same WebSSH image; no
+the provided `docker-compose.ldap.yml` overlay with the same PixShell image; no
 `.env` file or hand-written secret mount is required.
 
 ## Security model
@@ -17,7 +17,7 @@ the provided `docker-compose.ldap.yml` overlay with the same WebSSH image; no
 - Directory usernames are escaped as RFC 4515 filter values. Searches are
   subtree-scoped, limited to two results, and must resolve to exactly one entry.
 - By default, an administrator explicitly links a directory identity to an
-  existing local WebSSH user. Optional auto-provisioning still requires a
+  existing local PixShell user. Optional auto-provisioning still requires a
   successful password bind and never trusts a username by itself.
 - The stable `entryUUID` (OpenLDAP) or `objectGUID` (Active Directory) is the
   identity key. A renamed DN can be updated after successful authentication
@@ -51,15 +51,15 @@ Collect these values before activation:
 6. A user filter containing exactly one literal `{username}` placeholder.
 7. A stable unique-ID attribute (`entryUUID` or `objectGUID`).
 
-DNS and system time must work inside the WebSSH container. Do not use an IP
+DNS and system time must work inside the PixShell container. Do not use an IP
 address when the server certificate contains only a DNS name.
 
 ## Configure the LDAP Compose overlay
 
 Edit `docker-compose.ldap.yml`. Selecting this overlay enables LDAP, so fill
-every empty directory setting before starting WebSSH. The secret helper can be
-run first without starting the WebSSH service. Always use base and LDAP Compose
-files from the same WebSSH release.
+every empty directory setting before starting PixShell. The secret helper can be
+run first without starting the PixShell service. Always use base and LDAP Compose
+files from the same PixShell release.
 
 ### Active Directory example
 
@@ -76,11 +76,11 @@ LDAP_UNIQUE_ID_ATTRIBUTE: objectGUID
 ```
 
 The final filter clause excludes disabled AD accounts. If the organization has
-a dedicated WebSSH access group, add a directory-approved `memberOf` clause.
+a dedicated PixShell access group, add a directory-approved `memberOf` clause.
 Nested group semantics vary and must be validated by the AD administrator.
 
 `LDAP_BACKUP_URL` is optional and must point to the same logical directory as
-`LDAP_URL`. WebSSH tries it only when the primary endpoint is unavailable. Each
+`LDAP_URL`. PixShell tries it only when the primary endpoint is unavailable. Each
 URL is connected to directly, so the CA bundle must validate the DNS name in
 that endpoint's certificate; a round-robin alias is not required. A completed
 bind that rejects a user's password is authoritative and is not retried against
@@ -107,7 +107,7 @@ available, and replace it with the directory's actual disabled-account rule.
 ## Populate the opt-in secret volume
 
 The LDAP overlay creates `webssh_auth_secrets` and mounts it read-only at
-`/run/webssh-auth` in WebSSH. The standard Compose deployment does not declare
+`/run/webssh-auth` in PixShell. The standard Compose deployment does not declare
 or mount this volume.
 
 Set the bind password with a hidden interactive prompt:
@@ -136,29 +136,29 @@ docker compose -f docker-compose.yml -f docker-compose.ldap.yml --profile ldap-t
 
 The helper validates input, caps file sizes, writes atomically, and applies
 private permissions. It is standalone, has no network access, and is the only
-Compose service with write access to the LDAP volume. WebSSH mounts that volume
+Compose service with write access to the LDAP volume. PixShell mounts that volume
 read-only whenever the LDAP overlay is selected. The helper still works if an
 incomplete LDAP configuration prevents the Flask application from starting.
 
 ## Activate and link users
 
 1. Verify that every empty value in `docker-compose.ldap.yml` is configured.
-2. Start or recreate WebSSH with the overlay:
+2. Start or recreate PixShell with the overlay:
    `docker compose -f docker-compose.yml -f docker-compose.ldap.yml up -d`.
 3. Review startup logs with
    `docker compose -f docker-compose.yml -f docker-compose.ldap.yml logs webssh`.
-   WebSSH deliberately stops
+   PixShell deliberately stops
    before serving if the secret, CA, URL, filter, or timeout configuration is
    unsafe.
 4. Sign in with the local break-glass administrator.
 5. Open **Admin - Settings - LDAP directory** and run **Check connection**.
    The browser receives only ready/unavailable, transport, and provider ID.
 6. Keep `LDAP_AUTO_PROVISION: "false"` for explicit account lifecycle control.
-   Create the target local WebSSH user, then choose **Link LDAP** on the Users
+   Create the target local PixShell user, then choose **Link LDAP** on the Users
    tab and provide the directory username, administrator password, and exact
-   target WebSSH username.
+   target PixShell username.
 7. For larger directories, optionally set `LDAP_AUTO_PROVISION: "true"` and
-   recreate WebSSH with the overlay. A verified first sign-in then creates a
+   recreate PixShell with the overlay. A verified first sign-in then creates a
    non-admin LDAP-managed account. Existing local usernames still require the
    explicit administrator linking flow.
 8. Sign out and test the directory account. When LDAP is enabled, its
@@ -176,7 +176,7 @@ docker compose -f docker-compose.yml -f docker-compose.ldap.yml -f docker-compos
 
 ## Rollback and recovery
 
-To stop LDAP immediately, recreate WebSSH from the standard Compose file only:
+To stop LDAP immediately, recreate PixShell from the standard Compose file only:
 
 ```bash
 docker compose -f docker-compose.yml up -d --force-recreate
@@ -187,7 +187,7 @@ secret volume remains stored but detached until the overlay is selected again.
 Existing LDAP sessions are invalidated. Local accounts continue normally, but
 linked LDAP accounts intentionally do not regain their old passwords.
 Directory removal or filter exclusion revokes access without deleting the
-account's stored WebSSH data; delete that data only through the normal explicit
+account's stored PixShell data; delete that data only through the normal explicit
 administrator lifecycle.
 
 To return one account to local authentication while LDAP is working, choose
@@ -201,7 +201,7 @@ LDAP is disabled:
 docker compose -f docker-compose.yml -f docker-compose.ldap.yml --profile ldap-tools run --rm ldap-tools remove
 ```
 
-Do not delete the normal WebSSH data volume. LDAP mappings live in the normal
+Do not delete the normal PixShell data volume. LDAP mappings live in the normal
 database and are included in native backup/restore; bind credentials and the CA
 remain in the separate secret volume and are intentionally not included.
 
@@ -212,10 +212,10 @@ remain in the separate secret volume and are intentionally not included.
 - **Certificate failure:** verify DNS, certificate SAN, system time, the full CA
   chain, and that the CA is PEM rather than DER or PKCS#12.
 - **Zero or multiple matches:** test the search base/filter with the directory
-  administrator. WebSSH never chooses one result from an ambiguous search.
+  administrator. PixShell never chooses one result from an ambiguous search.
 - **AD user is found but cannot bind:** check disabled/locked/expired state,
   logon restrictions, and whether the DC accepts the supplied username flow.
-- **LDAP outage signs users out:** WebSSH tries the optional backup endpoint
+- **LDAP outage signs users out:** PixShell tries the optional backup endpoint
   after a transport failure. If neither endpoint is available, the intentional
   fail-closed behavior applies. Restore directory/TLS service; do not enable a
   password fallback.
@@ -226,7 +226,7 @@ remain in the separate secret volume and are intentionally not included.
 
 An Active Directory domain is not required for basic functional testing. The
 opt-in lab under `tests/integration/ldap/` starts a TLS-enabled OpenLDAP server,
-initializes the preconfigured secret volume, builds WebSSH, and exposes it on
+initializes the preconfigured secret volume, builds PixShell, and exposes it on
 `http://localhost:5050`. It uses test-only passwords and must never be deployed
 as production infrastructure.
 

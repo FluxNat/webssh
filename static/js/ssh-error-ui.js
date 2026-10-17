@@ -31,7 +31,7 @@
                 message: translated(
                     translate,
                     'sshErrors.hostKeyChanged',
-                    'The server presented a different SSH host key. WebSSH blocked the connection. Verify the change before removing the stored trust entry.',
+                    'The server presented a different SSH host key. PixShell blocked the connection. Verify the change before removing the stored trust entry.',
                 ),
                 type: 'error',
                 duration: 12000,

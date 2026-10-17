@@ -112,7 +112,7 @@ test('passkey SecurityError becomes an inline configured-origin action without a
         message: 'Passkeys are configured for http://localhost:5050. Open that address and try again.',
         type: 'error',
         action: {
-            label: 'Open configured WebSSH address',
+            label: 'Open configured PixShell address',
             url: 'http://localhost:5050',
         },
     }]);

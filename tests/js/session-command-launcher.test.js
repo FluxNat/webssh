@@ -116,7 +116,7 @@ test('recognizes only an existing sudo command token as prefixed', async () => {
         getCommands: () => [
             {
                 id: 'cmd-sudo',
-                name: 'Restart WebSSH',
+                name: 'Restart PixShell',
                 command: 'sudo systemctl restart',
                 parameters: 'webssh',
             },

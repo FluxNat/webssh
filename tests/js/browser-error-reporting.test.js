@@ -59,5 +59,5 @@ test('reports browser errors whose source URL merely contains socket.io', () => 
         filename: 'https://attacker.example/assets/app.js?source=socket.io',
     });
 
-    assert.deepEqual(errors, [['[WebSSH] Uncaught browser error']]);
+    assert.deepEqual(errors, [['[PixShell] Uncaught browser error']]);
 });

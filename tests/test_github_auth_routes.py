@@ -383,7 +383,7 @@ def test_operator_code_bootstraps_first_passkey_then_allows_github_unlink(
     _configure(app, admin_id, auto_provision=True)
     monkeypatch.setattr(config, 'WEBAUTHN_ENABLED', True)
     monkeypatch.setattr(config, 'WEBAUTHN_RP_ID', 'localhost')
-    monkeypatch.setattr(config, 'WEBAUTHN_RP_NAME', 'WebSSH Test')
+    monkeypatch.setattr(config, 'WEBAUTHN_RP_NAME', 'PixShell Test')
     monkeypatch.setattr(config, 'WEBAUTHN_ORIGIN', 'https://localhost')
     app.extensions['security_feature_readiness']['passkey'] = (True, None)
     state = _begin_login(client)

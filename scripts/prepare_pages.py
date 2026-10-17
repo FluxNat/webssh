@@ -90,10 +90,10 @@ def add_search_metadata(output: Path) -> None:
         if filename == 'index.html':
             nodes.extend([
                 {'@type': 'WebSite', '@id': SITE_URL + '#website', 'url': SITE_URL,
-                 'name': 'WebSSH', 'inLanguage': 'en',
+                 'name': 'PixShell', 'inLanguage': 'en',
                  'publisher': {'@id': SITE_URL + '#maintainer'}},
                 {'@type': 'SoftwareSourceCode', '@id': SITE_URL + '#software',
-                 'name': 'WebSSH', 'url': SITE_URL, 'description': description,
+                 'name': 'PixShell', 'url': SITE_URL, 'description': description,
                  'codeRepository': 'https://github.com/bifrost0x/webssh',
                  'license': 'https://github.com/bifrost0x/webssh/blob/main/LICENSE',
                  'programmingLanguage': ['Python', 'JavaScript'],
@@ -117,7 +117,7 @@ def add_search_metadata(output: Path) -> None:
             nodes[0]['mainEntity'] = {'@id': video_id}
             nodes.append({
                 '@type': 'VideoObject', '@id': video_id,
-                'name': 'WebSSH - a one-minute product walkthrough',
+                'name': 'PixShell - a one-minute product walkthrough',
                 'description': description,
                 'thumbnailUrl': [SITE_URL + 'assets/webssh-demo-poster.jpg'],
                 'contentUrl': SITE_URL + 'assets/webssh-demo.mp4?v=4a5bdb14506d',
@@ -134,12 +134,12 @@ def add_search_metadata(output: Path) -> None:
             raise ValueError(f'Unexpected authored page script policy in {filename}')
         html = html.replace(policy, policy.replace("script-src 'self';", f"script-src 'self' 'sha256-{digest}';"), 1)
         image = SITE_URL + 'assets/session-workspace.png'
-        image_alt = 'WebSSH browser workspace with an SSH terminal and SFTP files side by side'
+        image_alt = 'PixShell browser workspace with an SSH terminal and SFTP files side by side'
         if filename == 'demo.html':
             image = SITE_URL + 'assets/webssh-demo-poster.jpg'
-            image_alt = 'WebSSH product walkthrough with terminals, SFTP files and command sets'
+            image_alt = 'PixShell product walkthrough with terminals, SFTP files and command sets'
         tags = {
-            'og:type': 'website', 'og:site_name': 'WebSSH', 'og:locale': 'en_US',
+            'og:type': 'website', 'og:site_name': 'PixShell', 'og:locale': 'en_US',
             'og:title': title, 'og:description': description, 'og:url': url,
             'og:image': image, 'og:image:type': 'image/jpeg' if filename == 'demo.html' else 'image/png',
             'og:image:width': '1920' if filename == 'demo.html' else '2560',
@@ -232,7 +232,7 @@ def prepare_pages(root: Path, graph_source: Path, output: Path) -> None:
     graph_html = graph_html.replace('</head>', '<link rel="stylesheet" href="../graph.css">\n</head>', 1)
     graph_html = graph_html.replace('</body>', '''<script src="../graph.js" defer></script>
 <nav class="graph-site-nav" aria-label="Website and legal information">
-<a href="../">WebSSH</a><a href="../impressum.html">Legal notice</a>
+<a href="../">PixShell</a><a href="../impressum.html">Legal notice</a>
 <a href="../privacy.html">Privacy notice</a>
 </nav></body>''', 1)
     # A fresh directory prevents files from an older build entering the artifact.

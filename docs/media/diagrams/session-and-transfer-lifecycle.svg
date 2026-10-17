@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" role="img" aria-labelledby="session-transfer-title session-transfer-desc">
-  <title id="session-transfer-title">WebSSH session and transfer lifecycle</title>
+  <title id="session-transfer-title">PixShell session and transfer lifecycle</title>
   <desc id="session-transfer-desc">Architecture showing realtime terminal traffic through authenticated Socket.IO and process-local SSH state. Browser uploads and downloads use owned transfer records, single-use HTTP tokens, and bounded streams; server-to-server copies branch to a bounded background job without a browser HTTP token.</desc>
   <defs>
     <style>
@@ -14,7 +14,7 @@
   <rect x="0" y="0" width="16" height="900" fill="#245f9e"/>
   <text class="title" x="56" y="64">Session and transfer lifecycle</text>
   <text class="subtitle" x="56" y="96">Realtime control and bulk file bodies take deliberately different paths</text>
-  <text class="brand" x="1384" y="64" text-anchor="end">WebSSH</text>
+  <text class="brand" x="1384" y="64" text-anchor="end">PixShell</text>
 
   <rect class="band" x="48" y="148" width="1344" height="248" rx="8"/>
   <rect x="72" y="140" width="224" height="24" fill="#f4f7fb"/>
@@ -117,5 +117,5 @@
   <text class="legend" x="292" y="848">ownership reference</text>
   <line x1="504" y1="844" x2="536" y2="844" stroke="#b43f3f" stroke-width="2" stroke-dasharray="8 8"/>
   <text class="legend" x="548" y="848">forbidden transport</text>
-  <text class="source" x="1384" y="848" text-anchor="end">current implementation · WebSSH 2.0</text>
+  <text class="source" x="1384" y="848" text-anchor="end">current implementation · PixShell 2.0</text>
 </svg>

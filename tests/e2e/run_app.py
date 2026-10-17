@@ -1,4 +1,4 @@
-"""Run an isolated local WebSSH instance for Playwright."""
+"""Run an isolated local PixShell instance for Playwright."""
 
 import os
 from pathlib import Path
@@ -282,7 +282,7 @@ def main():
             ),
             'WEBAUTHN_ENABLED': 'true',
             'WEBAUTHN_RP_ID': 'localhost',
-            'WEBAUTHN_RP_NAME': 'WebSSH E2E',
+            'WEBAUTHN_RP_NAME': 'PixShell E2E',
             'WEBAUTHN_ORIGIN': (
                 'http://localhost:'
                 + os.environ.get('WEBSSH_E2E_PORT', '4173')

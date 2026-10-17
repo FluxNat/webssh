@@ -1,4 +1,4 @@
-/* Public viewer for a shared WebSSH terminal. */
+/* Public viewer for a shared PixShell terminal. */
 (function (root, factory) {
     const api = factory();
     if (typeof module === 'object' && module.exports) {
@@ -318,7 +318,7 @@
                 renderChat();
             }
             els.title.textContent = viewer.title || 'Shared terminal';
-            doc.title = `${viewer.title || 'Shared terminal'} · WebSSH`;
+            doc.title = `${viewer.title || 'Shared terminal'} · PixShell`;
             if (viewer.owner) {
                 els.owner.textContent = t('share.viewer.sharedBy').replace('{owner}', viewer.owner);
                 show(els.owner, true);
