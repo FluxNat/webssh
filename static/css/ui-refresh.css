@@ -501,6 +501,14 @@ body[data-theme="paper"] {
     opacity: 1;
 }
 
+/* The Settings Center scrolls inside its own column; a matching bottom
+   inset keeps Preferences on one screen at 1080p. */
+@media (min-width: 1024px) {
+    .settings-center-content {
+        padding-bottom: 28px;
+    }
+}
+
 /* Layout switcher reads as one segmented control. */
 .tab-row-actions .split-controls {
     padding: 2px;
