@@ -1,6 +1,6 @@
 # GitHub Authentication
 
-WebSSH can use a GitHub App as an optional sign-in provider. The integration
+PixShell can use a GitHub App as an optional sign-in provider. The integration
 verifies identity only: it does not browse repositories, run Git operations,
 read issues, use Actions, synchronize SSH keys, or retain GitHub access tokens.
 
@@ -15,7 +15,7 @@ saves a complete configuration and enables the provider.
 ### 1. Decide who owns the app
 
 Use an organization-owned GitHub App when an organization membership allowlist
-will control WebSSH access. A personal app is sufficient for a private test or
+will control PixShell access. A personal app is sufficient for a private test or
 identity-only login without organization policy.
 
 Only organization owners can create and install organization-owned apps by
@@ -50,17 +50,17 @@ The organization registration URL has the form
 
 Use the following values on GitHub's registration form:
 
-| GitHub field | Value for WebSSH |
+| GitHub field | Value for PixShell |
 |---|---|
-| **GitHub App name** | A unique descriptive name, for example `WebSSH – Example Org` |
-| **Homepage URL** | The public WebSSH base URL, for example `https://ssh.example.com/` |
-| **Callback URL** | The exact WebSSH callback, for example `https://ssh.example.com/auth/github/callback` |
-| **Request user authorization (OAuth) during installation** | Leave cleared; WebSSH starts the authorization flow when a user signs in or links an account |
+| **GitHub App name** | A unique descriptive name, for example `PixShell – Example Org` |
+| **Homepage URL** | The public PixShell base URL, for example `https://ssh.example.com/` |
+| **Callback URL** | The exact PixShell callback, for example `https://ssh.example.com/auth/github/callback` |
+| **Request user authorization (OAuth) during installation** | Leave cleared; PixShell starts the authorization flow when a user signs in or links an account |
 | **Setup URL** | Leave empty |
-| **Webhook → Active** | Clear this option; WebSSH does not receive webhooks |
+| **Webhook → Active** | Clear this option; PixShell does not receive webhooks |
 
-Avoid wildcard callback matching. WebSSH always sends the configured exact
-callback URL. When WebSSH runs below `APPLICATION_ROOT`, include that prefix
+Avoid wildcard callback matching. PixShell always sends the configured exact
+callback URL. When PixShell runs below `APPLICATION_ROOT`, include that prefix
 before `/auth/github/callback` in both GitHub and the Admin Panel. Production
 callbacks must use HTTPS; plain HTTP is accepted only for a loopback host in
 the homelab profile.
@@ -68,7 +68,7 @@ the homelab profile.
 ### 4. Select the minimum permissions
 
 Keep every **Repository permission** and **Account permission** at **No
-access**. WebSSH does not read repositories, email addresses, SSH keys, issues,
+access**. PixShell does not read repositories, email addresses, SSH keys, issues,
 Actions, or other account data.
 
 For identity-only login with an empty organization allowlist, keep every
@@ -100,7 +100,7 @@ an active member of the allowed organization.
 
 GitHub distinguishes installation from user authorization. Installation grants
 the app access to the selected account or organization under its declared
-permissions. Each WebSSH user separately authorizes the app during login or
+permissions. Each PixShell user separately authorizes the app during login or
 account linking. An organization owner must approve an installation that
 requests an organization permission.
 
@@ -112,15 +112,15 @@ app. On its **General** page:
 1. Copy **Client ID**. Do not copy **App ID**; they are different values.
 2. Scroll to **Client secrets**.
 3. Select **Generate a new client secret**.
-4. Copy the generated secret immediately and paste it into WebSSH. Treat it as
+4. Copy the generated secret immediately and paste it into PixShell. Treat it as
    a password and never place it in Compose, source control, screenshots, or
    issue text.
 
-WebSSH does not need a private key, PEM download, webhook secret, or OAuth App
+PixShell does not need a private key, PEM download, webhook secret, or OAuth App
 client credentials. It needs only the GitHub App **Client ID** and one generated
 **Client secret**.
 
-## Configure WebSSH
+## Configure PixShell
 
 Keep a tested local break-glass administrator, then open the GitHub section in
 the Admin Panel. Enter:
@@ -131,41 +131,41 @@ the Admin Panel. Enter:
 - optional comma-separated organization allowlist
 - whether unknown GitHub identities may be auto-provisioned
 
-Then select **Enable GitHub sign-in** and **Save GitHub configuration**. WebSSH
+Then select **Enable GitHub sign-in** and **Save GitHub configuration**. PixShell
 will request administrator reauthentication for this protected change. The
 status beside the buttons must report **GitHub sign-in is active** before users
 will see the GitHub login option.
 
 The client secret field is write-only. Leaving it blank preserves the existing
-secret; entering a value replaces it. WebSSH encrypts it at rest with a
+secret; entering a value replaces it. PixShell encrypts it at rest with a
 domain-separated key derived from the existing persistent `SECRET_KEY`.
 Backups therefore remain sensitive, and the supported secret-rotation command
 also re-encrypts the stored GitHub secret.
 
 Saving configuration requires administrator Step-up. Provider changes
 invalidate outstanding GitHub OAuth states. Incomplete or undecryptable
-configuration fails closed for GitHub while local WebSSH login remains
+configuration fails closed for GitHub while local PixShell login remains
 available.
 
 ## Login and account binding
 
 GitHub OAuth uses authorization code flow, PKCE S256, a random session-bound
 single-use state, a five-minute server-side state record, an exact callback,
-and bounded local continuations. WebSSH uses the immutable numeric GitHub user
+and bounded local continuations. PixShell uses the immutable numeric GitHub user
 ID as the identity key; login, display name, and email are never durable keys.
 
 GitHub authorization is accepted only for primary sign-in and account linking.
 It cannot satisfy the fresh Step-up required for passkey enrollment, recovery
 changes, provider configuration, restore, or other sensitive account actions,
-because the callback does not provide WebSSH with signed recent-authentication
+because the callback does not provide PixShell with signed recent-authentication
 evidence. Use a local password, an existing passkey, TOTP, or an eligible
 recovery method for those Step-up checks. The narrowly scoped initial-factor
-bootstrap below is the only exception for a factorless account that WebSSH
+bootstrap below is the only exception for a factorless account that PixShell
 itself auto-provisioned from GitHub.
 
-Existing users connect GitHub from their Security settings after a WebSSH
+Existing users connect GitHub from their Security settings after a PixShell
 Step-up check and a successful GitHub authorization. A GitHub identity can be
-linked to only one WebSSH account, and each WebSSH account can have only one
+linked to only one PixShell account, and each PixShell account can have only one
 GitHub identity. Changing the GitHub username does not break the binding.
 
 Disconnecting also requires Step-up. A GitHub-provisioned account must first
@@ -176,7 +176,7 @@ primary authentication method.
 
 Auto-provisioning is disabled by default. When disabled, an unknown GitHub
 identity is rejected without matching by username or email. When enabled,
-WebSSH creates a new non-admin account and its identity binding atomically.
+PixShell creates a new non-admin account and its identity binding atomically.
 GitHub metadata can never create or promote an administrator.
 
 ### Bootstrap the first independent factor
@@ -191,7 +191,7 @@ docker compose exec webssh /app/entrypoint.sh flask --app start:app \
   issue-factor-bootstrap --username ACCOUNT --action passkey.enroll
 ```
 
-Run this command only on a trusted host after verifying the requested WebSSH
+Run this command only on a trusted host after verifying the requested PixShell
 account. The command refuses local, locked, MFA-enabled, or already-factorized
 accounts. It prints a random code that expires after ten minutes and is bound
 to the exact account, current authentication generation, and enrollment
@@ -200,19 +200,19 @@ the code itself is never written to the database or audit log.
 
 The user then signs in with GitHub, opens **Security**, starts the matching
 Passkey or authenticator enrollment, and enters the operator-issued code when
-prompted. WebSSH consumes the code before issuing the normal session-bound,
+prompted. PixShell consumes the code before issuing the normal session-bound,
 single-use enrollment grant. The user should enroll and test a Passkey before
 disconnecting GitHub because TOTP alone is not a primary sign-in replacement.
 
 ## Organization policy
 
-With an empty allowlist, WebSSH performs no organization check. With one or
+With an empty allowlist, PixShell performs no organization check. With one or
 more organizations configured, the temporary user access token must prove an
 active membership in at least one entry. A non-member is rejected. Timeouts,
 permission failures, malformed responses, and GitHub API outages fail closed.
 
 The user access token exists only long enough to retrieve `/user` and, when
-configured, membership. WebSSH never persists the access token, refresh token,
+configured, membership. PixShell never persists the access token, refresh token,
 authorization code, or OAuth response and never writes them to audit logs.
 
 ## Troubleshooting

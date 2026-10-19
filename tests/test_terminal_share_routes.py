@@ -72,7 +72,7 @@ def owner(app, client):
 
 @pytest.fixture
 def guest(app):
-    # A separate browser with no WebSSH session at all.
+    # A separate browser with no PixShell session at all.
     return app.test_client()
 
 

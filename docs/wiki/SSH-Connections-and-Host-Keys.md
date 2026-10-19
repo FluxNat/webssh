@@ -1,6 +1,6 @@
 # SSH Connections and Host Keys
 
-WebSSH opens SSH connections from the server process to the target. The browser
+PixShell opens SSH connections from the server process to the target. The browser
 does not connect directly to the SSH server.
 
 ## Connection methods
@@ -20,7 +20,7 @@ keys are encrypted at rest and decrypted only when needed for authentication.
 
 ## Stored SSH keys
 
-WebSSH accepts RSA, Ed25519, and ECDSA private keys supported by the installed
+PixShell accepts RSA, Ed25519, and ECDSA private keys supported by the installed
 Paramiko runtime. Each user's keys are isolated below their own data directory.
 
 Private-key content is encrypted with Fernet. A per-user key is derived from
@@ -37,7 +37,7 @@ atomic.
 
 ## Host-key trust
 
-WebSSH uses persistent trust on first use (TOFU):
+PixShell uses persistent trust on first use (TOFU):
 
 1. On the first connection to a host identity, the server key fingerprint is
    stored and logged.
@@ -84,7 +84,7 @@ for the same effective host identity.
 
 An SSH server can send `SSH_MSG_USERAUTH_BANNER` during authentication. The SSH
 protocol does not make this a true pre-authentication message; Paramiko exposes
-it after authentication completes. WebSSH therefore pauses immediately after
+it after authentication completes. PixShell therefore pauses immediately after
 authentication and before it opens a target shell, jump-host forwarding
 channel, tmux probe, or post-connect command.
 
@@ -114,7 +114,7 @@ this protection.
 
 The homelab profile defaults to false because private addresses are often the
 intended targets. If untrusted users can access the instance, private-target
-access turns WebSSH into a powerful network pivot. Isolate the instance or
+access turns PixShell into a powerful network pivot. Isolate the instance or
 enforce a reviewed target policy.
 
 DNS results are validated. ProxyJump normally uses locally validated target
@@ -126,14 +126,14 @@ trusted bastion must resolve remotely; wildcards and IP literals are rejected.
 Save a jump host once and reference it from profiles. A jump host can have its
 own hostname, port, remote username, and authentication method.
 
-WebSSH opens the target through Paramiko's existing bounded channel helpers.
+PixShell opens the target through Paramiko's existing bounded channel helpers.
 The UI marks a connection as routed through the selected bastion. Deleting or
 changing a referenced jump host can affect saved profiles, so verify dependents
 before removal.
 
 ## Connection ownership
 
-Every live SSH session is owned by one WebSSH user. Socket.IO input, resize,
+Every live SSH session is owned by one PixShell user. Socket.IO input, resize,
 disconnect, SFTP, diagnostics, and transfer operations authenticate the browser
 session and verify resource ownership.
 
@@ -180,7 +180,7 @@ verification.
 
 `SESSION_TIMEOUT` defaults to 1800 seconds and closes idle SSH sessions. A tmux
 session may keep the remote shell alive for later reattachment even though the
-WebSSH transport closed.
+PixShell transport closed.
 
 ## Related pages
 

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <title>PixShell</title>
+  <defs>
+    <linearGradient id="tile" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c8ff3d"/>
+      <stop offset="55%" stop-color="#a7fc14"/>
+      <stop offset="100%" stop-color="#8eef02"/>
+    </linearGradient>
+  </defs>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="14" fill="#031101" stroke="#045201" stroke-width="3"/>
+  <g fill="url(#tile)">
+    <rect x="11" y="15" width="6" height="6" rx="1.5"/>
+    <rect x="18" y="22" width="6" height="6" rx="1.5"/>
+    <rect x="25" y="29" width="6" height="6" rx="1.5"/>
+    <rect x="18" y="36" width="6" height="6" rx="1.5"/>
+    <rect x="11" y="43" width="6" height="6" rx="1.5"/>
+    <rect x="32" y="43" width="6" height="6" rx="1.5"/>
+    <rect x="39" y="43" width="6" height="6" rx="1.5"/>
+    <rect x="46" y="43" width="6" height="6" rx="1.5"/>
+  </g>
+</svg>

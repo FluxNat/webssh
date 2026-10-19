@@ -1,6 +1,6 @@
 # Administration, Audit, and Diagnostics
 
-WebSSH's administration interface combines account lifecycle controls, runtime diagnostics, security auditing, host-key visibility, and native backup operations. Administrative access is necessary but is not a substitute for recent reauthentication on sensitive actions.
+PixShell's administration interface combines account lifecycle controls, runtime diagnostics, security auditing, host-key visibility, and native backup operations. Administrative access is necessary but is not a substitute for recent reauthentication on sensitive actions.
 
 ## Administrative responsibilities
 
@@ -24,7 +24,7 @@ authentication assurance. Local administrators without MFA confirm their
 password. MFA-enabled administrators use an enrolled Passkey or authenticator
 app (TOTP). LDAP-managed administrators revalidate against LDAP.
 
-Recent sufficient OIDC assurance can be reused. Otherwise WebSSH starts
+Recent sufficient OIDC assurance can be reused. Otherwise PixShell starts
 provider reauthentication with `prompt=login`, `max_age=0`, and the configured
 `acr_values`. The resulting opaque grant expires after at most five minutes,
 works once, and is never stored in browser local/session storage. A grant for
@@ -38,7 +38,7 @@ Audit records are intended for investigation and accountability. They do not con
 
 ## Audit export
 
-The administrator export endpoint applies server-side filtering and scans at most 50,000 records per request. If a result is incomplete, WebSSH marks it as truncated in metadata and response headers. Narrow the time range or filters instead of assuming a truncated export is complete.
+The administrator export endpoint applies server-side filtering and scans at most 50,000 records per request. If a result is incomplete, PixShell marks it as truncated in metadata and response headers. Narrow the time range or filters instead of assuming a truncated export is complete.
 
 Retention updates are authenticated administrator operations and are themselves auditable. Rotation and retention protect local disk capacity; forward logs to an external system if the threat model requires tamper-resistant or longer-term retention.
 
@@ -47,14 +47,14 @@ Retention updates are authenticated administrator operations and are themselves 
 ### Instance status
 
 Administrators can open **Settings Center > Instance status** to inspect a
-snapshot of this WebSSH process and open its management controls. A single
+snapshot of this PixShell process and open its management controls. A single
 **Refresh** updates both the overview and the selected list.
 The page does not poll in the background. It leads with active SSH sessions,
 users with sessions, tmux usage, and pending/running/cancelling HTTP file
-transfers. The session list identifies the WebSSH account, SSH target, connection
+transfers. The session list identifies the PixShell account, SSH target, connection
 time and tmux usage. **Details** reveals the connection reference and the effect
 of disconnecting. The list remains available when the terminal tab navigates to Settings. Counts come from the current SSH runtime, not historical
-database rows. Detached tmux sessions with no active WebSSH SSH connection are
+database rows. Detached tmux sessions with no active PixShell SSH connection are
 not included.
 
 **Technical details** contains browser socket occupancy and

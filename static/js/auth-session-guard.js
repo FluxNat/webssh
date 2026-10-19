@@ -175,8 +175,8 @@
         function message(level) {
             const key = level === 2 ? 'authSession.expiringOne' : 'authSession.expiringFive';
             const fallback = level === 2
-                ? 'Your WebSSH sign-in expires in less than one minute. This is separate from the SSH idle timeout. You will return to this workspace after signing in again.'
-                : 'Your WebSSH sign-in expires in five minutes. This is separate from the SSH idle timeout; current workspace context will be restored after sign-in.';
+                ? 'Your PixShell sign-in expires in less than one minute. This is separate from the SSH idle timeout. You will return to this workspace after signing in again.'
+                : 'Your PixShell sign-in expires in five minutes. This is separate from the SSH idle timeout; current workspace context will be restored after sign-in.';
             const translated = browserWindow.i18n?.t?.(key);
             return translated && translated !== key ? translated : fallback;
         }

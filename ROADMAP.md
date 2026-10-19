@@ -1,6 +1,6 @@
-# WebSSH Roadmap
+# PixShell Roadmap
 
-WebSSH is a self-hosted SSH and file workspace. This roadmap explains the direction,
+PixShell is a self-hosted SSH and file workspace. This roadmap explains the direction,
 the current release focus, and the evidence behind completed work. It is not a release-date
 promise or a replacement for issues, pull requests, and release notes.
 

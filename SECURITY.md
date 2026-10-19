@@ -8,7 +8,7 @@
 
 ## Reporting a Vulnerability
 
-I take security seriously. If you discover a security vulnerability in WebSSH, please report it responsibly.
+I take security seriously. If you discover a security vulnerability in PixShell, please report it responsibly.
 
 ### How to Report
 
@@ -153,7 +153,7 @@ Instead, report vulnerabilities via:
      --confirm-offline
    flask --app start:app backup verify /secure-backups/webssh.zip
    ```
-   Stop every WebSSH process using `DATA_DIR` before create, restore, or
+   Stop every PixShell process using `DATA_DIR` before create, restore, or
    rotation operations. Backups contain security-sensitive data and may include
    the persisted `SECRET_KEY`; encrypt them separately, restrict access, and
    define retention and secure deletion.
@@ -171,7 +171,7 @@ Instead, report vulnerabilities via:
 11. **Keep a tested local break-glass administrator**
     OIDC and LDAP remain deployment-gated, while GitHub App authentication is
     configured at runtime in the Admin Panel. Every provider can fail
-    independently of WebSSH. Keep at least one local administrator with a
+    independently of PixShell. Keep at least one local administrator with a
     strong password and tested Passkey or TOTP factor. Store its Recovery Codes
     offline. GitHub-provisioned accounts can never become administrators.
 
@@ -179,7 +179,7 @@ Instead, report vulnerabilities via:
 
 MFA is not globally mandatory. An account continues to use its existing login
 until that user enrolls a Passkey or authenticator app and explicitly enables
-MFA. LDAP users can enroll local WebSSH factors after a recent directory login;
+MFA. LDAP users can enroll local PixShell factors after a recent directory login;
 their directory password is neither retained nor converted into a local
 password.
 
@@ -188,7 +188,7 @@ the provider-specific `OIDC_MFA_*` or `OIDC_PHISHING_RESISTANT_*` configuration.
 Do not copy claim values from another provider. Verify the provider's token
 contract and Conditional Access/authentication policy, then test both positive
 and negative claims. Mobile push is an identity-provider capability, not a
-WebSSH push service. Administrator provider reauthentication requests
+PixShell push service. Administrator provider reauthentication requests
 `prompt=login`, `max_age=0`, and configured `OIDC_STEP_UP_ACR_VALUES`.
 
 Recovery Codes do not replace the primary credential. After a successful
@@ -216,7 +216,7 @@ The Docker image runs as non-root user (`appuser`) with:
 - Native Socket.IO threading only; no Eventlet worker or monkey patching path
 
 `greenlet` can appear in the universal lock only because SQLAlchemy declares it
-as a platform-marked transitive dependency. It is not a selectable WebSSH
+as a platform-marked transitive dependency. It is not a selectable PixShell
 runtime and must not be removed independently; changing that dependency graph
 requires its own reviewed SQLAlchemy upgrade.
 
@@ -236,8 +236,8 @@ upgrade. No persistent-data rollback or format rewrite is required.
 | TOFU Host Keys | First connection auto-accepted | Review logs for new host keys |
 | Deployment-gated identity features | Passkeys, TOTP, OIDC, and LDAP require both deployment allowance and Admin activation | Configure exact origins/provider settings, validate readiness, and keep local administrator recovery tested before activation |
 | Runtime GitHub authentication | A bad callback, revoked client secret, missing organization permission, or GitHub outage can prevent provider login | Configure the GitHub App in the Admin Panel, use the exact callback, validate organization policy, and keep local administrator recovery tested |
-| OIDC claim semantics vary | `acr` and `amr` do not have universal assurance meanings | Allowlist only values documented and tested for the configured provider; otherwise WebSSH treats the login as basic assurance |
-| In-process live sessions | Active SSH state requires exactly one WebSSH worker | Keep the documented single `gthread` worker and use the normal session lifetime instead of policy-triggered mass termination |
+| OIDC claim semantics vary | `acr` and `amr` do not have universal assurance meanings | Allowlist only values documented and tested for the configured provider; otherwise PixShell treats the login as basic assurance |
+| In-process live sessions | Active SSH state requires exactly one PixShell worker | Keep the documented single `gthread` worker and use the normal session lifetime instead of policy-triggered mass termination |
 
 ## Security Audit
 

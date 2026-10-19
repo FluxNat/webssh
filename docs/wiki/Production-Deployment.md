@@ -1,7 +1,7 @@
 # Production Deployment
 
 Use this profile for an Internet-facing or otherwise untrusted multi-user
-deployment. WebSSH treats production settings as a validated security contract:
+deployment. PixShell treats production settings as a validated security contract:
 unsafe combinations stop startup instead of merely logging warnings.
 
 ## Architecture
@@ -9,12 +9,12 @@ unsafe combinations stop startup instead of merely logging warnings.
 A recommended deployment has these boundaries:
 
 ```text
-Browser --HTTPS--> trusted reverse proxy --private HTTP--> WebSSH
+Browser --HTTPS--> trusted reverse proxy --private HTTP--> PixShell
                                                     |
                                                     +--SSH/SFTP--> targets
 ```
 
-Only the trusted reverse proxy should reach WebSSH's backend port. Protect the
+Only the trusted reverse proxy should reach PixShell's backend port. Protect the
 Docker host, data volume, logs, and backups as privileged infrastructure.
 
 ## Requirements
@@ -45,7 +45,7 @@ docker compose \
   up -d
 ```
 
-The overlay binds WebSSH to `127.0.0.1:5000` by default. A reverse proxy on the
+The overlay binds PixShell to `127.0.0.1:5000` by default. A reverse proxy on the
 same host can use that address. For a containerized proxy, remove public port
 publishing and connect both services to a private Docker network.
 
@@ -101,7 +101,7 @@ Production startup rejects:
 - disabled internal-target blocking;
 - an unspecified proxy trust boundary.
 
-Set `TRUSTED_PROXIES=0` explicitly only when WebSSH accepts no proxy headers.
+Set `TRUSTED_PROXIES=0` explicitly only when PixShell accepts no proxy headers.
 When the value is non-zero, a client that can bypass the proxy may spoof
 forwarded information, so restrict the backend network path.
 
@@ -136,7 +136,7 @@ Enable optional identity only after the base local-admin deployment works.
 
 Production enables `BLOCK_INTERNAL_SSH=true`, blocking loopback, link-local,
 private, and reserved targets after DNS resolution. This reduces the risk that
-untrusted users use WebSSH as an SSRF or internal network pivot.
+untrusted users use PixShell as an SSRF or internal network pivot.
 
 If the real use case requires private targets, do not simply relax the flag on
 a broadly accessible service. Restrict users and network access, isolate the

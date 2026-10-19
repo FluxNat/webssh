@@ -305,7 +305,7 @@
                     action: {
                         label: t(
                             'auth.openConfiguredAddress',
-                            'Open configured WebSSH address',
+                            'Open configured PixShell address',
                         ),
                         url: safeOrigin,
                     },
@@ -314,7 +314,7 @@
             return {
                 message: t(
                     'auth.passkeySecurityError',
-                    'Passkey sign-in is unavailable at this address. Open the configured WebSSH address and try again.',
+                    'Passkey sign-in is unavailable at this address. Open the configured PixShell address and try again.',
                 ),
                 type: 'error',
             };
@@ -332,7 +332,7 @@
             return {
                 message: t(
                     'auth.passkeyUnsupported',
-                    'This browser cannot use Passkeys for this WebSSH instance.',
+                    'This browser cannot use Passkeys for this PixShell instance.',
                 ),
                 type: 'error',
             };

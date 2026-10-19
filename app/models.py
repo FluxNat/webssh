@@ -371,7 +371,7 @@ class GitHubAuthConfiguration(db.Model):
 
 
 class GitHubIdentity(db.Model):
-    """A WebSSH account binding keyed by GitHub's immutable numeric ID."""
+    """A PixShell account binding keyed by GitHub's immutable numeric ID."""
 
     __tablename__ = 'github_identities'
 
@@ -682,7 +682,7 @@ def cleanup_expired_security_rows(limit=500, now=None):
 
 
 class OIDCIdentity(db.Model):
-    """Verified stable external identity mapping to a WebSSH account."""
+    """Verified stable external identity mapping to a PixShell account."""
 
     __tablename__ = 'oidc_identities'
     __table_args__ = (

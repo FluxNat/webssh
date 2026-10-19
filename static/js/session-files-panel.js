@@ -69,7 +69,7 @@
                     ? 'workspace.sftpChecking'
                     : 'workspace.sftpUnavailable';
             const fallback = nextStatus === 'reconnecting' ? 'Reconnecting — displayed data may be out of date.' : resourceShortage
-                ? 'The SSH server has no free channel capacity for SFTP on {target}. WebSSH will retry automatically in about one minute.'
+                ? 'The SSH server has no free channel capacity for SFTP on {target}. PixShell will retry automatically in about one minute.'
                 : checking
                     ? 'Checking SFTP for {target}...'
                     : 'SFTP is not available for {target}.';

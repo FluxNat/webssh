@@ -1,5 +1,5 @@
 """
-Rate limiter implementations for WebSSH.
+Rate limiter implementations for PixShell.
 
 Provides two backends:
 - InMemoryRateLimiter: Fast, no dependencies. Single-process only.

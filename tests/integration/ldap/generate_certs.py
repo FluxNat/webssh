@@ -38,7 +38,7 @@ def main():
     now = datetime.now(timezone.utc)
     ca_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     ca_name = x509.Name([
-        x509.NameAttribute(NameOID.COMMON_NAME, "WebSSH LDAP Test CA"),
+        x509.NameAttribute(NameOID.COMMON_NAME, "PixShell LDAP Test CA"),
     ])
     ca_cert = (
         x509.CertificateBuilder()

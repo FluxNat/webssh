@@ -1,4 +1,4 @@
-# WebSSH Project History
+# PixShell Project History
 
 This retrospective explains what shipped and why the documented changes mattered.
 It is reconstructed from public releases, PR descriptions, issue links and Git ancestry,

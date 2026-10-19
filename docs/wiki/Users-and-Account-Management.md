@@ -1,6 +1,6 @@
 # Users and Account Management
 
-WebSSH is multi-user. Each account has separate profiles, commands, jump hosts,
+PixShell is multi-user. Each account has separate profiles, commands, jump hosts,
 settings, notes, SSH keys, host trust, live sessions, and transfer ownership.
 
 ## Roles
@@ -103,7 +103,7 @@ Passwords are bcrypt hashes at rest. New or changed passwords are limited to
 
 ## Locking an account
 
-Locking prevents new HTTP and Socket.IO authorization. WebSSH also revokes the
+Locking prevents new HTTP and Socket.IO authorization. PixShell also revokes the
 account's tracked resources:
 
 - active transfers;
@@ -128,12 +128,12 @@ This quarantine prevents a future numeric user ID from inheriting the deleted
 account's files. It is retention, not secure erasure. Operators must define a
 review and secure-disposal policy for `deleted_users`.
 
-If database deletion fails, WebSSH attempts to move the quarantined directory
+If database deletion fails, PixShell attempts to move the quarantined directory
 back into the active namespace.
 
 ## External identity ownership
 
-External identity resolves to a local WebSSH account. OIDC always requires an
+External identity resolves to a local PixShell account. OIDC always requires an
 explicit verified link: an eligible signed-in user can self-link to their own
 account, while an administrator-managed link remains available as a recovery
 fallback. LDAP uses a controlled administrator link by default; explicit
@@ -148,7 +148,7 @@ identity collides.
 - OIDC and LDAP mappings cannot be combined on one LDAP-managed account.
 - LDAP-managed accounts cannot be administrators.
 - LDAP linking removes the dormant local password and incompatible OIDC mapping;
-  Passkey/TOTP factors remain attached to the WebSSH account and can protect the
+  Passkey/TOTP factors remain attached to the PixShell account and can protect the
   LDAP primary login. Unlinking requires a fresh local password.
 
 Keep a separate local break-glass administrator before enabling external
@@ -183,7 +183,7 @@ shown once and stored only as hashes.
 
 An explicit administrator MFA reset deletes all target Passkeys, TOTP state,
 WebAuthn challenges, and Recovery Codes, disables MFA, advances the target's
-authentication generation, and revokes that account's active WebSSH/SSH access.
+authentication generation, and revokes that account's active PixShell/SSH access.
 It is distinct from changing a feature policy: enabling or disabling a feature
 does not forcibly kill existing sessions, which continue until their normal
 configured lifetime.

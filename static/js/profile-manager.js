@@ -5,6 +5,7 @@ const ProfileManager = {
     profilesLoaded: false,
     selectedLegacyStartupCommands: '',
     editingProfileId: null,
+    editingHasSavedPassword: false,
     editingKeyId: null,
     editingKeyName: null,
     keyRenamePending: false,
@@ -64,6 +65,12 @@ const ProfileManager = {
         });
         document.getElementById('profileEditorAuthType')?.addEventListener('change', () => {
             this.updateEditorVisibility();
+        });
+        document.getElementById('profileEditorRememberPassword')?.addEventListener('change', () => {
+            this.updateEditorVisibility();
+            if (document.getElementById('profileEditorRememberPassword')?.checked) {
+                document.getElementById('profileEditorPassword')?.focus();
+            }
         });
         document.getElementById('profileEditorPostConnectMode')?.addEventListener('change', () => {
             this.updateEditorVisibility();
@@ -331,11 +338,14 @@ const ProfileManager = {
             empty.classList.add('profile-launcher-replacement');
         }
 
+        const header = document.createElement('div');
+        header.className = 'profile-launcher-header';
         const icon = document.createElement('div');
         icon.className = 'pane-empty-icon material-icons';
         icon.setAttribute('aria-hidden', 'true');
         icon.textContent = 'dns';
-        empty.appendChild(icon);
+        header.appendChild(icon);
+        empty.appendChild(header);
 
         const profiles = this.profilesLoaded ? this.profiles : [];
         const title = document.createElement('div');
@@ -345,7 +355,7 @@ const ProfileManager = {
             : profiles.length
             ? (window.i18n ? i18n.t('connection.savedProfiles') : 'Hosts')
             : (window.i18n ? i18n.t('panes.emptyPane') : 'Empty pane');
-        empty.appendChild(title);
+        header.appendChild(title);
 
         const hint = document.createElement('div');
         hint.className = 'profile-launcher-hint';
@@ -357,7 +367,11 @@ const ProfileManager = {
             : profiles.length
             ? (window.i18n ? i18n.t('connection.savedProfilesHint') : 'Choose a saved connection to connect')
             : (window.i18n ? i18n.t('panes.selectSession') : 'Select a session or open a connection');
-        empty.appendChild(hint);
+        header.appendChild(hint);
+
+        const actions = document.createElement('div');
+        actions.className = 'profile-launcher-actions';
+        header.appendChild(actions);
 
         if (canReturn) {
             const returnButton = document.createElement('button');
@@ -378,7 +392,7 @@ const ProfileManager = {
                 event.stopPropagation();
                 options.onReturn();
             });
-            empty.appendChild(returnButton);
+            actions.appendChild(returnButton);
         }
 
         if (profiles.length) {
@@ -403,6 +417,18 @@ const ProfileManager = {
                 button.type = 'button';
                 button.className = 'profile-launcher-card';
                 button.dataset.profileId = profile.id;
+
+                const avatar = document.createElement('span');
+                avatar.className = `profile-launcher-avatar auth-${profile.auth_type || 'unknown'}`;
+                avatar.setAttribute('aria-hidden', 'true');
+                const avatarIcon = document.createElement('span');
+                avatarIcon.className = 'material-icons';
+                avatarIcon.textContent = {
+                    key: 'vpn_key',
+                    password: profile.has_saved_password === true ? 'lock' : 'password',
+                    tailscale: 'hub',
+                }[profile.auth_type] || 'dns';
+                avatar.appendChild(avatarIcon);
 
                 const name = document.createElement('span');
                 name.className = 'profile-launcher-name';
@@ -439,7 +465,7 @@ const ProfileManager = {
                     'aria-label',
                     `${String(profile.name || '')}, ${ProfileLauncherUtils.formatEndpoint(profile)}, ${action.textContent}`,
                 );
-                button.append(name, endpoint, action);
+                button.append(avatar, name, endpoint, action);
                 if (favorite) button.appendChild(favorite);
                 button.addEventListener('click', event => {
                     event.stopPropagation();
@@ -485,7 +511,11 @@ const ProfileManager = {
                     sectionContainer.appendChild(sectionElement);
                 });
             };
-            search.addEventListener('input', renderSections);
+            search.addEventListener('input', () => {
+                // Cards animate in once; filtering should feel instant.
+                sectionContainer.classList.add('is-filtering');
+                renderSections();
+            });
             renderSections();
             empty.append(search, sectionContainer);
         }
@@ -493,14 +523,38 @@ const ProfileManager = {
         const newConnection = document.createElement('button');
         newConnection.type = 'button';
         newConnection.className = 'btn btn-secondary profile-launcher-new';
-        newConnection.textContent = window.i18n
+        const newConnectionIcon = document.createElement('span');
+        newConnectionIcon.className = 'material-icons';
+        newConnectionIcon.setAttribute('aria-hidden', 'true');
+        newConnectionIcon.textContent = 'add_link';
+        const newConnectionLabel = document.createElement('span');
+        newConnectionLabel.textContent = window.i18n
             ? i18n.t('connection.newConnection')
             : 'Quick Connect';
+        newConnection.append(newConnectionIcon, newConnectionLabel);
         newConnection.addEventListener('click', event => {
             event.stopPropagation();
             window.openConnectionModalForPane?.(paneIndex);
         });
-        empty.appendChild(newConnection);
+        actions.appendChild(newConnection);
+
+        if (profiles.length && !canReturn) {
+            const manage = document.createElement('button');
+            manage.type = 'button';
+            manage.className = 'btn btn-secondary profile-launcher-manage';
+            const manageIcon = document.createElement('span');
+            manageIcon.className = 'material-icons';
+            manageIcon.setAttribute('aria-hidden', 'true');
+            manageIcon.textContent = 'tune';
+            const manageLabel = document.createElement('span');
+            manageLabel.textContent = this.t('connection.manageHosts', 'Manage hosts');
+            manage.append(manageIcon, manageLabel);
+            manage.addEventListener('click', event => {
+                event.stopPropagation();
+                window.openConnectionAssetManager?.('hosts');
+            });
+            actions.appendChild(manage);
+        }
         return empty;
     },
 
@@ -1081,7 +1135,9 @@ const ProfileManager = {
                     if (commandSet) modeLabel += `: ${commandSet.name}`;
                 }
                 const authLabels = {
-                    password: ['auth.password', 'Password'],
+                    password: profile.has_saved_password === true
+                        ? ['connection.passwordSavedLabel', 'Password saved']
+                        : ['auth.password', 'Password'],
                     key: ['fm.qc.sshKey', 'SSH key'],
                     tailscale: ['connection.tailscaleSSH', 'Tailscale SSH'],
                 };
@@ -1234,6 +1290,10 @@ const ProfileManager = {
         document.getElementById('profileEditorPort').value = profile?.port || 22;
         document.getElementById('profileEditorUsername').value = profile?.username || '';
         document.getElementById('profileEditorAuthType').value = profile?.auth_type || 'password';
+        // A duplicate is a new connection; its password must be entered again.
+        this.editingHasSavedPassword = !duplicating && profile?.has_saved_password === true;
+        document.getElementById('profileEditorRememberPassword').checked = this.editingHasSavedPassword;
+        document.getElementById('profileEditorPassword').value = '';
         document.getElementById('profileEditorKeySelect').value = profile?.key_id || '';
         document.getElementById('profileEditorJumpHostSelect').value = profile?.jump_host_id || '';
         document.getElementById('profileEditorPostConnectMode').value = profile
@@ -1273,6 +1333,25 @@ const ProfileManager = {
         document.getElementById('profileEditorKeyGroup')?.classList.toggle(
             'hidden', authType !== 'key'
         );
+        const remember = document.getElementById('profileEditorRememberPassword')?.checked === true;
+        document.getElementById('profileEditorPasswordGroup')?.classList.toggle(
+            'hidden', authType !== 'password'
+        );
+        document.getElementById('profileEditorPasswordField')?.classList.toggle(
+            'hidden', authType !== 'password' || !remember
+        );
+        const passwordInput = document.getElementById('profileEditorPassword');
+        const passwordHint = document.getElementById('profileEditorPasswordHint');
+        if (passwordInput) {
+            passwordInput.placeholder = this.editingHasSavedPassword
+                ? this.t('connection.savedPasswordKeep', 'Saved. Leave blank to keep it.')
+                : this.t('connection.passwordToRemember', 'Password to remember');
+        }
+        if (passwordHint) {
+            passwordHint.textContent = this.editingHasSavedPassword
+                ? this.t('connection.savedPasswordReplace', 'Type a new password only to replace the saved one.')
+                : '';
+        }
         const mode = document.getElementById('profileEditorPostConnectMode')?.value || 'none';
         document.getElementById('profileEditorCommandSetGroup')?.classList.toggle(
             'hidden', mode !== 'command_set'
@@ -1362,6 +1441,21 @@ const ProfileManager = {
         const useTmux = document.getElementById('profileEditorUseTmux');
         if (useTmux) payload.use_tmux = useTmux.checked;
         if (this.editingProfileId) payload.id = this.editingProfileId;
+        if (payload.auth_type === 'password') {
+            const passwordInput = document.getElementById('profileEditorPassword');
+            const remember = document.getElementById('profileEditorRememberPassword')?.checked === true;
+            payload.remember_password = remember;
+            if (remember && passwordInput?.value) {
+                payload.password = passwordInput.value;
+            } else if (remember && !this.editingHasSavedPassword) {
+                window.showNotification?.(
+                    this.t('connection.passwordToRememberRequired', 'Enter the password to remember, or turn off Remember password.'),
+                    'error',
+                );
+                passwordInput?.focus();
+                return;
+            }
+        }
         if (mode === 'command_set') {
             payload.command_set_id = document.getElementById(
                 'profileEditorCommandSetSelect'
@@ -1390,6 +1484,11 @@ const ProfileManager = {
                 return;
             }
             const saved = acknowledgement.profile;
+            const passwordInput = document.getElementById('profileEditorPassword');
+            if (passwordInput) passwordInput.value = '';
+            if (acknowledgement.password_error) {
+                window.showNotification?.(acknowledgement.password_error, 'warning');
+            }
             this.profiles = [
                 ...this.profiles.filter(profile => profile.id !== saved.id),
                 saved,
@@ -1398,6 +1497,42 @@ const ProfileManager = {
             this.showManagementList();
             if (connect) this.connect(saved.id);
         });
+    },
+
+    /**
+     * Save the destination typed into Quick Connect as a new connection.
+     * Resolves with the stored connection, or null when saving failed. The
+     * password is not sent here: it is remembered only after the server has
+     * accepted it during the following sign-in.
+     */
+    saveQuickConnection(details) {
+        return new Promise(resolve => {
+            if (!window.socket) {
+                resolve(null);
+                return;
+            }
+            window.socket.emit('save_profile', details, acknowledgement => {
+                if (!acknowledgement?.success || !acknowledgement.profile) {
+                    window.showNotification?.(
+                        acknowledgement?.error || this.t('profiles.saveFailed', 'Failed to save connection'),
+                        'error',
+                    );
+                    resolve(null);
+                    return;
+                }
+                this.upsertProfile(acknowledgement.profile);
+                resolve(acknowledgement.profile);
+            });
+        });
+    },
+
+    markPasswordSaved(profileId, saved) {
+        const profile = this.profiles.find(item => item.id === profileId);
+        if (!profile) return;
+        const updated = {...profile};
+        if (saved) updated.has_saved_password = true;
+        else delete updated.has_saved_password;
+        this.upsertProfile(updated);
     },
 
     connect(profileId) {

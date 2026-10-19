@@ -2,11 +2,11 @@
     'use strict';
 
     window.addEventListener('unhandledrejection', () => {
-        console.error('[WebSSH] Unhandled promise rejection');
+        console.error('[PixShell] Unhandled promise rejection');
     });
 
     window.addEventListener('error', () => {
-        console.error('[WebSSH] Uncaught browser error');
+        console.error('[PixShell] Uncaught browser error');
     });
 
     const APP_ROOT = document.querySelector('meta[name="app-root"]')?.content || '';
@@ -155,7 +155,7 @@
         showNotification({
             message: window.i18n
                 ? i18n.t('connection.reloadRequired')
-                : 'WebSSH was updated. Reload this page to continue.',
+                : 'PixShell was updated. Reload this page to continue.',
             type: 'error',
             persistent: true,
             onDismiss: () => {
@@ -196,7 +196,7 @@
         if (connectionErrorReported) return;
         connectionErrorReported = true;
         connectionErrorNotice = showNotification({
-            message: 'Cannot connect to WebSSH. Check your network and sign-in session. '
+            message: 'Cannot connect to PixShell. Check your network and sign-in session. '
                 + 'If this continues, check the proxy path, public origin and WebSocket settings.',
             type: 'error',
             persistent: true,
@@ -347,6 +347,59 @@
         return needsDecision && directConfirm?.checked !== true;
     }
 
+    function translateText(key, fallback) {
+        const translated = window.i18n?.t?.(key);
+        return translated && translated !== key ? translated : fallback;
+    }
+
+    function selectedConnectionProfile() {
+        const profileId = selectedConnectionProfileState?.profileId;
+        return profileId ? ProfileManager.getProfile(profileId) : null;
+    }
+
+    function isSameDestination(profile, host, port, username) {
+        return Boolean(profile)
+            && String(profile.host || '').trim().toLowerCase() === String(host || '').trim().toLowerCase()
+            && Number(profile.port || 22) === Number(port || 22)
+            && String(profile.username || '') === String(username || '');
+    }
+
+    function refreshQuickConnectCredentialOptions() {
+        const saveRow = document.getElementById('quickConnectSaveConnectionRow');
+        const rememberRow = document.getElementById('quickConnectRememberPasswordRow');
+        if (!saveRow || !rememberRow) return;
+        const saveCheck = document.getElementById('quickConnectSaveConnection');
+        const rememberCheck = document.getElementById('quickConnectRememberPassword');
+        const nameInput = document.getElementById('quickConnectSaveName');
+        const passwordInput = document.getElementById('passwordInput');
+        const usesPassword = document.getElementById('authTypeSelect')?.value === 'password';
+        const profile = selectedConnectionProfile();
+
+        saveRow.classList.toggle('hidden', Boolean(profile));
+        if (profile && saveCheck) saveCheck.checked = false;
+        const saving = !profile && saveCheck?.checked === true;
+        document.getElementById('quickConnectSaveNameGroup')
+            ?.classList.toggle('hidden', !saving);
+        if (nameInput) {
+            const host = document.getElementById('hostInput')?.value.trim();
+            const username = document.getElementById('usernameInput')?.value.trim();
+            nameInput.placeholder = host && username ? `${username}@${host}` : '';
+        }
+
+        const canRemember = usesPassword && (Boolean(profile) || saving);
+        rememberRow.classList.toggle('hidden', !canRemember);
+        if (!canRemember && rememberCheck) rememberCheck.checked = false;
+
+        if (passwordInput) {
+            const savedPassword = usesPassword && profile?.has_saved_password === true;
+            passwordInput.placeholder = savedPassword
+                ? translateText('connection.savedPasswordUse', 'Saved password. Leave blank to use it.')
+                : translateText('auth.password', 'Password');
+            if (savedPassword) passwordInput.required = false;
+        }
+    }
+    window.refreshQuickConnectCredentialOptions = refreshQuickConnectCredentialOptions;
+
     window.clearConnectionProfileState = () => {
         selectedConnectionProfileState = null;
         SessionManager.pendingReconnectSessionId = null;
@@ -371,6 +424,13 @@
         if (directConfirm) directConfirm.checked = false;
         document.getElementById('connectionProfileJumpResolution')?.classList.add('hidden');
         document.getElementById('connectionProfileKeyResolution')?.classList.add('hidden');
+        const saveConnection = document.getElementById('quickConnectSaveConnection');
+        if (saveConnection) saveConnection.checked = false;
+        const saveName = document.getElementById('quickConnectSaveName');
+        if (saveName) saveName.value = '';
+        const rememberPassword = document.getElementById('quickConnectRememberPassword');
+        if (rememberPassword) rememberPassword.checked = false;
+        refreshQuickConnectCredentialOptions();
     };
 
     window.prepareSessionReconnectJump = (session, {applyToForm = false} = {}) => {
@@ -895,7 +955,7 @@
                     }
                     const prompt = window.i18n
                         ? i18n.t('editor.recoverableConfirm')
-                        : 'This server cannot replace the file in one safe step. WebSSH can save it with a temporary recovery backup and restore the original if replacement fails. Use this method for this SMB connection until the page is reloaded?';
+                        : 'This server cannot replace the file in one safe step. PixShell can save it with a temporary recovery backup and restore the original if replacement fails. Use this method for this SMB connection until the page is reloaded?';
                     if (window.confirm(prompt)) {
                         this.recoverableReplaceSources.add(this.currentSourceId);
                         this.saveEdit('recoverable_swap', data.save_challenge);
@@ -1594,7 +1654,28 @@
         if (connectionModalRequestId === requestId) {
             connectionModalRequestId = null;
         }
+        const failedPane = pendingRequestPaneMap.get(requestId);
         pendingRequestPaneMap.delete(requestId);
+        if (data?.code === 'saved_password_unavailable' && data.profile_id) {
+            // The stored password is gone or unreadable: ask for it instead.
+            ProfileManager.markPasswordSaved(data.profile_id, false);
+            openProfileForReview(
+                data.profile_id,
+                failedPane ?? getDefaultPaneIndex(),
+                'password',
+            );
+        }
+    });
+
+    socket.on('profile_password_saved', (data) => {
+        if (!data?.profile_id) return;
+        ProfileManager.markPasswordSaved(data.profile_id, data.success === true);
+        showNotification(
+            data.success === true
+                ? translateText('connection.passwordRemembered', 'Password saved for this connection')
+                : (data.error || translateText('connection.passwordNotRemembered', 'The password could not be saved')),
+            data.success === true ? 'success' : 'warning',
+        );
     });
 
     socket.on('ssh_disconnected', (data) => {
@@ -1846,6 +1927,12 @@
         profileContext?.classList.remove('hidden');
         const profileContextName = document.getElementById('connectionProfileContextName');
         if (profileContextName) profileContextName.textContent = profile.name || profile.host;
+        const rememberPassword = document.getElementById('quickConnectRememberPassword');
+        if (rememberPassword) {
+            rememberPassword.checked = profile.auth_type === 'password'
+                && profile.has_saved_password === true;
+        }
+        refreshQuickConnectCredentialOptions();
         refreshConnectionProfileKeyResolution();
         refreshConnectionProfileJumpResolution();
         return profile;
@@ -2709,7 +2796,19 @@
                 return;
             }
 
-            if (authType === 'password' && !password && !window.ConnectionValidation.isGateway(username)) {
+            const savedProfile = selectedConnectionProfile();
+            const useSavedPassword = authType === 'password'
+                && !password
+                && savedProfile?.has_saved_password === true
+                && isSameDestination(savedProfile, host, port, username);
+            const rememberPassword = authType === 'password'
+                && Boolean(password)
+                && document.getElementById('quickConnectRememberPassword')?.checked === true;
+            const saveConnection = !savedProfile
+                && document.getElementById('quickConnectSaveConnection')?.checked === true;
+
+            if (authType === 'password' && !password && !useSavedPassword
+                    && !window.ConnectionValidation.isGateway(username)) {
                 showNotification('Password is required', 'error');
                 document.getElementById('passwordInput').focus();
                 return;
@@ -2780,8 +2879,16 @@
             };
             Object.assign(connectionData, ConnectionCommandManager.getPayload());
 
-            if (authType === 'password') {
+            if (authType === 'password' && useSavedPassword) {
+                connectionData.profile_id = savedProfile.id;
+                connectionData.use_saved_password = true;
+            } else if (authType === 'password') {
                 connectionData.password = password;
+                if (rememberPassword && savedProfile
+                        && isSameDestination(savedProfile, host, port, username)) {
+                    connectionData.profile_id = savedProfile.id;
+                    connectionData.remember_password = true;
+                }
             } else if (authType === 'key') {
                 connectionData.key_id = keyId;
             }
@@ -2803,7 +2910,48 @@
                 }
             }
 
-            const started = startConnection(connectionData, targetPane, SessionManager.pendingReconnectSessionId);
+            const replacedSessionId = SessionManager.pendingReconnectSessionId;
+            if (saveConnection) {
+                // Saving first gives the sign-in a connection to remember the
+                // password for once the server has accepted it.
+                const saveName = document.getElementById('quickConnectSaveName');
+                const details = {
+                    name: (saveName?.value.trim() || `${username.trim()}@${host.trim()}`).slice(0, 128),
+                    host: host.trim(),
+                    port: parseInt(port, 10) || 22,
+                    username: window.ConnectionValidation.isGateway(username) ? username : username.trim(),
+                    auth_type: authType,
+                    key_id: authType === 'key' ? keyId : null,
+                    jump_host_id: jumpHostId || null,
+                    ...ConnectionCommandManager.getPayload(),
+                };
+                if (useTmuxCheck) details.use_tmux = useTmuxCheck.checked;
+                setConnectLoading(true);
+                ProfileManager.saveQuickConnection(details).then(saved => {
+                    setConnectLoading(false);
+                    if (!saved) return;
+                    showNotification(
+                        translateText('connection.connectionSaved', 'Connection saved to Hosts'),
+                        'success',
+                    );
+                    // Retrying after a failed sign-in must reuse this
+                    // connection instead of saving a duplicate.
+                    selectConnectionProfile(saved.id);
+                    const rememberCheck = document.getElementById('quickConnectRememberPassword');
+                    if (rememberCheck) rememberCheck.checked = rememberPassword;
+                    if (rememberPassword) {
+                        connectionData.profile_id = saved.id;
+                        connectionData.remember_password = true;
+                    }
+                    launchQuickConnection(connectionData, targetPane, replacedSessionId);
+                });
+                return;
+            }
+            launchQuickConnection(connectionData, targetPane, replacedSessionId);
+        });
+
+        function launchQuickConnection(connectionData, targetPane, replacedSessionId) {
+            const started = startConnection(connectionData, targetPane, replacedSessionId);
             if (!started) return;
             connectionModalRequestId = currentConnectRequestId;
 
@@ -2827,10 +2975,19 @@
 
             document.getElementById('passwordInput').value = '';
             document.getElementById('jumpHostPasswordInput').value = '';
-        });
+        }
 
         document.getElementById('authTypeSelect').addEventListener('change', (e) => {
             ProfileManager.handleAuthTypeChange(e.target.value);
+            refreshQuickConnectCredentialOptions();
+        });
+
+        document.getElementById('quickConnectSaveConnection')?.addEventListener('change', event => {
+            refreshQuickConnectCredentialOptions();
+            if (event.target.checked) document.getElementById('quickConnectSaveName')?.focus();
+        });
+        ['hostInput', 'usernameInput'].forEach(id => {
+            document.getElementById(id)?.addEventListener('input', refreshQuickConnectCredentialOptions);
         });
 
         document.getElementById('jumpHostSelect').addEventListener('change', () => {

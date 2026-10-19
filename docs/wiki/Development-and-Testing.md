@@ -1,6 +1,6 @@
 # Development and Testing
 
-WebSSH supports Python 3.11 and newer. The production container currently uses Python 3.14. The frontend is vanilla JavaScript and CSS with locally vendored dependencies.
+PixShell supports Python 3.11 and newer. The production container currently uses Python 3.14. The frontend is vanilla JavaScript and CSS with locally vendored dependencies.
 
 ## Development setup
 

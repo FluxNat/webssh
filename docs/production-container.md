@@ -107,7 +107,7 @@ docker compose -f docker-compose.yml -f docker-compose.ldap.yml -f docker-compos
 Configure LDAP and initialize secrets using [the LDAP guide](ldap-authentication.md)
 first. `/run/webssh-auth` remains a separate read-only secret-volume mount; it is
 not covered by `/run/webssh`. Only the explicitly invoked `ldap-tools` helper
-writes those secrets. The optional limits apply to the WebSSH service.
+writes those secrets. The optional limits apply to the PixShell service.
 
 The overlays do not create a Tailscale interface or daemon.
 [Tailscale SSH](tailscale-ssh.md) needs its documented kernel interface and shared

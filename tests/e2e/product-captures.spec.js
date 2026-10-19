@@ -735,7 +735,7 @@ test('captures six current file preview and editing frames without remote action
     await seedDemoFileManager(page);
 
     const initialContent = [
-        '# WebSSH operations',
+        '# PixShell operations',
         '',
         'Environment: edge-01.example',
         'Owner: Platform Operations',
@@ -747,7 +747,7 @@ test('captures six current file preview and editing frames without remote action
         '',
     ].join('\n');
     const updatedContent = [
-        '# WebSSH operations',
+        '# PixShell operations',
         '',
         'Environment: edge-01.example',
         'Owner: Platform Operations',
@@ -989,7 +989,7 @@ test('captures a contained multi-session workspace and the current theme menu', 
     await page.locator('#accountSettingsBtn').click();
     await expect(page).toHaveURL(/\/settings#preferences$/);
     await expect(page.locator('#settingsThemeSelect option')).toHaveCount(10);
-    await expect(page.locator('#settingsThemeSelect')).toContainText('Glass Ops');
+    await expect(page.locator('#settingsThemeSelect')).toContainText('PixShell');
     await expect(page.locator('#settingsThemeSelect')).toContainText('Obsidian');
     const themeBounds = await page.locator('.settings-center-content').boundingBox();
     expect(themeBounds).not.toBeNull();
@@ -1012,7 +1012,7 @@ test('captures the current Security Center assurance overview', async ({ page },
     await expect(page.locator('#securityAssuranceTitle')).toHaveText(
         'How security changes are confirmed',
     );
-    await expect(page.locator('#securityCurrentMethod')).toContainText('WebSSH password');
+    await expect(page.locator('#securityCurrentMethod')).toContainText('PixShell password');
 
     await page.locator('[data-account-section="factors"]').click();
     await expect(page.locator('#passkeyAddBtn')).toBeVisible();

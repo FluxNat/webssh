@@ -43,7 +43,7 @@ WEBAUTHN_ENABLED = (
     os.environ.get('WEBAUTHN_ENABLED', 'false').lower() == 'true'
 )
 WEBAUTHN_RP_ID = os.environ.get('WEBAUTHN_RP_ID', 'localhost').strip()
-WEBAUTHN_RP_NAME = os.environ.get('WEBAUTHN_RP_NAME', 'WebSSH').strip()
+WEBAUTHN_RP_NAME = os.environ.get('WEBAUTHN_RP_NAME', 'PixShell').strip()
 WEBAUTHN_ORIGIN = os.environ.get(
     'WEBAUTHN_ORIGIN',
     'https://localhost',
@@ -591,7 +591,7 @@ ADMIN_USERS = [u.strip() for u in os.environ.get('ADMIN_USERS', '').split(',') i
 ADMIN_PANEL_ENABLED = os.environ.get('ADMIN_PANEL_ENABLED', 'True') == 'True'
 
 
-# Tailscale SSH uses the WebSSH node's shared tailnet identity. Keep it disabled
+# Tailscale SSH uses the PixShell node's shared tailnet identity. Keep it disabled
 # unless the operator explicitly enables it and grants access to trusted users.
 TAILSCALE_SSH_ENABLED = os.environ.get('TAILSCALE_SSH_ENABLED', 'false').lower() == 'true'
 TAILSCALE_SSH_ALLOWED_WEBSSH_USERS = _csv_env('TAILSCALE_SSH_ALLOWED_WEBSSH_USERS')

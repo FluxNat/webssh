@@ -1,30 +1,30 @@
 # Tailscale SSH deployment and security
 
-WebSSH can authenticate to a target with the Tailscale identity of the machine
-or container running WebSSH. The browser user does not provide a password or a
+PixShell can authenticate to a target with the Tailscale identity of the machine
+or container running PixShell. The browser user does not provide a password or a
 private SSH key. The target must have Tailscale SSH enabled with
-`tailscale set --ssh`, and the tailnet policy must authorize the WebSSH node.
+`tailscale set --ssh`, and the tailnet policy must authorize the PixShell node.
 
 ## Shared identity security model
 
-Tailscale sees the WebSSH node, not the individual WebSSH account that clicked
-Connect. Therefore every WebSSH user authorized for this feature shares the
+Tailscale sees the PixShell node, not the individual PixShell account that clicked
+Connect. Therefore every PixShell user authorized for this feature shares the
 same tailnet identity and all permissions assigned to that node or tag.
 
 Use this mode only in a trusted homelab or similarly controlled environment:
 
-1. Give WebSSH a dedicated tag such as `tag:webssh`.
+1. Give PixShell a dedicated tag such as `tag:webssh`.
 2. Limit that tag to TCP port 22 on only the required target tag or hosts.
 3. Limit Tailscale SSH rules to the required remote OS usernames.
-4. Keep WebSSH registration disabled or tightly controlled.
-5. Configure WebSSH's mandatory target and optional remote-username allowlists as a
+4. Keep PixShell registration disabled or tightly controlled.
+5. Configure PixShell's mandatory target and optional remote-username allowlists as a
    second boundary. Tailnet ACL and SSH policy remain authoritative.
 
 Every authorized or denied Tailscale SSH attempt is written to the security
-audit log with the WebSSH username, target, remote username, client IP, and the
+audit log with the PixShell username, target, remote username, client IP, and the
 `shared-node` identity marker.
 
-## WebSSH configuration
+## PixShell configuration
 
 Tailscale SSH is off by default. Enable it explicitly:
 
@@ -37,7 +37,7 @@ TAILSCALE_SSH_INTERFACE=tailscale0
 ```
 
 Administrators are allowed when the feature is enabled. The
-`TAILSCALE_SSH_ALLOWED_WEBSSH_USERS` list grants access to additional WebSSH
+`TAILSCALE_SSH_ALLOWED_WEBSSH_USERS` list grants access to additional PixShell
 usernames. The target allowlist is mandatory whenever the feature is enabled.
 A bare hostname, IPv4 address, or IPv6 address means port 22. Use
 `hostname:port`, `IPv4:port`, or `[IPv6]:port` for another port. Target matching
@@ -47,19 +47,19 @@ feature has an empty or malformed target list or an empty interface. The
 homelab profile emits security warnings, ignores individual malformed entries
 so valid siblings still work, and fails every connection closed if no valid
 target or interface remains. Values stay dormant while the feature is disabled.
-After DNS resolution, WebSSH accepts only an
+After DNS resolution, PixShell accepts only an
 address whose kernel route uses `TAILSCALE_SSH_INTERFACE` (default
 `tailscale0`), pins that address, and binds the connecting socket to the same
 interface. A route change cannot silently move the connection to another
 interface.
 
 Tailscale authentication cannot be combined with ProxyJump. The route and
-interface proof applies only to a direct connection from the WebSSH host.
+interface proof applies only to a direct connection from the PixShell host.
 
 ## Example tailnet policy
 
 Adapt tags, targets, and users to the deployment. This intentionally grants the
-WebSSH tag only SSH access to tagged servers:
+PixShell tag only SSH access to tagged servers:
 
 ```json
 {
@@ -88,14 +88,14 @@ WebSSH tag only SSH access to tagged servers:
 ## Docker sidecar with persistent state
 
 The sidecar is a separate Tailscale container that shares its network namespace
-with WebSSH. Its `/var/lib/tailscale` volume preserves node registration across
-container updates and restarts. Publish the WebSSH port on the Tailscale service
+with PixShell. Its `/var/lib/tailscale` volume preserves node registration across
+container updates and restarts. Publish the PixShell port on the Tailscale service
 because `network_mode: service:tailscale` gives both containers one network
 namespace.
 
 ### Safe first-time setup
 
-Do not enable Tailscale SSH on a fresh, publicly reachable WebSSH database.
+Do not enable Tailscale SSH on a fresh, publicly reachable PixShell database.
 Create the administrator explicitly on the Docker host before enabling the
 shared Tailscale identity.
 
@@ -165,7 +165,7 @@ services:
       - BACKUP_RECOVERY_DURABLE=true
       # Keep disabled until an administrator has been created with the CLI.
       - TAILSCALE_SSH_ENABLED=false
-      # Leave empty to allow only existing WebSSH administrators.
+      # Leave empty to allow only existing PixShell administrators.
       - TAILSCALE_SSH_ALLOWED_WEBSSH_USERS=
       - TAILSCALE_SSH_ALLOWED_TARGETS=tiny-server
       - TAILSCALE_SSH_ALLOWED_REMOTE_USERS=root

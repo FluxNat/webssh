@@ -397,7 +397,7 @@ def log_ssh_connection(username, target_host, target_port, success, ip_address, 
 
 def log_tailscale_ssh_usage(username, target_host, target_port, remote_username,
                             ip_address, allowed, error=None):
-    """Audit use of the WebSSH node's shared Tailscale identity."""
+    """Audit use of the PixShell node's shared Tailscale identity."""
     status = "AUTHORIZED" if allowed else "DENIED"
     error_msg = f" | error={_sanitize_log_value(error)}" if error else ""
     audit_logger.info(

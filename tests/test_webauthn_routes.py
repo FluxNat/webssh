@@ -232,7 +232,7 @@ def test_registration_options_require_account_grant_and_exact_rp(
     _login(client)
     monkeypatch.setattr(config, "WEBAUTHN_ENABLED", True)
     monkeypatch.setattr(config, "WEBAUTHN_RP_ID", "localhost")
-    monkeypatch.setattr(config, "WEBAUTHN_RP_NAME", "WebSSH Test")
+    monkeypatch.setattr(config, "WEBAUTHN_RP_NAME", "PixShell Test")
     monkeypatch.setattr(config, "WEBAUTHN_ORIGIN", "https://localhost")
 
     rejected = client.post(
@@ -255,7 +255,7 @@ def test_registration_options_require_account_grant_and_exact_rp(
     assert accepted.status_code == 200
     options = accepted.get_json()
     assert options["rp"]["id"] == "localhost"
-    assert options["rp"]["name"] == "WebSSH Test"
+    assert options["rp"]["name"] == "PixShell Test"
     assert options["user"]["name"] == "passkey_user"
     assert options["authenticatorSelection"]["residentKey"] == "required"
     assert options["authenticatorSelection"]["userVerification"] == "required"
@@ -292,7 +292,7 @@ def test_ldap_user_can_request_passkey_registration_options(
     monkeypatch.setattr(config, "LDAP_ENABLED", True)
     monkeypatch.setattr(config, "WEBAUTHN_ENABLED", True)
     monkeypatch.setattr(config, "WEBAUTHN_RP_ID", "localhost")
-    monkeypatch.setattr(config, "WEBAUTHN_RP_NAME", "WebSSH Test")
+    monkeypatch.setattr(config, "WEBAUTHN_RP_NAME", "PixShell Test")
     monkeypatch.setattr(ldap_session, "revalidate_user", lambda _user: True)
 
     headers = mint_account_step_up_headers(
@@ -435,7 +435,7 @@ def test_existing_credentials_have_a_password_authenticated_upgrade_path(
     _login(client)
     monkeypatch.setattr(config, "WEBAUTHN_ENABLED", True)
     monkeypatch.setattr(config, "WEBAUTHN_RP_ID", "localhost")
-    monkeypatch.setattr(config, "WEBAUTHN_RP_NAME", "WebSSH Test")
+    monkeypatch.setattr(config, "WEBAUTHN_RP_NAME", "PixShell Test")
 
     headers, _verified = account_password_step_up_headers(
         client,
@@ -469,7 +469,7 @@ def test_parallel_passkey_enrollments_keep_independent_challenges(
     _login(client, "parallel_passkey_enroll")
     monkeypatch.setattr(config, "WEBAUTHN_ENABLED", True)
     monkeypatch.setattr(config, "WEBAUTHN_RP_ID", "localhost")
-    monkeypatch.setattr(config, "WEBAUTHN_RP_NAME", "WebSSH Test")
+    monkeypatch.setattr(config, "WEBAUTHN_RP_NAME", "PixShell Test")
     monkeypatch.setattr(config, "WEBAUTHN_ORIGIN", "https://localhost")
     monkeypatch.setattr(
         webauthn_routes,
@@ -640,7 +640,7 @@ def test_verified_passkey_replacement_releases_recovery_session(
         db.session.commit()
     monkeypatch.setattr(config, "WEBAUTHN_ENABLED", True)
     monkeypatch.setattr(config, "WEBAUTHN_RP_ID", "localhost")
-    monkeypatch.setattr(config, "WEBAUTHN_RP_NAME", "WebSSH Test")
+    monkeypatch.setattr(config, "WEBAUTHN_RP_NAME", "PixShell Test")
     monkeypatch.setattr(config, "WEBAUTHN_ORIGIN", "https://localhost")
     assert client.post(
         "/login",

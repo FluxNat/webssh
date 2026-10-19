@@ -21,7 +21,10 @@
 
         const keys = Array.isArray(context.keys) ? context.keys : [];
         const jumpHosts = Array.isArray(context.jumpHosts) ? context.jumpHosts : [];
-        const needsTargetPassword = profile.auth_type === 'password';
+        const usesPassword = profile.auth_type === 'password';
+        // A remembered password is resolved by the server at connect time.
+        const needsTargetPassword = usesPassword
+            && profile.has_saved_password !== true;
 
         if (profile.auth_type === 'key') {
             if (!hasKey(keys, profile.key_id)) {
@@ -32,7 +35,7 @@
             && profile.tailscale_authorized !== true
         ) {
             return 'review';
-        } else if (!needsTargetPassword && profile.auth_type !== 'tailscale') {
+        } else if (!usesPassword && profile.auth_type !== 'tailscale') {
             return 'review';
         }
 
@@ -160,6 +163,10 @@
             auth_type: profile.auth_type,
         };
         if (profile.auth_type === 'key') result.key_id = profile.key_id;
+        if (profile.auth_type === 'password') {
+            result.profile_id = profile.id;
+            result.use_saved_password = true;
+        }
         if (profile.use_tmux === true) result.use_tmux = true;
 
         const postConnect = profilePostConnectPayload(profile);

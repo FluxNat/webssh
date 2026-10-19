@@ -10,7 +10,8 @@
     <meta name="app-root" content="{{ url_prefix }}">
     <meta name="ssh-gateway-enabled" content="{{ 'true' if ssh_gateway_enabled else 'false' }}">
     <meta name="max-editor-file-size" content="{{ max_editor_file_size|default(5242880) }}">
-    <title>Web SSH Terminal</title>
+    <link rel="icon" type="image/svg+xml" href="{{ static_asset_url(filename='images/pixshell-icon.svg') }}">
+    <title>PixShell</title>
 
     <link rel="stylesheet" href="{{ static_asset_url(filename='vendor/xterm/xterm.css') }}" />
 
@@ -28,6 +29,9 @@
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/terminal-share.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/terminal-windows.css') }}">
     <link rel="stylesheet" href="{{ static_asset_url(filename='css/ui-refresh.css') }}">
+    <link rel="stylesheet" href="{{ static_asset_url(filename='css/pixshell.css') }}">
+    <link rel="stylesheet" href="{{ static_asset_url(filename='css/pixshell-workspace.css') }}">
+    <script src="{{ static_asset_url(filename='js/pixshell-motion.js') }}" defer></script>
 </head>
 <body data-sync-terminal-directory="{{ 'true' if sync_terminal_directory else 'false' }}" data-theme="{{ theme|default('glass') }}" data-confirm-session-close="{{ 'true' if confirm_session_close else 'false' }}" data-disconnect-session-action="{{ disconnect_session_action }}" data-connection-history-scope="{{ connection_history_scope }}" data-auth-session-expires-at="{{ auth_session_expires_at }}" data-auth-server-now="{{ auth_server_now }}" data-terminal-appearance="{{ terminal_appearance|default({})|tojson|forceescape }}">
     <script src="{{ static_asset_url(filename='js/theme-preference.js') }}"></script>
@@ -35,7 +39,7 @@
     <header class="header">
         <div class="header-content">
             <div class="header-title-row">
-                <a class="app-brand" href="{{ url_for('index') }}" aria-label="WebSSH workspaces" data-i18n-aria-label="navigation.websshWorkspaces">
+                <a class="app-brand" href="{{ url_for('index') }}" aria-label="PixShell workspaces" data-i18n-aria-label="navigation.websshWorkspaces">
                     <img class="app-brand-logo" src="{{ static_asset_url(filename='images/pixshell-logo.svg') }}" alt="" aria-hidden="true">
                     <span><small data-i18n="brand.tagline">Your shell. Your rules.</small></span>
                 </a>
@@ -502,7 +506,7 @@
                 <h2 id="sshAuthBannerTitle" data-i18n="connection.authBannerTitle">SSH Authentication Banner</h2>
             </div>
             <div class="modal-body ssh-auth-banner-body">
-                <p id="sshAuthBannerHint" data-i18n="connection.authBannerHint">The SSH server displayed this banner after authentication. Review it before WebSSH opens a shell or runs startup commands.</p>
+                <p id="sshAuthBannerHint" data-i18n="connection.authBannerHint">The SSH server displayed this banner after authentication. Review it before PixShell opens a shell or runs startup commands.</p>
                 <p class="ssh-auth-banner-target" id="sshAuthBannerTarget"></p>
                 <pre class="ssh-auth-banner-text" id="sshAuthBannerText" tabindex="0"></pre>
                 <div class="ssh-auth-banner-actions">
@@ -596,6 +600,29 @@
                             <option value="" data-i18n="connection.selectSSHKey">-- Select SSH Key --</option>
                         </select>
                         <div class="field-hint" id="keyHint"></div>
+                    </div>
+
+                    <div class="quick-connect-save" id="quickConnectSaveGroup">
+                        <label class="credential-switch" id="quickConnectSaveConnectionRow">
+                            <input type="checkbox" id="quickConnectSaveConnection">
+                            <span class="credential-switch-track" aria-hidden="true"></span>
+                            <span class="credential-switch-copy">
+                                <strong data-i18n="connection.saveConnection">Save this connection</strong>
+                                <small data-i18n="connection.saveConnectionHint">Add it to Hosts for one-click access.</small>
+                            </span>
+                        </label>
+                        <div class="form-group hidden" id="quickConnectSaveNameGroup">
+                            <label for="quickConnectSaveName" data-i18n="connection.profileName">Connection Name *</label>
+                            <input type="text" id="quickConnectSaveName" class="form-control" maxlength="128" autocomplete="off">
+                        </div>
+                        <label class="credential-switch hidden" id="quickConnectRememberPasswordRow">
+                            <input type="checkbox" id="quickConnectRememberPassword">
+                            <span class="credential-switch-track" aria-hidden="true"></span>
+                            <span class="credential-switch-copy">
+                                <strong data-i18n="connection.rememberPassword">Remember password</strong>
+                                <small data-i18n="connection.rememberPasswordHint">Stored encrypted on this server after a successful sign-in, and used only for this host, port, and user.</small>
+                            </span>
+                        </label>
                     </div>
 
                                 </div>
@@ -697,7 +724,7 @@
                             <span data-i18n="commandSets.legacyNotice">This saved connection still uses legacy free-text commands.</span>
                             <button type="button" id="convertLegacyCommandsBtn" class="btn btn-secondary btn-sm" data-i18n="commandSets.convert">Convert</button>
                         </div>
-                        <div class="field-hint" data-i18n="connection.commandSetHint">Runs on the remote host after a successful connection, not in WebSSH. Not run again when reconnecting to an existing tmux session.</div>
+                        <div class="field-hint" data-i18n="connection.commandSetHint">Runs on the remote host after a successful connection, not in PixShell. Not run again when reconnecting to an existing tmux session.</div>
                     </div>
 
                     {% if tmux_enabled %}
@@ -804,6 +831,24 @@
                                 <option value="key" data-i18n="fm.qc.sshKey">SSH Key</option>
                                 {% if tailscale_ssh_allowed %}<option value="tailscale" data-i18n="connection.tailscaleSSH">Tailscale SSH</option>{% endif %}
                             </select>
+                        </div>
+                        <div class="form-group saved-password-group" id="profileEditorPasswordGroup">
+                            <label class="credential-switch">
+                                <input type="checkbox" id="profileEditorRememberPassword">
+                                <span class="credential-switch-track" aria-hidden="true"></span>
+                                <span class="credential-switch-copy">
+                                    <strong data-i18n="connection.rememberPassword">Remember password</strong>
+                                    <small data-i18n="connection.rememberPasswordEditorHint">Stored encrypted on this server and used only for this host, port, and user.</small>
+                                </span>
+                            </label>
+                            <div class="saved-password-field hidden" id="profileEditorPasswordField">
+                                <label for="profileEditorPassword" data-i18n="auth.password">Password</label>
+                                <div class="input-wrapper with-toggle">
+                                    <input type="password" id="profileEditorPassword" class="form-control" maxlength="1024" autocomplete="new-password" spellcheck="false">
+                                    <button type="button" class="password-toggle material-icons" data-target="profileEditorPassword" aria-label="Toggle password visibility" data-i18n-aria-label="auth.togglePasswordVisibility">visibility</button>
+                                </div>
+                                <div class="field-hint" id="profileEditorPasswordHint"></div>
+                            </div>
                         </div>
                         <div class="form-group hidden" id="profileEditorKeyGroup">
                             <label for="profileEditorKeySelect" data-i18n="connection.sshKey">SSH Key</label>
@@ -1312,7 +1357,7 @@
                     </label>
                     <p class="share-privacy">
                         <span class="material-icons" aria-hidden="true">verified_user</span>
-                        <span data-i18n="share.privacyNote">Guests see only the terminal, the link name, and your WebSSH username.</span>
+                        <span data-i18n="share.privacyNote">Guests see only the terminal, the link name, and your PixShell username.</span>
                     </p>
                     <button type="submit" class="btn btn-primary share-create" id="terminalShareCreate">
                         <span class="material-icons" aria-hidden="true">add_link</span>
@@ -1641,7 +1686,7 @@
     <script>
         function initThemeSelectorHeader() {
             const themes = [
-                { id: 'glass', name: 'Glass Ops', color: '#58a6ff' },
+                { id: 'glass', name: 'PixShell', color: '#a7fc14' },
                 { id: 'retro', name: 'Retro Future', color: '#ffb454' },
                 { id: 'solar', name: 'Solar Drift', color: '#6ea8ff' },
                 { id: 'paper', name: 'Paper Ops', color: '#c77d48', light: true },

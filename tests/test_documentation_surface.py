@@ -128,7 +128,7 @@ def test_github_setup_is_actionable_in_admin_and_wiki():
         "App ID",
         "Members: read",
         "Install App",
-        "WebSSH does not need",
+        "PixShell does not need",
     ):
         assert phrase in admin
         assert phrase in guide
@@ -250,7 +250,7 @@ def test_readme_has_the_approved_information_architecture():
     """The README routes readers through product, setup, safety, and docs."""
     readme = README.read_text(encoding="utf-8")
     for heading in (
-        "## Why WebSSH",
+        "## Why PixShell",
         "## Features",
         "## Screenshots",
         "## Quick Start",
@@ -286,7 +286,7 @@ def test_readme_routes_long_form_runbooks_to_the_published_wiki():
     ):
         assert removed_heading not in readme
     live_wiki = "https://github.com/bifrost0x/webssh/wiki"
-    assert f"[WebSSH Wiki]({live_wiki})" in readme
+    assert f"[PixShell Wiki]({live_wiki})" in readme
     assert "[versioned source](docs/wiki/Home.md)" in readme
     for guide in (
         "Quick-Start.md",
@@ -354,7 +354,7 @@ def test_file_workspace_documents_secure_opt_in_smb_boundary():
             "Kerberos",
             "automatic reconnect",
             "browser",
-            "WebSSH process",
+            "PixShell process",
             "file contents",
         ):
             assert phrase.lower() in text.lower()

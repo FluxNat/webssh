@@ -1493,10 +1493,14 @@ const SessionManager = {
         const pane = grid?.querySelector(
             `.terminal-pane[data-pane-index="${paneIndex}"]`
         );
-        pane?.querySelector(
-            '.profile-launcher-return, .profile-launcher-search, '
-            + '.profile-launcher-card, .profile-launcher-new'
-        )?.focus?.();
+        // Priority order, not DOM order: Quick Connect sits in the header.
+        [
+            '.profile-launcher-return',
+            '.profile-launcher-search',
+            '.profile-launcher-card',
+            '.profile-launcher-new',
+        ].map(selector => pane?.querySelector(selector))
+            .find(Boolean)?.focus?.();
     },
 
     updateSplitControls() {

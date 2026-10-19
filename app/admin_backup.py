@@ -129,7 +129,7 @@ def _incompatible_restore_response(record):
         return jsonify({'error': 'Backup archive is no longer valid'}), 409
     if not compatibility.compatible:
         return jsonify({
-            'error': 'Backup is not compatible with this WebSSH version',
+            'error': 'Backup is not compatible with this PixShell version',
             'reason': compatibility.reason,
         }), 409
     return None

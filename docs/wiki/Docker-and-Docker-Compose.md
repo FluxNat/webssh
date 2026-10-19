@@ -63,7 +63,7 @@ and prevents decryption of stored SSH keys.
 
 ## Lifecycle and stop grace
 
-The base service uses `stop_grace_period: 40s`. WebSSH accepts an application
+The base service uses `stop_grace_period: 40s`. PixShell accepts an application
 shutdown grace of 1 to 30 seconds and defaults to 5. During shutdown it stops
 accepting new work, signals runtime jobs, and waits only for the bounded grace.
 
@@ -127,10 +127,10 @@ environment:
   - RATELIMIT_STORAGE_URL=redis://redis:6379/0
 ```
 
-Do not publish the Redis port. If Redis becomes unavailable, WebSSH uses an
+Do not publish the Redis port. If Redis becomes unavailable, PixShell uses an
 in-memory fallback and periodically retries the external backend.
 
-Redis does not make multiple WebSSH workers safe. Live SSH transports and other
+Redis does not make multiple PixShell workers safe. Live SSH transports and other
 coordination remain process-local.
 
 ## Optional overlays
@@ -159,7 +159,7 @@ docker compose \
 ```
 
 Always use base and overlay files from the same release or commit. The LDAP
-overlay adds a read-only secret mount to WebSSH and a separate helper profile;
+overlay adds a read-only secret mount to PixShell and a separate helper profile;
 the production overlay follows it so its security settings are authoritative.
 Optionally append `-f docker-compose.hardened.yml` after production to enable
 additional container restrictions. Check custom writable paths, runtime UID/GID

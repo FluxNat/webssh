@@ -1,6 +1,6 @@
 # Quick Start
 
-This guide starts a persistent WebSSH instance for evaluation or homelab use.
+This guide starts a persistent PixShell instance for evaluation or homelab use.
 For an Internet-facing installation, continue with
 [Production Deployment](Production-Deployment) before accepting users.
 
@@ -8,12 +8,12 @@ For an Internet-facing installation, continue with
 
 - Docker Engine with the Compose plugin, or another Docker-compatible runtime.
 - TCP port `5000` available on the host.
-- At least one SSH server that the WebSSH container can reach.
+- At least one SSH server that the PixShell container can reach.
 - A modern browser.
 
 ## Option 1: Docker Compose
 
-Download the homelab Compose file and start WebSSH:
+Download the homelab Compose file and start PixShell:
 
 ```bash
 mkdir webssh-deployment
@@ -138,7 +138,7 @@ Check DNS resolution, firewall rules, the SSH port, and `BLOCK_INTERNAL_SSH`.
 
 ### tmux is not used
 
-tmux must be installed on the remote SSH host. If it is unavailable, WebSSH
+tmux must be installed on the remote SSH host. If it is unavailable, PixShell
 falls back to a regular shell.
 
 ## Next steps

@@ -1,6 +1,6 @@
 # Reverse Proxy and Subfolder Deployment
 
-WebSSH uses regular HTTP routes plus Socket.IO/WebSocket traffic. A reverse
+PixShell uses regular HTTP routes plus Socket.IO/WebSocket traffic. A reverse
 proxy must preserve the public origin and support connection upgrades.
 
 ## Required application settings
@@ -14,7 +14,7 @@ TRUSTED_PROXIES=1
 ```
 
 `TRUSTED_PROXIES` is the number of trusted forwarding layers, not a Boolean.
-Keep the WebSSH backend reachable only through those layers.
+Keep the PixShell backend reachable only through those layers.
 
 ## Nginx at the domain root
 
@@ -44,7 +44,7 @@ labels:
 ### Terminal share streams
 
 Guests of a shared terminal receive output over a long-lived
-`text/event-stream` response from `POST /api/share-view/stream`. WebSSH sends
+`text/event-stream` response from `POST /api/share-view/stream`. PixShell sends
 `X-Accel-Buffering: no` and a keep-alive comment every
 `TERMINAL_SHARE_HEARTBEAT_SECONDS`, so the nginx configuration above streams
 it without changes as long as `proxy_read_timeout` (60 seconds by default) is
@@ -84,7 +84,7 @@ Older Apache versions require `mod_proxy_wstunnel` and an explicit WebSocket
 rule. Prefer a supported 2.4.47+ release so HTTP and upgrade traffic share the
 same mapping.
 
-## Serve WebSSH under a path prefix
+## Serve PixShell under a path prefix
 
 For a public URL such as `https://server.example.com/webssh`, configure:
 
@@ -174,7 +174,7 @@ another catch-all `ProxyPass "/"` from the root example to this virtual host.
 
 ### HAProxy subfolder
 
-This example terminates TLS at HAProxy and forwards to one WebSSH instance.
+This example terminates TLS at HAProxy and forwards to one PixShell instance.
 Use the application settings above and a PEM containing the certificate chain
 and private key at the configured path. HTTP/1.1 supports both Socket.IO polling
 and its WebSocket upgrade through the same backend:
@@ -231,8 +231,8 @@ and [HAProxy configuration manual](https://www.haproxy.com/documentation/haproxy
 
 When the proxy runs in Docker:
 
-1. Attach WebSSH and the proxy to a private shared network.
-2. Remove public port publishing from WebSSH.
+1. Attach PixShell and the proxy to a private shared network.
+2. Remove public port publishing from PixShell.
 3. Proxy to `webssh:5000` over the private network.
 4. Set `TRUSTED_PROXIES` to the real number of trusted layers.
 
@@ -253,7 +253,7 @@ If login works but terminal activity disconnects or never starts:
 
 ## Trusted client addresses
 
-WebSSH uses forwarded addresses only within the configured proxy trust depth.
+PixShell uses forwarded addresses only within the configured proxy trust depth.
 An incorrect value can either record the proxy address instead of the client or
 trust attacker-supplied forwarding headers. Prefer a simple topology and keep
 the backend network private.
@@ -283,7 +283,7 @@ Log in normally, then inspect the browser Network panel for the public path
 `/webssh/socket.io/?EIO=4&transport=polling` (or your configured prefix). A
 successful initial polling response starts with an Engine.IO open packet (`0`).
 When upgrading, the WebSocket request should receive `101 Switching Protocols`.
-An anonymous `curl` request can legitimately be rejected: WebSSH requires an
+An anonymous `curl` request can legitimately be rejected: PixShell requires an
 authenticated session before admitting an Engine.IO transport.
 
 For a failed request, record the status, sanitized response text, transport,
@@ -295,4 +295,4 @@ cookies, authorization headers, credentials, session IDs, or unredacted HAR file
 Check password, configured second factors and identity providers, session expiry
 and return to the original page, terminal input/resize, upload/download, idle
 connections and reconnect. Compare HTTP and Socket.IO scheme, host, prefix, and
-client address. Record the WebSSH revision and proxy configuration with results.
+client address. Record the PixShell revision and proxy configuration with results.

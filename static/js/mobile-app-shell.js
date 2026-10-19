@@ -1,4 +1,4 @@
-/* Mobile-first application shell for the existing WebSSH workspaces. */
+/* Mobile-first application shell for the existing PixShell workspaces. */
 (function(root, factory) {
     const api = factory();
     if (typeof module !== 'undefined' && module.exports) module.exports = api;

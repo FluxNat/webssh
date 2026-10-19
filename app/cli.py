@@ -27,7 +27,7 @@ def _audit_operation(event, **details):
 def _require_offline_confirmation(confirm_offline):
     if not confirm_offline:
         raise click.ClickException(
-            'Stop every WebSSH application process first, then repeat with '
+            'Stop every PixShell application process first, then repeat with '
             '--confirm-offline.'
         )
 
@@ -313,7 +313,7 @@ def connection_store_delete(
     selector,
     confirm_offline,
 ):
-    """Delete one exact legacy record while WebSSH is stopped."""
+    """Delete one exact legacy record while PixShell is stopped."""
     from . import jump_host_manager, profile_manager
     from .backup_coordination import OperationBusyError, operation_lock
     from .storage_errors import StorageCorruptionError
@@ -354,7 +354,7 @@ def connection_store_delete(
 
 @click.group('backup')
 def backup_cli():
-    """Create, verify, or restore WebSSH data backups."""
+    """Create, verify, or restore PixShell data backups."""
 
 
 @backup_cli.command('create')
@@ -365,7 +365,7 @@ def backup_cli():
 )
 @click.option('--confirm-offline', is_flag=True)
 def backup_create(destination, confirm_offline):
-    """Create and verify a backup while WebSSH is stopped."""
+    """Create and verify a backup while PixShell is stopped."""
     from .backup_coordination import operation_lock
     from .backup_manager import create_backup, default_backup_directory
 
@@ -432,7 +432,7 @@ def backup_verify(archive):
 )
 @click.option('--confirm-offline', is_flag=True)
 def backup_restore(archive, confirm_offline):
-    """Restore a verified backup while WebSSH is stopped."""
+    """Restore a verified backup while PixShell is stopped."""
     from .backup_coordination import operation_lock
     from .backup_manager import restore_backup
     from .restore_sanitizer import sanitize_restored_authentication_state
@@ -484,7 +484,7 @@ def rotate_secret_key(confirm_offline):
         f'Verified backup: {report.backup_path}'
     )
     click.echo(
-        'Restart WebSSH now so every process loads the new persisted secret.'
+        'Restart PixShell now so every process loads the new persisted secret.'
     )
 
 

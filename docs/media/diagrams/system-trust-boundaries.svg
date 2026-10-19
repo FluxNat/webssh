@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" role="img" aria-labelledby="system-trust-boundaries-title system-trust-boundaries-desc">
-  <title id="system-trust-boundaries-title">WebSSH system trust boundaries</title>
-  <desc id="system-trust-boundaries-desc">Architecture showing browser traffic entering WebSSH through a trusted reverse proxy, WebSSH enforcing identity and ownership before opening SSH or SFTP connections, and blocked direct access around the application boundary.</desc>
+  <title id="system-trust-boundaries-title">PixShell system trust boundaries</title>
+  <desc id="system-trust-boundaries-desc">Architecture showing browser traffic entering PixShell through a trusted reverse proxy, PixShell enforcing identity and ownership before opening SSH or SFTP connections, and blocked direct access around the application boundary.</desc>
   <defs>
     <style>
       .title{font:700 32px "Segoe UI",Arial,sans-serif;fill:#15283a}.subtitle{font:16px "Segoe UI",Arial,sans-serif;fill:#52677b}.brand{font:700 20px "Segoe UI",Arial,sans-serif;fill:#245f9e}.zone{fill:rgba(36,95,158,.025);stroke:rgba(36,95,158,.28);stroke-width:1.2;stroke-dasharray:8 8}.zone-label{font:600 12px "Cascadia Mono",Consolas,monospace;letter-spacing:.12em;fill:#52677b}.node{fill:#fff;stroke:#3e5368;stroke-width:1.2}.focal{fill:#eaf2fb;stroke:#245f9e;stroke-width:2}.store{fill:#e8eef5;stroke:#52677b;stroke-width:1.2}.optional{fill:#f4f7fb;stroke:#818c9b;stroke-width:1.2;stroke-dasharray:8 8}.node-title{font:600 16px "Segoe UI",Arial,sans-serif;fill:#15283a}.node-sub{font:12px "Cascadia Mono",Consolas,monospace;fill:#52677b}.tag{font:600 8px "Cascadia Mono",Consolas,monospace;letter-spacing:.12em;fill:#245f9e}.flow{fill:none;stroke:#52677b;stroke-width:2;marker-end:url(#system-arrow)}.link{fill:none;stroke:#245f9e;stroke-width:2.4;marker-end:url(#system-arrow-link)}.passive{fill:none;stroke:#818c9b;stroke-width:1.6;stroke-dasharray:8 8;marker-end:url(#system-arrow)}.blocked{fill:none;stroke:#b43f3f;stroke-width:2;stroke-dasharray:8 8}.arrow-label{font:600 12px "Cascadia Mono",Consolas,monospace;letter-spacing:.08em;fill:#52677b}.arrow-label-blue{font:600 12px "Cascadia Mono",Consolas,monospace;letter-spacing:.08em;fill:#245f9e}.legend{font:12px "Segoe UI",Arial,sans-serif;fill:#52677b}.source{font:11px "Cascadia Mono",Consolas,monospace;fill:#818c9b}
@@ -14,14 +14,14 @@
   <rect x="0" y="0" width="16" height="900" fill="#245f9e"/>
   <text class="title" x="56" y="64">System trust boundaries</text>
   <text class="subtitle" x="56" y="96">One supported path from the browser to owned SSH and SFTP resources</text>
-  <text class="brand" x="1384" y="64" text-anchor="end">WebSSH</text>
+  <text class="brand" x="1384" y="64" text-anchor="end">PixShell</text>
 
   <rect class="zone" x="48" y="144" width="280" height="612" rx="8"/>
   <rect x="72" y="136" width="120" height="24" fill="#f4f7fb"/>
   <text class="zone-label" x="80" y="152">CLIENT</text>
   <rect class="zone" x="376" y="144" width="680" height="612" rx="8"/>
   <rect x="400" y="136" width="200" height="24" fill="#f4f7fb"/>
-  <text class="zone-label" x="408" y="152">WEBSSH · ONE PROCESS</text>
+  <text class="zone-label" x="408" y="152">PIXSHELL · ONE PROCESS</text>
   <rect class="zone" x="1104" y="144" width="288" height="612" rx="8"/>
   <rect x="1128" y="136" width="176" height="24" fill="#f4f7fb"/>
   <text class="zone-label" x="1136" y="152">MANAGED SYSTEMS</text>
@@ -111,5 +111,5 @@
   <text class="legend" x="580" y="848">supported data path</text>
   <line x1="792" y1="844" x2="824" y2="844" stroke="#b43f3f" stroke-width="2" stroke-dasharray="8 8"/>
   <text class="legend" x="836" y="848">blocked bypass</text>
-  <text class="source" x="1384" y="848" text-anchor="end">current implementation · WebSSH 2.0</text>
+  <text class="source" x="1384" y="848" text-anchor="end">current implementation · PixShell 2.0</text>
 </svg>

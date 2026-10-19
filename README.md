@@ -1,9 +1,13 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="WebSSH" width="500">
+  <img src="static/images/pixshell-logo.svg" alt="PixShell" width="420">
 </p>
 
 <p align="center">
   <strong>A secure, self-hosted SSH and SFTP workspace for homelabs and teams.</strong>
+</p>
+
+<p align="center">
+  <sub>PixShell is a fork of <a href="https://github.com/bifrost0x/webssh">WebSSH</a> by bifrost0x, released under the MIT License.</sub>
 </p>
 
 <p align="center">
@@ -28,11 +32,11 @@
 
 <p align="center">
   <a href="https://getwebssh.com/demo.html?v=4a5bdb14506d">
-    <img src="site/assets/webssh-demo-poster.jpg" alt="Watch the 60-second WebSSH demo: terminals, split panes, SFTP file editing, command sets, and notes" width="1100">
+    <img src="site/assets/webssh-demo-poster.jpg" alt="Watch the 60-second PixShell demo: terminals, split panes, SFTP file editing, command sets, and notes" width="1100">
   </a>
 </p>
 
-WebSSH keeps terminal work, files, commands, diagnostics, and notes in one
+PixShell keeps terminal work, files, commands, diagnostics, and notes in one
 responsive browser workspace. It is self-hosted, multi-user, and built without
 a hosted control plane or runtime CDN dependencies.
 
@@ -40,16 +44,16 @@ a hosted control plane or runtime CDN dependencies.
   <summary>Preview the animated product tour</summary>
 
   <p align="center">
-    <img src="assets/webssh-demo.gif" alt="WebSSH tour showing a focused terminal, split sessions, the SFTP workspace, and account security" width="1100">
+    <img src="assets/webssh-demo.gif" alt="PixShell tour showing a focused terminal, split sessions, the SFTP workspace, and account security" width="1100">
   </p>
 </details>
 
-## Why WebSSH
+## Why PixShell
 
 - **One workspace, not a terminal tab.** Keep SSH sessions, SFTP sources,
   commands, live Linux context, and notes aligned with the active server.
 - **Self-hosted by design.** Accounts, profiles, encrypted keys, host trust,
-  audit records, and application data remain on your WebSSH instance.
+  audit records, and application data remain on your PixShell instance.
 - **Safe operational boundaries.** Authentication, ownership checks, network
   policy, host-key verification, quotas, and bounded runtime work are explicit.
 - **Useful from phone to workstation.** The same interface adapts from a focused
@@ -79,7 +83,7 @@ a hosted control plane or runtime CDN dependencies.
 - **Expanded Diagnostics** for resource history, processes, systemd services,
   and Docker containers.
 - **Clipboard-Only Service Actions** that prepare allowlisted commands without
-  executing the service change inside WebSSH.
+  executing the service change inside PixShell.
 
 ### Files and transfers
 
@@ -96,12 +100,12 @@ a hosted control plane or runtime CDN dependencies.
 - Per-user ownership checks, size limits, quotas, and path validation.
 
 SMB is disabled by default (`SMB_ENABLED=false`). Enabling it also requires an
-exact `SMB_ALLOWED_TARGETS` server allowlist. WebSSH fixes SMB connections to
+exact `SMB_ALLOWED_TARGETS` server allowlist. PixShell fixes SMB connections to
 TCP 445 and requires SMB 3.1.1, signing, encryption, and secure negotiation;
 the current authentication mode is NTLM. Guest access, DFS, Kerberos, and
 automatic reconnect are not supported. SMB credentials are used for one
 temporary connection. Passwords and authentication secrets are never stored by
-WebSSH. Users may save non-secret, per-user share definitions containing a
+PixShell. Users may save non-secret, per-user share definitions containing a
 display name, host, share, domain, and username.
 
 For Active Directory and TrueNAS, first try the DNS domain (for example
@@ -109,7 +113,7 @@ For Active Directory and TrueNAS, first try the DNS domain (for example
 leave the domain field empty and use a UPN such as `alice@example.com`. NetBIOS
 domain names may not be accepted by every server.
 
-After connecting, WebSSH non-destructively checks root listing, file creation,
+After connecting, PixShell non-destructively checks root listing, file creation,
 directory creation, and child deletion access. The workspace labels confirmed
 write access, confirmed root read-only access, or unknown access; deeper ACLs
 can still differ. Uploads and remote copies never silently overwrite an
@@ -121,12 +125,12 @@ operations report both the actual size and exact configured limit. Inline SMB
 editing preserves revision checks and offers an explicit recoverable-swap path
 when atomic replacement is unavailable.
 Supported SMB targets must refuse symlink and wide-link traversal (for Samba,
-use `follow symlinks = no` and `wide links = no`). WebSSH additionally opens
+use `follow symlinks = no` and `wide links = no`). PixShell additionally opens
 files and directories without following reparse points and validates existing
 path components before remote operations.
 
-This is a two-link trust boundary: browser TLS protects browser-to-WebSSH
-traffic, while SMB encryption protects WebSSH-to-share traffic. The WebSSH process
+This is a two-link trust boundary: browser TLS protects browser-to-PixShell
+traffic, while SMB encryption protects PixShell-to-share traffic. The PixShell process
 necessarily handles the submitted credentials and transferred file contents, so
 run it only on a trusted host and allowlist only trusted shares.
 
@@ -159,7 +163,7 @@ run it only on a trusted host and allowlist only trusted shares.
 ### Focused session workspace
 
 <p align="center">
-  <img src="assets/workspace-overview.png" alt="Connected WebSSH terminal with active-session controls and a notes workspace" width="1100">
+  <img src="assets/workspace-overview.png" alt="Connected PixShell terminal with active-session controls and a notes workspace" width="1100">
 </p>
 
 The active session stays central while contextual tools remain close at hand.
@@ -167,7 +171,7 @@ The active session stays central while contextual tools remain close at hand.
 ### Multiple live sessions
 
 <p align="center">
-  <img src="assets/multi-session.png" alt="WebSSH desktop workspace with two live terminal panes and four session tabs" width="1100">
+  <img src="assets/multi-session.png" alt="PixShell desktop workspace with two live terminal panes and four session tabs" width="1100">
 </p>
 
 Split panes make side-by-side observation and coordinated work visible without
@@ -176,19 +180,19 @@ mixing session ownership or terminal state.
 ### File workspace
 
 <p align="center">
-  <img src="assets/sftp-workspace.png" alt="WebSSH dual-pane file workspace with trusted sources and a transfer queue" width="1100">
+  <img src="assets/sftp-workspace.png" alt="PixShell dual-pane file workspace with trusted sources and a transfer queue" width="1100">
 </p>
 
 Each pane has an explicit source, endpoint, path, trust state, and selection.
 
 <p align="center">
-  <img src="assets/file-editing.gif" alt="WebSSH file workflow from dual-pane browsing through preview, editing, save confirmation, and transfer completion" width="1100">
+  <img src="assets/file-editing.gif" alt="PixShell file workflow from dual-pane browsing through preview, editing, save confirmation, and transfer completion" width="1100">
 </p>
 
 ### Security Center
 
 <p align="center">
-  <img src="assets/security-center.png" alt="WebSSH Security Center showing sign-in assurance, SSH host trust, Passkeys, TOTP, and Recovery Codes" width="1100">
+  <img src="assets/security-center.png" alt="PixShell Security Center showing sign-in assurance, SSH host trust, Passkeys, TOTP, and Recovery Codes" width="1100">
 </p>
 
 The Security Center explains how the current sign-in confirms protected
@@ -197,7 +201,7 @@ changes and keeps factors and SSH trust in one account-owned view.
 ### Mobile workspace
 
 <p align="center">
-  <img src="assets/mobile-workspace.png" alt="WebSSH mobile terminal workspace with responsive session controls and connection status" width="360">
+  <img src="assets/mobile-workspace.png" alt="PixShell mobile terminal workspace with responsive session controls and connection status" width="360">
 </p>
 
 ## Quick Start
@@ -238,17 +242,17 @@ configurable resource budgets, and LDAP/Tailscale constraints.
 ## Security Boundary
 
 <p align="center">
-  <img src="docs/media/diagrams/system-trust-boundaries.png" alt="WebSSH trust boundaries from the browser through the single application process to owned SSH and SFTP targets" width="1100">
+  <img src="docs/media/diagrams/system-trust-boundaries.png" alt="PixShell trust boundaries from the browser through the single application process to owned SSH and SFTP targets" width="1100">
 </p>
 
-WebSSH is trusted infrastructure. It processes connection credentials,
+PixShell is trusted infrastructure. It processes connection credentials,
 terminal input and output, and file data while establishing and maintaining SSH
 and SFTP sessions. It is not an end-to-end encrypted relay that is blind to
 session contents.
 
 Keep these deployment contracts intact:
 
-- Terminate HTTPS at a trusted boundary and protect the WebSSH host, data
+- Terminate HTTPS at a trusted boundary and protect the PixShell host, data
   volume, logs, backups, and administrator accounts.
 - Review SSH host-key fingerprints before trusting them and investigate
   unexpected changes.
@@ -263,14 +267,14 @@ Keep these deployment contracts intact:
   keys together. Protect and test them accordingly.
 
 See the [Security Model and Hardening](https://github.com/bifrost0x/webssh/wiki/Security-Model-and-Hardening)
-guide and the project's [security policy](SECURITY.md) before exposing WebSSH
+guide and the project's [security policy](SECURITY.md) before exposing PixShell
 to untrusted networks.
 
 ## Documentation
 
 The README is the project entry point. Detailed installation, operation,
 security, authentication, recovery, and development guidance lives in the
-[WebSSH Wiki](https://github.com/bifrost0x/webssh/wiki). Its
+[PixShell Wiki](https://github.com/bifrost0x/webssh/wiki). Its
 [versioned source](docs/wiki/Home.md) is reviewed with the code through pull
 requests and published automatically after changes reach `main`.
 
@@ -315,4 +319,4 @@ so the security and runtime boundaries can be reviewed before implementation.
 
 ## License
 
-WebSSH is available under the [MIT License](LICENSE).
+PixShell is available under the [MIT License](LICENSE).

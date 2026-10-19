@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" role="img" aria-labelledby="backup-restore-title backup-restore-desc">
-  <title id="backup-restore-title">WebSSH backup and restore safety</title>
+  <title id="backup-restore-title">PixShell backup and restore safety</title>
   <desc id="backup-restore-desc">Flowchart showing administrator step-up before backup or restore, consistent backup snapshots, private quota-bounded restore staging and validation, exact confirmation, maintenance mode, and atomic activation.</desc>
   <defs>
     <style>
@@ -14,7 +14,7 @@
   <rect x="0" y="0" width="16" height="900" fill="#245f9e"/>
   <text class="title" x="56" y="64">Backup and restore safety</text>
   <text class="subtitle" x="56" y="96">Authorization, consistent snapshots, bounded staging, and atomic restore</text>
-  <text class="brand" x="1384" y="64" text-anchor="end">WebSSH</text>
+  <text class="brand" x="1384" y="64" text-anchor="end">PixShell</text>
 
   <rect class="band" x="48" y="468" width="640" height="288" rx="8"/>
   <rect x="72" y="460" width="104" height="24" fill="#f4f7fb"/>
@@ -108,5 +108,5 @@
   <text class="legend" x="416" y="848">durable archive</text>
   <line x1="600" y1="844" x2="632" y2="844" stroke="#b43f3f" stroke-width="2" stroke-dasharray="8 8"/>
   <text class="legend" x="644" y="848">blocked unsafe path</text>
-  <text class="source" x="1384" y="848" text-anchor="end">current implementation · WebSSH 2.0</text>
+  <text class="source" x="1384" y="848" text-anchor="end">current implementation · PixShell 2.0</text>
 </svg>

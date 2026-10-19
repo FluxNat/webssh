@@ -1,23 +1,23 @@
 # Security Model and Hardening
 
-WebSSH is a privileged gateway: it receives SSH credentials, opens remote sessions, processes terminal data, and transfers files. HTTPS protects browser traffic in transit, but WebSSH itself necessarily sees the material needed to perform those operations. It is not end-to-end encrypted between the browser and the SSH server.
+PixShell is a privileged gateway: it receives SSH credentials, opens remote sessions, processes terminal data, and transfers files. HTTPS protects browser traffic in transit, but PixShell itself necessarily sees the material needed to perform those operations. It is not end-to-end encrypted between the browser and the SSH server.
 
 ## Trust boundaries
 
 Protect all of the following as sensitive systems:
 
-- the WebSSH host and container runtime;
+- the PixShell host and container runtime;
 - `DATA_DIR`, its backups, and the persisted `SECRET_KEY`;
 - the reverse proxy and TLS private keys;
 - LDAP bind, OIDC client, Redis, and other infrastructure credentials;
 - administrator browsers and accounts;
-- networks from WebSSH to SSH, LDAP, OIDC, Redis, and DNS endpoints.
+- networks from PixShell to SSH, LDAP, OIDC, Redis, and DNS endpoints.
 
-A compromise of the WebSSH process or its host can expose active terminal/file data and credentials supplied to it.
+A compromise of the PixShell process or its host can expose active terminal/file data and credentials supplied to it.
 
 ## Built-in controls
 
-WebSSH includes:
+PixShell includes:
 
 - CSRF protection for HTTP forms and authenticated Socket.IO event contracts;
 - `HttpOnly`, `SameSite=Lax` session cookies and `Secure` cookies in production;
@@ -38,7 +38,7 @@ For Internet exposure:
 
 1. Use `docker-compose.production.yml` in addition to the base Compose file.
 2. Terminate modern HTTPS at a maintained reverse proxy.
-3. Bind WebSSH to loopback or a private network, not a public interface.
+3. Bind PixShell to loopback or a private network, not a public interface.
 4. Set exact HTTPS `CORS_ORIGINS`; never use a wildcard.
 5. Set `TRUSTED_PROXIES` to the exact number of trusted proxy layers.
 6. Keep `SESSION_COOKIE_SECURE=true`.
@@ -55,7 +55,7 @@ Prefer scoped remote accounts, least privilege, short-lived credentials where po
 
 ## Host-key verification
 
-WebSSH uses a per-user known-hosts store and trust-on-first-use workflow. A newly trusted key is pinned. A changed key is rejected until the discrepancy is independently investigated and the old trust record is explicitly revoked.
+PixShell uses a per-user known-hosts store and trust-on-first-use workflow. A newly trusted key is pinned. A changed key is rejected until the discrepancy is independently investigated and the old trust record is explicitly revoked.
 
 Do not train users to accept changed keys as routine. Validate the remote host's fingerprint through a separate channel.
 
@@ -64,9 +64,9 @@ Do not train users to accept changed keys as routine. Validate the remote host's
 - LDAP: use `ldaps://` or StartTLS, validate the server certificate, use a read-only least-privileged service account, and restrict user/group filters.
 - OIDC: use a trusted issuer, exact redirect URIs, a secret file, and explicit domain or subject policy where required.
 - Passkeys: keep recovery codes offline and revoke lost authenticators promptly.
-- Tailscale SSH: use tight WebSSH-user, target, and remote-user allowlists; the node identity is shared.
+- Tailscale SSH: use tight PixShell-user, target, and remote-user allowlists; the node identity is shared.
 
-LDAP/AD authentication does not copy directory passwords into WebSSH. With the
+LDAP/AD authentication does not copy directory passwords into PixShell. With the
 secure default `LDAP_AUTO_PROVISION=false`, authentication requires an existing
 local account and explicit directory link. Explicit
 `LDAP_AUTO_PROVISION=true` may create only a non-admin account after a

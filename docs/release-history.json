@@ -479,7 +479,7 @@
     },
     {
       "number": 245,
-      "reason": "Reporter resolved Warpgate PROXY-protocol configuration; no WebSSH code fix or release attribution."
+      "reason": "Reporter resolved Warpgate PROXY-protocol configuration; no PixShell code fix or release attribution."
     }
   ],
   "native_milestone_backfill_result": {

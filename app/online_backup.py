@@ -1,4 +1,4 @@
-"""Online-consistent backup creation for the running WebSSH application."""
+"""Online-consistent backup creation for the running PixShell application."""
 
 import os
 from pathlib import Path

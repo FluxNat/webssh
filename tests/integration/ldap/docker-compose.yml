@@ -12,7 +12,7 @@ services:
     image: docker.io/osixia/openldap:2.6.10-alpha@sha256:80a577d7d4471c4db662195111e5709665b6fcbd6679094d05402b8c620e2607
     hostname: ldap.example.test
     environment:
-      OPENLDAP_BOOTSTRAP_ORGANIZATION: WebSSH Test
+      OPENLDAP_BOOTSTRAP_ORGANIZATION: PixShell Test
       OPENLDAP_BOOTSTRAP_SUFFIX: dc=example,dc=test
       OPENLDAP_BOOTSTRAP_DATA_ROOT_DN: cn=admin,dc=example,dc=test
       OPENLDAP_BOOTSTRAP_DATA_ROOT_PASSWORD_HASHED: "{SSHA}gPHcwIz/ftw8IkZF7oGYHQREQ19stJJa"

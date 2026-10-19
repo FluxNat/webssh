@@ -60,7 +60,7 @@
     /** Compose a ready-to-paste invitation for ``share``. */
     function inviteText(share, { owner, url, remainingSeconds }, t) {
         const intro = t('share.inviteIntro')
-            .replace('{owner}', owner || 'WebSSH')
+            .replace('{owner}', owner || 'PixShell')
             .replace('{title}', share.title);
         const access = share.mode === 'control'
             ? t('share.inviteAccessControl')

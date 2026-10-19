@@ -27,7 +27,7 @@ administrative shares, reparse-point traversal, and automatic reconnect are
 not supported.
 
 The SMB dialog sends the password only for the requested temporary connection;
-passwords and authentication secrets are never stored by WebSSH. Users may save
+passwords and authentication secrets are never stored by PixShell. Users may save
 non-secret, per-user share definitions containing a display name, host, share,
 domain, and username. Closing a source's final tab closes the connection after
 any dependent transfer finishes. An application restart also removes all active
@@ -38,7 +38,7 @@ in the domain field with an account name such as `alice`. Alternatively, leave
 the domain field empty and use a UPN such as `alice@example.com`. NetBIOS domain
 names may not be accepted by every server.
 
-After authentication, WebSSH performs a non-mutating access inspection at the
+After authentication, PixShell performs a non-mutating access inspection at the
 share root. It separately records whether listing, file creation, directory
 creation, and child deletion are granted, denied, or unknown. The workspace
 shows confirmed write access, confirmed root read-only access, or unknown root
@@ -55,7 +55,7 @@ session authentication, share access, and lifecycle handling, and can include
 the exception class and SMB NT status when safely available.
 
 Browser TLS and SMB encryption protect different links. TLS covers the browser
-to WebSSH, while SMB encryption covers WebSSH to the share. The WebSSH process
+to PixShell, while SMB encryption covers PixShell to the share. The PixShell process
 must handle the submitted credentials and file contents, so deploy it on a
 trusted host and allowlist only trusted SMB servers. This is not end-to-end
 encryption between the browser and the share.
@@ -66,7 +66,7 @@ In the single-terminal layout, an embedded SFTP browser follows the active SSH
 session. Its state is separate from the standalone File Workspace, so switching
 terminal sessions does not overwrite independent workspace tabs.
 
-WebSSH probes SFTP availability for the selected session before showing the
+PixShell probes SFTP availability for the selected session before showing the
 embedded browser. Manual dismissal is retained for that session, and changing
 viewport size keeps the mounted browser state instead of opening another
 connection. Disconnecting the selected SSH session removes only its embedded
@@ -94,13 +94,13 @@ Supported operations include:
 - inline text editing and save;
 - selection and context-menu actions.
 
-All operations authenticate the WebSSH user, resolve the opaque source ID
+All operations authenticate the PixShell user, resolve the opaque source ID
 server-side, verify source ownership, and enforce the named capability before
 touching SFTP or SMB.
 
 ## Transfer architecture
 
-![WebSSH realtime session and bulk transfer lifecycle showing transfer records, single-use tokens, HTTP streams, and bounded jobs](https://github.com/bifrost0x/webssh/blob/main/docs/media/diagrams/session-and-transfer-lifecycle.png?raw=true)
+![PixShell realtime session and bulk transfer lifecycle showing transfer records, single-use tokens, HTTP streams, and bounded jobs](https://github.com/bifrost0x/webssh/blob/main/docs/media/diagrams/session-and-transfer-lifecycle.png?raw=true)
 
 The control record retains user and connection ownership while the body path
 uses a short-lived token. This separation keeps large payloads away from the
@@ -176,7 +176,7 @@ default to 4 globally and 1 per user. Temporary-byte reservations default to
 
 ## Folder downloads
 
-WebSSH prefers bounded streaming and uses private temporary storage only where
+PixShell prefers bounded streaming and uses private temporary storage only where
 the archive path requires it. Size, member, timeout, ownership, and temporary
 byte quotas apply. Symlinks and unsafe traversal are not followed as arbitrary
 host filesystem paths.
@@ -195,7 +195,7 @@ grows after it was opened. Path metadata is not reused to authorize bytes from
 a later open.
 
 For SFTP, the remote SSH account and server configuration define which paths
-are reachable; WebSSH does not add a virtual allowed-folder boundary. Deploy
+are reachable; PixShell does not add a virtual allowed-folder boundary. Deploy
 `internal-sftp` with a server-side chroot when a user must be confined to one
 subtree. Handle binding prevents a later pathname swap, but it is not a
 replacement for server-side filesystem confinement.
@@ -217,7 +217,7 @@ copy. The server reads from one SFTP or SMB source and writes to the other
 without routing the entire payload through the browser. The same bounded engine
 covers SFTP-to-SFTP, SFTP-to-SMB, SMB-to-SFTP, and SMB-to-SMB copies.
 
-Both connections remain owned by the same WebSSH user, both count against
+Both connections remain owned by the same PixShell user, both count against
 capacity, and cancellation is tied to the server-owned transfer record.
 Existing targets are not overwritten without the conflict decision described
 above.
@@ -255,7 +255,7 @@ session is still connected.
 
 ### Transfer waits after closing a tab
 
-This can be intentional. WebSSH retains the quick connection until queued or
+This can be intentional. PixShell retains the quick connection until queued or
 active transfer references terminalize.
 
 ### Preview refuses a large file
@@ -265,7 +265,7 @@ lower memory-oriented limits than raw transfer.
 
 ### Server-to-server copy fails
 
-Verify both sides are connected, writable, and owned by the same WebSSH user.
+Verify both sides are connected, writable, and owned by the same PixShell user.
 Check background-job and transfer quotas plus the target conflict policy.
 
 ## Related pages
@@ -296,7 +296,7 @@ symlink resolution. Sync-generated input never uses broadcast mode.
 
 The current implementation supports Linux targets with readable `/proc`,
 `readlink`, and a `ps` implementation supporting `--ppid`, `pid`, `ppid`, `tty`,
-`tpgid`, and `comm`. For WebSSH-managed tmux sessions it resolves the active pane
+`tpgid`, and `comm`. For PixShell-managed tmux sessions it resolves the active pane
 in the active window of that session. Ambiguous PTYs, inaccessible processes,
 non-Linux targets, and restricted SSH exec channels report sync as unavailable.
 No shell startup files are modified and no remote agent is installed.

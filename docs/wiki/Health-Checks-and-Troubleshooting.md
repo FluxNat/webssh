@@ -1,6 +1,6 @@
 # Health Checks and Troubleshooting
 
-WebSSH exposes separate liveness and readiness endpoints. Use both; they answer different operational questions.
+PixShell exposes separate liveness and readiness endpoints. Use both; they answer different operational questions.
 
 ## Liveness: `/health`
 
@@ -60,7 +60,7 @@ Distinguish these failures:
 
 - Target policy: `BLOCK_INTERNAL_SSH` or an allowlist rejected the resolved address.
 - Capacity: global/per-user SSH or socket quota is exhausted.
-- Network: DNS, routing, firewall, or SSH port is unavailable from the WebSSH host.
+- Network: DNS, routing, firewall, or SSH port is unavailable from the PixShell host.
 - Authentication: remote username, password, key, agent, or Jump Host chain failed.
 - Host key: the server is unknown and awaits trust, or a pinned key changed.
 
@@ -80,10 +80,10 @@ The file workspace supports SFTP sources and opt-in SMB sources. If the SMB
 control is disabled, confirm that `SMB_ENABLED=true` and a non-empty exact
 `SMB_ALLOWED_TARGETS` allowlist reach the container. SMB remains default-off.
 
-For SMB, test from the WebSSH container's network namespace rather than only
+For SMB, test from the PixShell container's network namespace rather than only
 from the Docker host. The configured hostname or IP must resolve there and be
 reachable on TCP 445. Services in separate Compose projects need a shared
-external network or a LAN address published by the SMB host; WebSSH itself does
+external network or a LAN address published by the SMB host; PixShell itself does
 not expose an SMB port.
 
 Use the workspace result to narrow the failure:
@@ -100,7 +100,7 @@ Use the workspace result to narrow the failure:
 - an upload or copy fails in a nested folder: inspect that folder's ACL, quota,
   free space, and delete/rename rights even if root write access was confirmed;
 - replace is unavailable: grant atomic rename/delete-child rights or choose a
-  new filename; WebSSH does not delete the old destination first.
+  new filename; PixShell does not delete the old destination first.
 - an editor reports manual recovery: preserve the named temporary and backup
   files, recover the newer verified content, and only then remove the artifacts;
 - a move times out: refresh both source and destination folders before retrying
@@ -123,10 +123,10 @@ code plus sanitized diagnostic fields:
 - `lifecycle`: quota reservation, publication, shutdown, or cleanup handling.
 
 `cause_type` identifies only the exception class and `nt_status`, when present,
-is the fixed-width SMB status code. WebSSH deliberately does not return or log
+is the fixed-width SMB status code. PixShell deliberately does not return or log
 the backend exception message because it can contain credentials, server names,
 or share paths. A support report should contain the reference, result code,
-phase, cause type, NT status, WebSSH version or commit, SMB server product and
+phase, cause type, NT status, PixShell version or commit, SMB server product and
 version, and reproduction steps, but never the SMB password.
 
 The transfer queue shows the stable reason returned by the server. A bare
@@ -139,7 +139,7 @@ and `exception_type`.
 Review the dedicated [LDAP troubleshooting sequence](LDAP-and-Active-Directory#troubleshooting). The most important distinction is whether service bind/search failed, the user did not match filters, TLS validation failed, user credential bind failed, or no enabled local account is linked to the resulting directory identity.
 
 LDAP auto-provisioning is optional and disabled by default with
-`LDAP_AUTO_PROVISION=false`. When explicitly enabled, WebSSH creates only a
+`LDAP_AUTO_PROVISION=false`. When explicitly enabled, PixShell creates only a
 non-admin account after a successful directory bind. Existing local usernames
 are never claimed automatically, ambiguous or colliding identities fail
 closed, and operators should retain a tested local break-glass administrator.
@@ -161,7 +161,7 @@ Slow or refused work can result from thread, socket, SSH, transfer, temporary-by
 
 When requesting help, include:
 
-- exact WebSSH version or commit;
+- exact PixShell version or commit;
 - deployment profile and sanitized effective Compose configuration;
 - `/health` and `/ready` status;
 - relevant log timestamps, diagnostic reference, phase, and error class;

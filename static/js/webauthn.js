@@ -151,7 +151,7 @@
             passkey: t('security.methodPasskey', 'Passkey'),
             totp: t('security.methodTotp', 'Authenticator app'),
             ldap: t('security.methodLdap', 'Directory password'),
-            password: t('security.methodPassword', 'WebSSH password'),
+            password: t('security.methodPassword', 'PixShell password'),
             bootstrap: t('security.methodBootstrap', 'Enrollment code')
         };
         for (const method of methodChoices) {
@@ -248,7 +248,7 @@
                 : method === 'totp'
                     ? t('security.confirmWithTotp', 'Enter a current code from your authenticator app.')
                     : method === 'bootstrap'
-                        ? t('security.confirmWithBootstrap', 'Enter the one-time enrollment code issued by the WebSSH operator.')
+                        ? t('security.confirmWithBootstrap', 'Enter the one-time enrollment code issued by the PixShell operator.')
                         : t('security.confirmFactorChange', 'Confirm this account security change.')
         });
         return result === null ? null : result.secret;
@@ -703,7 +703,7 @@
         if (button.dataset.connected === 'true') {
             if (!window.confirm(t(
                 'security.disconnectGithubConfirm',
-                'Disconnect this GitHub identity from your WebSSH account?'
+                'Disconnect this GitHub identity from your PixShell account?'
             ))) { return; }
             const headers = await stepUpHeaders('github.unlink', userId);
             if (headers === null) { return; }
