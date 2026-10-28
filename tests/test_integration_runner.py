@@ -58,7 +58,11 @@ def test_runtime_cleanup_refuses_directory_symlink(monkeypatch, tmp_path):
     marker = victim / "keep.txt"
     marker.write_text("keep", encoding="utf-8")
     runtime = fixture_dir / "runtime"
-    runtime.symlink_to(victim, target_is_directory=True)
+    try:
+        runtime.symlink_to(victim, target_is_directory=True)
+    except OSError as error:
+        # Windows needs Developer Mode or elevation to create symlinks.
+        pytest.skip(f"symlinks unavailable: {error}")
     monkeypatch.setattr(run_integration_tests, "PROJECT_ROOT", project_root)
     monkeypatch.setattr(run_integration_tests, "RUNTIME_DIR", runtime)
 

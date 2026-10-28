@@ -57,6 +57,7 @@
         if (!documentRef || !sessionManager) { return null; }
 
         const elements = {
+            statusBar: documentRef.getElementById('workspaceStatusBar'),
             statusState: documentRef.getElementById('workspaceStatusState'),
             statusTarget: documentRef.getElementById('workspaceStatusTarget'),
             statusTransport: documentRef.getElementById('workspaceStatusTransport'),
@@ -71,6 +72,12 @@
                 ? sessionManager.getSession?.(activeId)
                 : null;
             const context = buildSessionContext(session, translate);
+            if (elements.statusBar) {
+                // Lets the bar drop its placeholder fields when nothing is open.
+                elements.statusBar.dataset.session = !session
+                    ? 'none'
+                    : (context.connected ? 'connected' : 'disconnected');
+            }
             if (elements.statusState) {
                 elements.statusState.textContent = context.connected
                     ? (translate('workspace.connected') || 'Connected')

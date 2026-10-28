@@ -1320,7 +1320,7 @@ def create_app(
         return jsonify({'settings': get_user_settings(current_user.id)})
 
     from .decorators import admin_required, step_up_required
-    from .models import User
+    from .models import User, utc_isoformat
     from .audit_logger import read_audit_logs
 
     def _user_to_dict(u):
@@ -1332,8 +1332,8 @@ def create_app(
             'mfa_enabled': bool(u.mfa_enabled),
             'ldap_managed': bool(u.is_ldap_managed),
             'github_managed': bool(u.is_github_managed),
-            'created_at': u.created_at.isoformat() if u.created_at else None,
-            'last_login': u.last_login.isoformat() if u.last_login else None,
+            'created_at': utc_isoformat(u.created_at),
+            'last_login': utc_isoformat(u.last_login),
         }
 
     def _admin_create_user_target():

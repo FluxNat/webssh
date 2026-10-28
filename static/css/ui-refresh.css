@@ -14,10 +14,14 @@
     --ui-dur-slow: 380ms;
     --ui-radius: 10px;
     --ui-radius-lg: 14px;
-    --ui-ring: 0 0 0 3px color-mix(in srgb, var(--ws2-accent, #5b9cf6) 22%, transparent);
     --ui-elevation-1: 0 1px 2px rgb(0 0 0 / 18%), 0 1px 0 rgb(255 255 255 / 3%) inset;
     --ui-elevation-2: 0 8px 24px rgb(0 0 0 / 26%), 0 1px 0 rgb(255 255 255 / 4%) inset;
     --ui-elevation-3: 0 24px 64px rgb(0 0 0 / 42%), 0 0 0 1px rgb(255 255 255 / 3%) inset;
+}
+
+/* The accent is a theme token set on body, so the ring is resolved there. */
+body {
+    --ui-ring: 0 0 0 3px color-mix(in srgb, var(--ws2-accent, var(--accent-primary)) 22%, transparent);
 }
 
 /* ------------------------------------------------------------------ */
@@ -417,6 +421,21 @@ html {
 
 .auth-method-option {
     transition: background-color var(--ui-dur) ease, border-color var(--ui-dur) ease, color var(--ui-dur) ease, box-shadow var(--ui-dur) ease;
+}
+
+/* Three sources share the form width: let a hint take a second line rather
+   than cutting it off ("SSO with your organizati…"). Phones hide hints and
+   short screens keep the compact one-line tabs. */
+@media (min-width: 600px) and (min-height: 821px) {
+    .auth-method-option small {
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-height: 1.3;
+        text-overflow: clip;
+        white-space: normal;
+    }
 }
 
 /* ------------------------------------------------------------------ */

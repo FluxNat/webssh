@@ -30,8 +30,13 @@ const bundles = [
     },
 ];
 
+// Windows checkouts with core.autocrlf=true use CRLF; compare and generate as LF.
+function readText(filePath) {
+    return fs.readFileSync(filePath, 'utf8').replace(/\r\n/g, '\n');
+}
+
 function read(relativePath) {
-    return fs.readFileSync(path.join(projectRoot, relativePath), 'utf8');
+    return readText(path.join(projectRoot, relativePath));
 }
 
 function parseTranslations(source) {
@@ -95,15 +100,13 @@ function build(bundle, translations, runtime) {
     ].join('\n');
 }
 
-const { translations, runtime } = parseTranslations(
-    fs.readFileSync(sourcePath, 'utf8'),
-);
+const { translations, runtime } = parseTranslations(readText(sourcePath));
 for (const bundle of bundles) {
     const outputPath = path.join(projectRoot, bundle.output);
     const generated = build(bundle, translations, runtime);
     if (process.argv.includes('--check')) {
         const committed = fs.existsSync(outputPath)
-            ? fs.readFileSync(outputPath, 'utf8')
+            ? readText(outputPath)
             : '';
         if (committed !== generated) {
             console.error(`${bundle.output} is stale; run npm run i18n:auth.`);

@@ -650,3 +650,20 @@ def test_enabled_panel_shows_admin_navigation_to_administrators(app, client):
     assert response.status_code == 200
     assert b'Administration' in response.data
     assert b'data-tab="users"' in response.data
+
+
+def test_user_list_timestamps_are_explicit_utc(app, client):
+    from datetime import datetime
+
+    _prepare_role(app, client, 'admin')
+
+    response = client.get('/admin/api/users')
+
+    assert response.status_code == 200
+    users = {item['username']: item for item in response.get_json()['users']}
+    admin = users['adminuser']
+    # Browsers read an ISO string without an offset as local time.
+    assert admin['created_at'].endswith('Z')
+    assert admin['last_login'].endswith('Z')
+    datetime.fromisoformat(admin['created_at'])
+    assert users['targetuser']['last_login'] is None

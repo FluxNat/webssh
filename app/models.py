@@ -13,6 +13,17 @@ def as_naive_utc(value):
     return value.astimezone(timezone.utc).replace(tzinfo=None)
 
 
+def utc_isoformat(value):
+    """Serialize a stored datetime as explicit UTC for browser clients.
+
+    Columns hold naive UTC, and browsers parse an ISO string without an
+    offset as local time, so every timestamp leaves the API with a Z suffix.
+    """
+    if value is None:
+        return None
+    return as_naive_utc(value).isoformat() + 'Z'
+
+
 class User(db.Model, UserMixin):
     """User model for authentication."""
     __tablename__ = 'users'

@@ -20,7 +20,7 @@ from .auth_assurance import (
     pending_authentication,
     recovery_session_required,
 )
-from .models import TOTPAuthenticator, User, db
+from .models import TOTPAuthenticator, User, db, utc_isoformat
 from .totp_service import (
     TOTPEnrollmentError,
     activate_totp_enrollment,
@@ -112,10 +112,8 @@ def list_totp_authenticators():
         "authenticators": [{
             "id": row.id,
             "label": row.label,
-            "created_at": row.created_at.isoformat(),
-            "last_used_at": (
-                row.last_used_at.isoformat() if row.last_used_at else None
-            ),
+            "created_at": utc_isoformat(row.created_at),
+            "last_used_at": utc_isoformat(row.last_used_at),
         } for row in rows],
     })
 

@@ -1944,6 +1944,16 @@
     min-height: 38px;
     padding: 0 14px;
     border-right: 1px solid var(--border-color);
+    /* Buttons do not inherit the page font on their own. */
+    font: inherit;
+    font-size: 13px;
+    font-weight: 650;
+    transition: background-color 160ms ease, color 160ms ease;
+}
+
+.fm-layout-btn:hover:not(.active) {
+    background: color-mix(in srgb, var(--bg-hover) 70%, transparent);
+    color: var(--text-primary);
 }
 
 .fm-layout-btn:last-child {
@@ -2168,6 +2178,12 @@
 .fm-source-identity-empty {
     color: var(--text-muted);
     font-size: 11px;
+}
+
+/* Without a source the pane's empty state already says what to do; keep the
+   row only when it carries the split-view side label. */
+.fm-source-identity:has(> .fm-source-identity-empty:only-child) {
+    display: none;
 }
 
 .fm-source-identity-name {

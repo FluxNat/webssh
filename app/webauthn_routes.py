@@ -46,7 +46,7 @@ from .auth_assurance import (
     pending_authentication,
     recovery_session_required,
 )
-from .models import User, WebAuthnCredential, db
+from .models import User, WebAuthnCredential, db, utc_isoformat
 from .step_up import (
     SecurityUIUpgradeRequired,
     StepUpError,
@@ -143,12 +143,8 @@ def list_credentials():
         {
             "id": row.id,
             "name": row.name,
-            "created_at": row.created_at.isoformat(),
-            "last_used_at": (
-                row.last_used_at.isoformat()
-                if row.last_used_at
-                else None
-            ),
+            "created_at": utc_isoformat(row.created_at),
+            "last_used_at": utc_isoformat(row.last_used_at),
         }
         for row in rows
     ]})
