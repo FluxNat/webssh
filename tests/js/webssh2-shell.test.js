@@ -2,7 +2,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
-    buildSessionContext
+    buildSessionContext,
+    init
 } = require('../../static/js/webssh2-shell.js');
 
 test('session context is explicit and never invents connection data', () => {
@@ -65,4 +66,47 @@ test('session context accepts localized product copy', () => {
             transport: 'SSH',
         },
     );
+});
+
+function statusDocument() {
+    const ids = [
+        'workspaceStatusBar',
+        'workspaceStatusState',
+        'workspaceStatusTarget',
+        'workspaceStatusTransport',
+        'workspaceStatusTrust',
+        'workspaceStatusPersistence',
+    ];
+    const elements = Object.fromEntries(ids.map(id => [id, {
+        dataset: {},
+        textContent: '',
+        classList: { toggle() {} },
+    }]));
+    return { elements, getElementById: id => elements[id] || null };
+}
+
+test('status bar exposes whether a session is open, connected, or waiting', () => {
+    const documentRef = statusDocument();
+    const sessions = {};
+    let active = null;
+    const shell = init({
+        document: documentRef,
+        translate: () => null,
+        sessionManager: {
+            getActiveSession: () => active,
+            getSession: id => sessions[id],
+        },
+    });
+    const bar = documentRef.elements.workspaceStatusBar;
+
+    assert.equal(bar.dataset.session, 'none');
+
+    sessions.a = { host: 'edge.example', username: 'ops', connected: true };
+    active = 'a';
+    shell.render();
+    assert.equal(bar.dataset.session, 'connected');
+
+    sessions.a.connected = false;
+    shell.render();
+    assert.equal(bar.dataset.session, 'disconnected');
 });

@@ -98,6 +98,15 @@ body {
     position: relative;
     isolation: isolate;
     --theme-background-image: var(--theme-background-image-source);
+    /* Themes set their palette on body, so the surfaces must be resolved here
+       too; the :root copies would otherwise keep the default palette. */
+    --theme-surface-shell: color-mix(in srgb, var(--bg-secondary) 82%, transparent);
+    --theme-surface-modal: color-mix(in srgb, var(--bg-modal) 84%, transparent);
+    --theme-surface-card: color-mix(in srgb, var(--bg-secondary) 80%, transparent);
+    --success-glow: color-mix(in srgb, var(--success-color) 40%, transparent);
+    --warning-glow: color-mix(in srgb, var(--warning-color) 40%, transparent);
+    --error-glow: color-mix(in srgb, var(--error-color) 40%, transparent);
+    --shadow-glow: 0 0 20px var(--accent-primary-glow);
 }
 
 body[data-defer-theme-background]:not([data-theme-background-ready]) {

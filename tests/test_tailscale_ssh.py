@@ -159,6 +159,10 @@ def test_tailscale_ssh_requires_an_explicit_exact_host_and_port(monkeypatch):
     ) == 'Tailscale SSH target is not allowed'
 
 
+@pytest.mark.skipif(
+    not hasattr(socket, 'AF_NETLINK'),
+    reason='Route lookup uses Linux netlink sockets',
+)
 def test_linux_route_lookup_uses_policy_routing_result(monkeypatch):
     from app import tailscale_ssh
 

@@ -88,9 +88,12 @@ def test_legacy_oversized_command_can_shrink_or_be_deleted_but_not_grow(
     with app.app_context():
         path = command_manager.get_user_commands_file(user_id)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
-            json.dumps([_legacy_command('x' * (16 * 1024 + 1))], indent=2),
-            encoding='utf-8',
+        # Bytes, not text: Windows newline translation would inflate the
+        # legacy size the growth check compares against.
+        path.write_bytes(
+            json.dumps(
+                [_legacy_command('x' * (16 * 1024 + 1))], indent=2
+            ).encode('utf-8'),
         )
 
         with pytest.raises(CommandStorageLimitError, match='byte limit'):

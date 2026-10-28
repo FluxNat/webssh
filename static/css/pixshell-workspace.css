@@ -771,6 +771,16 @@ body:has(.workspace) .header::after {
     animation: px-live-pulse 2.6s ease-in-out infinite;
 }
 
+/* With no session open, target, transport, trust and persistence would only
+   repeat placeholders; show the state alone. */
+.workspace-status-bar[data-session="none"] > span:not(.workspace-status-state, .workspace-status-spacer, :last-child) {
+    display: none;
+}
+
+.workspace-status-bar[data-session="none"] > .workspace-status-state {
+    border-right: 0;
+}
+
 /* ------------------------------------------------------------------ */
 /* Motion                                                              */
 /* ------------------------------------------------------------------ */

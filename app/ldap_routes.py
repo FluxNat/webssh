@@ -37,6 +37,7 @@ from .models import (
     OIDCIdentity,
     User,
     db,
+    utc_isoformat,
 )
 
 
@@ -383,10 +384,8 @@ def get_ldap_identity(user_id):
         'id': row.id,
         'provider': row.provider,
         'directory_username': row.directory_username,
-        'created_at': row.created_at.isoformat(),
-        'last_verified_at': (
-            row.last_verified_at.isoformat() if row.last_verified_at else None
-        ),
+        'created_at': utc_isoformat(row.created_at),
+        'last_verified_at': utc_isoformat(row.last_verified_at),
     }})
 
 

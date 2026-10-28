@@ -40,6 +40,7 @@ from .models import (
     User,
     as_naive_utc,
     db,
+    utc_isoformat,
 )
 from .oidc_service import (
     OIDCStateError,
@@ -388,7 +389,7 @@ def oidc_account_status():
         "identities": [{
             "id": row.id,
             "issuer": row.issuer,
-            "created_at": row.created_at.isoformat(),
+            "created_at": utc_isoformat(row.created_at),
         } for row in rows]
     })
 
@@ -781,7 +782,7 @@ def list_oidc_identities(user_id):
             "id": row.id,
             "issuer": row.issuer,
             "subject": row.subject,
-            "created_at": row.created_at.isoformat(),
+            "created_at": utc_isoformat(row.created_at),
         } for row in rows]
     })
 

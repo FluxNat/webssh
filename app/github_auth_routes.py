@@ -37,7 +37,7 @@ from .github_auth_service import (
     github_auth_is_active,
     update_settings,
 )
-from .models import GitHubIdentity, User, db
+from .models import GitHubIdentity, User, db, utc_isoformat
 
 
 github_auth_blueprint = Blueprint('github_auth', __name__)
@@ -364,7 +364,7 @@ def github_account_status():
         'github_user_id': row.github_user_id,
         'login': row.login,
         'display_name': row.display_name,
-        'created_at': row.created_at.isoformat(),
+        'created_at': utc_isoformat(row.created_at),
     }})
 
 

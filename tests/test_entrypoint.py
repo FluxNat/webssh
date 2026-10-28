@@ -6,6 +6,13 @@ import stat
 import subprocess
 import sys
 
+import pytest
+
+
+pytestmark = pytest.mark.skipif(
+    os.name == 'nt',
+    reason='The container entrypoint runs under /bin/bash on Linux images',
+)
 
 ENTRYPOINT = Path(__file__).parents[1] / 'entrypoint.sh'
 
